@@ -1,147 +1,432 @@
-# CLAUDE.md — Projet IA Révision / RAG / Apprentissage Adaptatif
+\# CLAUDE.md
 
-## 1. Objectif du projet
 
-Ce projet vise à construire une application IA capable de :
-- ingérer des textes métier, procédures, documents PDF/DOCX ;
-- générer des questions pertinentes ;
-- corriger les réponses utilisateur ;
-- attribuer un score ;
-- mémoriser les erreurs ;
-- suivre la progression ;
-- intégrer progressivement un RAG avec embeddings ;
-- adapter la pédagogie selon les difficultés observées ;
-- évoluer vers une plateforme d’apprentissage métier intelligente.
 
-Le produit ne doit pas être un simple quiz IA.
-Il doit devenir un système de transmission métier adaptatif.
+\## Runtime Purpose
 
----
 
-## 2. Règle de travail absolue
 
-Ne jamais modifier massivement le projet sans validation.
+This file defines the operational rules Claude Code must follow while working on this repository.
 
-Pour chaque demande :
-1. analyser le besoin ;
-2. identifier les fichiers concernés ;
-3. proposer un plan ;
-4. attendre validation si la modification est importante ;
-5. modifier uniquement ce qui est nécessaire ;
-6. expliquer les changements ;
-7. donner la commande de test.
 
----
 
-## 3. Stack actuelle attendue pour prototype
+Goals:
 
-- Python
-- Streamlit
-- SQLite
-- OpenAI API ou autre API IA
-- python-dotenv
-- pandas
+\- preserve architecture consistency;
 
----
+\- preserve MVP stability;
 
-## 4. Stack cible future
+\- minimize technical debt;
 
-- Frontend : React / Next.js / TailwindCSS
-- Backend : FastAPI
-- Base relationnelle : PostgreSQL
-- Base vectorielle : Qdrant, Milvus ou Weaviate
-- RAG : chunking + embeddings + retrieval + re-ranking
-- Déploiement : Docker
-- Tests : pytest
+\- enforce safe incremental development;
 
----
+\- maintain clear and predictable workflows.
 
-## 5. Fonctionnalités de départ
 
-Le prototype doit permettre :
-- coller un texte ;
-- générer une question ;
-- répondre à la question ;
-- corriger automatiquement ;
-- donner un score ;
-- enregistrer l’historique ;
-- afficher les tentatives passées.
 
----
+\---
 
-## 6. Fonctionnalités à ajouter progressivement
 
-### Phase 1 — Stabilisation
-- refactor du code ;
-- séparation interface / logique métier ;
-- meilleure gestion des erreurs ;
-- README clair ;
-- fichier requirements.txt ;
-- .env.example.
 
-### Phase 2 — Historique avancé
-- type d’erreur ;
-- notion concernée ;
-- temps de réponse ;
-- score moyen ;
-- progression.
+\# Required Reading Order
 
-### Phase 3 — Import documentaire
-- import PDF ;
-- import DOCX ;
-- extraction texte ;
-- nettoyage texte ;
-- stockage documents.
 
-### Phase 4 — RAG
-- découpage intelligent ;
-- embeddings ;
-- base vectorielle ;
-- recherche sémantique ;
-- récupération de passages utiles.
 
-### Phase 5 — Apprentissage adaptatif
-- suivi des formes pédagogiques ;
-- détection des blocages ;
-- reformulation adaptée ;
-- répétition espacée ;
-- révision ciblée.
+Before implementing any modification, always read:
 
-### Phase 6 — Industrialisation
-- multi-utilisateur ;
-- dashboard ;
-- analytics ;
-- sécurité ;
-- monitoring ;
-- Docker ;
-- documentation complète.
 
----
 
-## 7. Principes produit
+1\. TASK\_MASTER.md
 
-Toujours privilégier :
-- simplicité ;
-- robustesse ;
-- progression étape par étape ;
-- lisibilité du code ;
-- logique métier ;
-- données exploitables ;
-- évolutivité.
+2\. ROADMAP.md
 
-Ne pas chercher à tout développer d’un coup.
+3\. PRD.md
 
----
+4\. ARCHITECTURE.md
 
-## 8. Interdictions
+5\. TASKS/current\_tasks.json
 
-Ne jamais :
-- exposer une clé API ;
-- supprimer une fonctionnalité existante sans accord ;
-- refactoriser tout le projet d’un coup ;
-- inventer une dépendance inutile ;
-- créer une architecture trop complexe trop tôt ;
-- faire du diagnostic médical ou psychologique de l’utilisateur.
 
-Le système peut seulement dire :
-“Cette forme pédagogique semble plus efficace pour cet utilisateur.”
+
+Never start implementation without understanding:
+
+\- current milestone;
+
+\- architecture constraints;
+
+\- task dependencies;
+
+\- current priorities.
+
+
+
+\---
+
+
+
+\# Mandatory Workflow
+
+
+
+\## 1. Analyze First
+
+
+
+Before changing code:
+
+\- inspect related files;
+
+\- understand current pipelines;
+
+\- identify dependencies;
+
+\- identify regression risks;
+
+\- identify impacted systems.
+
+
+
+Never assume architecture behavior.
+
+
+
+\---
+
+
+
+\## 2. Plan Before Modify
+
+
+
+Always explain before implementation:
+
+\- impacted files;
+
+\- intended logic;
+
+\- risks;
+
+\- required tests.
+
+
+
+No major modification without explicit validation.
+
+
+
+\---
+
+
+
+\## 3. Safe Implementation Rules
+
+
+
+Rules:
+
+\- minimize modified files;
+
+\- avoid uncontrolled refactors;
+
+\- preserve backward compatibility;
+
+\- preserve fallback behavior;
+
+\- avoid unnecessary abstractions;
+
+\- avoid unnecessary dependencies.
+
+
+
+Prefer:
+
+\- targeted modifications;
+
+\- incremental evolution;
+
+\- explicit logic;
+
+\- reversible changes.
+
+
+
+\---
+
+
+
+\## 4. Mandatory Validation
+
+
+
+Always validate:
+
+\- Python imports;
+
+\- py\_compile;
+
+\- Streamlit startup;
+
+\- SQLite compatibility;
+
+\- retrieval pipeline;
+
+\- fallback mode;
+
+\- non-regression behavior.
+
+
+
+Never assume generated code works.
+
+
+
+\---
+
+
+
+\## 5. Final Response Requirements
+
+
+
+After each implementation:
+
+\- summarize modified files;
+
+\- explain architecture impact;
+
+\- explain added logic;
+
+\- explain remaining risks;
+
+\- recommend next logical step.
+
+
+
+\---
+
+
+
+\# Critical Runtime Rules
+
+
+
+\## Never Break MVP Stability
+
+
+
+The project must always remain:
+
+\- launchable;
+
+\- testable;
+
+\- demonstrable;
+
+\- minimally functional.
+
+
+
+\---
+
+
+
+\## Never Break Fallback Mode
+
+
+
+If:
+
+\- embeddings fail;
+
+\- retrieval fails;
+
+\- APIs fail;
+
+\- RAG systems fail;
+
+
+
+the application must automatically fallback to raw-text mode.
+
+
+
+Fallback stability is mandatory.
+
+
+
+\---
+
+
+
+\## Preserve Stable IDs
+
+
+
+Avoid:
+
+\- DELETE + INSERT workflows.
+
+
+
+Prefer:
+
+\- targeted UPDATE operations.
+
+
+
+Future systems depend on stable identifiers:
+
+\- attempts.chunk\_id;
+
+\- pedagogical memory;
+
+\- analytics;
+
+\- spaced repetition.
+
+
+
+\---
+
+
+
+\## Never Delete Without Explicit Approval
+
+
+
+Never perform without explicit user approval:
+
+\- database reset;
+
+\- mass deletion;
+
+\- document deletion;
+
+\- embedding deletion;
+
+\- history deletion.
+
+
+
+\---
+
+
+
+\# Git Policy
+
+
+
+Commits must be:
+
+\- isolated;
+
+\- descriptive;
+
+\- reversible;
+
+\- logically scoped.
+
+
+
+Commit prefixes:
+
+\- feat:
+
+\- fix:
+
+\- docs:
+
+\- refactor:
+
+\- qa:
+
+
+
+\---
+
+
+
+\# Current Technical Priorities
+
+
+
+Current priorities:
+
+\- governance stabilization;
+
+\- RAG stabilization;
+
+\- pedagogical tracking;
+
+\- architecture consistency.
+
+
+
+Current next milestone:
+
+\- attempts.chunk\_id implementation.
+
+
+
+\---
+
+
+
+\# Explicit Non-Priorities
+
+
+
+Do not introduce yet:
+
+\- complex multi-agent systems;
+
+\- Kubernetes;
+
+\- external vector databases;
+
+\- premature scaling infrastructure;
+
+\- autonomous orchestration systems;
+
+\- unnecessary abstractions;
+
+\- premature microservices.
+
+
+
+SQLite + numpy remain the official MVP solution.
+
+
+
+\---
+
+
+
+\# Engineering Philosophy
+
+
+
+Prefer:
+
+\- clarity over sophistication;
+
+\- robustness over complexity;
+
+\- maintainability over optimization;
+
+\- incremental progress over massive rewrites;
+
+\- explicit architecture over implicit behavior.
+
+
+
+The project is evolving toward:
+
+\- adaptive pedagogical systems;
+
+\- cognitive learning pipelines;
+
+\- intelligent revision workflows;
+
+\- long-term knowledge consolidation.
+

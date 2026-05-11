@@ -1,0 +1,20 @@
+[
+  {
+    "id": "TASK-001",
+    "title": "Ajouter attempts.chunk_id",
+    "status": "PENDING",
+    "priority": "HIGH",
+    "depends_on": [],
+    "description": "Relier chaque tentative utilisateur au chunk source utilisé pour générer la question.",
+    "goal": "Préparer la mémoire pédagogique et la répétition espacée.",
+    "files": [
+      "database.py",
+      "ai_service.py",
+      "document_service.py",
+      "app.py"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": true
+  }
+]
