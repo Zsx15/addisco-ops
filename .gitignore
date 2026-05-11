@@ -1,0 +1,54 @@
+# ── Secrets et configuration locale ──────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.streamlit/secrets.toml
+
+# ── Base de données locale ────────────────────────────────────────────────────
+# Contient les données utilisateur (tentatives, scores, textes, embeddings)
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Environnements virtuels Python ───────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ── Cache Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── IDE et éditeurs ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Streamlit ─────────────────────────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Fichiers de test temporaires (préfixe _test_) ────────────────────────────
+_test_*.py
+_check_*.py
+
+# ── Docker (future stack cible) ───────────────────────────────────────────────
+*.env.docker
