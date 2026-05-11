@@ -2,7 +2,7 @@
   {
     "id": "TASK-001",
     "title": "Ajouter attempts.chunk_id",
-    "status": "PENDING",
+    "status": "DONE",
     "priority": "HIGH",
     "depends_on": [],
     "description": "Relier chaque tentative utilisateur au chunk source utilisé pour générer la question.",
@@ -10,11 +10,12 @@
     "files": [
       "database.py",
       "ai_service.py",
-      "document_service.py",
       "app.py"
     ],
     "tests_required": true,
     "rollback_safe": true,
-    "human_validation_required": true
+    "human_validation_required": true,
+    "completion_notes": "Migration douce ALTER TABLE attempts ADD COLUMN chunk_id INTEGER. generate_question() retourne tuple[str, list[int]]. chunk_id = chunk le plus pertinent (similarité cosinus max) ou NULL si fallback texte brut. 9/9 tests passés. document_service.py non modifié.",
+    "commit_hash": "b622af5"
   }
 ]
