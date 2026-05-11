@@ -21,7 +21,7 @@ init_db()
 st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
 st.title("📚 IA Révision Métier")
 
-for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id"):
+for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "chunk_ids"):
     if key not in st.session_state:
         st.session_state[key] = None
 if "source_text_input" not in st.session_state:
@@ -62,11 +62,12 @@ with tab_train:
     if st.button("Générer une question", disabled=not source_text.strip()):
         with st.spinner("Génération en cours…"):
             try:
-                question = generate_question(
-                                source_text,
-                                document_id=st.session_state.get("active_document_id"),
-                            )
+                question, chunk_ids = generate_question(
+                    source_text,
+                    document_id=st.session_state.get("active_document_id"),
+                )
                 st.session_state["question"] = question
+                st.session_state["chunk_ids"] = chunk_ids
                 st.session_state["source_text"] = source_text
                 st.session_state["start_time"] = time.time()
                 st.session_state["result"] = None
@@ -92,6 +93,7 @@ with tab_train:
                     st.session_state["result"] = result
                     st.session_state["response_time"] = elapsed
 
+                    _chunk_ids = st.session_state.get("chunk_ids") or []
                     save_attempt(
                         question=st.session_state["question"],
                         user_answer=user_answer,
@@ -102,6 +104,7 @@ with tab_train:
                         error_type=result.get("error_type", ""),
                         topic=result.get("topic", ""),
                         document_id=st.session_state.get("active_document_id"),
+                        chunk_id=_chunk_ids[0] if _chunk_ids else None,
                     )
                 except Exception as exc:
                     st.error(f"Erreur lors de la correction : {exc}")
@@ -137,6 +140,7 @@ with tab_train:
         def _reset_question():
             st.session_state["result"] = None
             st.session_state["question"] = None
+            st.session_state["chunk_ids"] = None
             st.session_state["answer_input"] = ""
 
         st.button("Nouvelle question sur ce texte", on_click=_reset_question)

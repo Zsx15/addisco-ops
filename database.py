@@ -57,12 +57,17 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        # Migration douce : ajoute la colonne embedding sur les bases existantes
-        # ALTER TABLE ADD COLUMN échoue si la colonne existe déjà → on ignore l'erreur
+        # Migrations douces : ALTER TABLE ADD COLUMN échoue si la colonne existe → ignoré
         try:
             conn.execute("ALTER TABLE chunks ADD COLUMN embedding BLOB")
         except sqlite3.OperationalError:
-            pass  # colonne déjà présente
+            pass
+        try:
+            conn.execute(
+                "ALTER TABLE attempts ADD COLUMN chunk_id INTEGER REFERENCES chunks(id)"
+            )
+        except sqlite3.OperationalError:
+            pass
 
 
 def save_attempt(
@@ -76,6 +81,7 @@ def save_attempt(
     topic: str = None,
     pedagogy_type: str = None,
     document_id: int = None,
+    chunk_id: int = None,
 ):
     topic = _normalize_topic(topic)
     with sqlite3.connect(DB_PATH) as conn:
@@ -83,11 +89,13 @@ def save_attempt(
             """
             INSERT INTO attempts
                 (question, user_answer, expected_answer, correction, score,
-                 response_time_seconds, error_type, topic, pedagogy_type, document_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 response_time_seconds, error_type, topic, pedagogy_type,
+                 document_id, chunk_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (question, user_answer, expected_answer, correction, score,
-             response_time_seconds, error_type, topic, pedagogy_type, document_id),
+             response_time_seconds, error_type, topic, pedagogy_type,
+             document_id, chunk_id),
         )
 
 

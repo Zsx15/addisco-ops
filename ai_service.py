@@ -63,38 +63,36 @@ def generate_embedding(text: str) -> bytes:
     return struct.pack(f"<{len(vector)}f", *vector)
 
 
-def generate_question(source_text: str, document_id: int | None = None) -> str:
+def generate_question(
+    source_text: str, document_id: int | None = None
+) -> tuple[str, list[int]]:
     """
     Génère une question de compréhension à partir du texte source.
 
-    Chemin fallback (document_id absent, embeddings manquants, ou erreur API) :
-        Le texte brut tronqué à TEXT_MAX_CHARS est envoyé directement au LLM.
-        C'est le comportement historique — aucune régression possible.
+    Retourne un tuple (question, chunk_ids) :
+    - question   : str — la question générée
+    - chunk_ids  : list[int] — IDs des chunks utilisés pour le contexte RAG,
+                   vide [] si fallback texte brut (document_id absent, embeddings
+                   manquants, ou erreur API).
 
-    Chemin retrieval (RAG) :
-        Si document_id est fourni et que des chunks avec embeddings existent,
-        on calcule l'embedding du texte source, on recherche les RAG_TOP_K passages
-        les plus proches dans la base, et on les substitue au texte brut tronqué.
-        Le LLM reçoit ainsi les passages les plus pertinents plutôt qu'une
-        troncature arbitraire des 6 000 premiers caractères.
+    Chemin fallback : texte brut tronqué → LLM. chunk_ids = [].
+    Chemin RAG      : top-k chunks → LLM. chunk_ids contient leurs IDs.
     """
     client = _get_client()
 
     # ── Résolution du contexte ────────────────────────────────────────────────
-    # Par défaut : texte brut tronqué (chemin fallback, comportement actuel)
-    context = _truncate(source_text)
+    context   = _truncate(source_text)
+    chunk_ids: list[int] = []
 
     if document_id is not None:
         try:
-            # Chemin retrieval : embedding de la requête + recherche sémantique
             query_vector = _call_embedding_api(source_text)
             chunks       = search_similar_chunks(query_vector, document_id, top_k=RAG_TOP_K)
             if chunks:
-                # Substitution : les chunks pertinents remplacent le texte tronqué
-                context = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                chunk_ids = [c["id"] for c in chunks]
         except Exception:
-            # Fallback silencieux : erreur API, quota, ou aucun embedding stocké
-            # context reste le texte brut tronqué défini au-dessus
+            # Fallback silencieux — context et chunk_ids restent inchangés
             pass
 
     # ── Appel LLM — prompt identique quel que soit le chemin ────────────────
@@ -117,7 +115,7 @@ def generate_question(source_text: str, document_id: int | None = None) -> str:
         max_tokens=200,
         temperature=0.7,
     )
-    return response.choices[0].message.content.strip()
+    return response.choices[0].message.content.strip(), chunk_ids
 
 
 def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
