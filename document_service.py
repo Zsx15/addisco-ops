@@ -3,7 +3,7 @@ import re
 import unicodedata
 
 from ai_service import generate_embedding
-from database import get_chunks_for_reindex, save_chunks, save_document, update_chunk_embedding
+from database import get_chunks_for_reindex, has_documents, save_chunks, save_document, update_chunk_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -286,3 +286,64 @@ def _create_chunks(
 
     flush()
     return result
+
+
+# ── Seed de démonstration ─────────────────────────────────────────────────────
+
+_DEMO_TITLE = "Procédure d'accueil voyageur — Document de démonstration"
+
+_DEMO_TEXT = """\
+Procédure d'accueil et d'orientation des voyageurs en gare
+Version 3.2 — Usage interne
+
+1. Posture d'accueil et premiers contacts
+
+L'agent en poste est le premier représentant de la compagnie auprès du voyageur. À ce titre, il doit adopter en toutes circonstances une posture professionnelle : tenue réglementaire portée correctement, badge visible, attitude disponible et proactive.
+
+Lors de chaque prise de contact, l'agent doit se présenter et proposer son aide avant d'attendre que le voyageur formule sa demande. Dans les zones de fort flux (hall principal, accès quais), l'agent effectue des rondes actives toutes les quinze minutes et ne reste pas stationnaire plus de cinq minutes consécutives.
+
+Tout voyageur exprimant une difficulté (orientation, billet, accessibilité) doit recevoir une réponse dans un délai maximal de deux minutes. Si l'agent ne dispose pas de la réponse, il oriente le voyageur vers le poste de supervision ou contacte le chef de gare par radio.
+
+2. Gestion des perturbations et information voyageurs
+
+En cas de perturbation (retard supérieur à cinq minutes, suppression de train, incident technique), l'agent doit informer activement les voyageurs présents sur les quais concernés dans un délai de trois minutes suivant la réception de l'alerte. L'information passive (affichage dynamique) ne se substitue pas à l'information active de l'agent.
+
+Le message d'information doit contenir : la nature de la perturbation, l'estimation du délai, les alternatives disponibles (train suivant, correspondance, remboursement). L'agent ne doit jamais communiquer d'estimation de durée qu'il n'est pas en mesure de garantir.
+
+Toute perturbation ayant affecté plus de cinquante voyageurs doit être consignée dans le registre des incidents de quai dans l'heure suivant sa résolution.
+
+3. Assistance aux personnes à mobilité réduite (PMR)
+
+Les voyageurs PMR ayant réservé une assistance doivent être identifiés sur la liste transmise en début de service. L'agent doit prendre contact avec le voyageur PMR au moins dix minutes avant le départ du train.
+
+L'accompagnement PMR est prioritaire sur toute autre mission sauf urgence de sécurité. Si l'agent est seul en poste, il doit prévenir le chef de gare avant de quitter son secteur pour assurer un accompagnement PMR.
+
+En cas d'absence d'un voyageur PMR réservé, l'agent signale l'absence au chef de gare et consigne l'événement dans le registre. Aucun départ ne doit être retardé du fait d'une absence PMR non confirmée au-delà de cinq minutes avant l'heure de départ.
+
+4. Traçabilité et fin de service
+
+À chaque fin de service, l'agent complète le rapport d'activité journalier incluant : nombre d'assistances PMR réalisées, incidents signalés, réclamations reçues et transmises au service client, anomalies de matériel ou d'infrastructure constatées.
+
+Le rapport doit être validé électroniquement avant la sortie du poste. Un rapport non validé déclenche automatiquement une alerte auprès du responsable de service. L'agent ne peut quitter son poste sans avoir validé son rapport ou obtenu une dérogation explicite du chef de gare.
+"""
+
+
+def seed_demo_document() -> None:
+    """
+    Insère le document de démonstration si aucun document n'existe en base.
+    Idempotente : sans effet si au moins un document est déjà présent.
+    Les embeddings sont calculés si l'API key est disponible,
+    sinon stockés NULL (reindex disponible via l'UI).
+    """
+    if has_documents():
+        return
+    try:
+        ingest_document(
+            title=_DEMO_TITLE,
+            source_type="txt",
+            filename="demo_accueil_voyageur.txt",
+            file_bytes=_DEMO_TEXT.encode("utf-8"),
+        )
+        logger.info("Document de démonstration inséré.")
+    except Exception as exc:
+        logger.warning("Seed démo échouée (non bloquant) : %s", exc)

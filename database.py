@@ -243,6 +243,13 @@ def get_chunks_for_reindex(document_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def has_documents() -> bool:
+    """Retourne True si au moins un document existe en base."""
+    with sqlite3.connect(DB_PATH) as conn:
+        count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+    return count > 0
+
+
 def get_documents() -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(

@@ -80,13 +80,28 @@
     "status": "DONE",
     "priority": "HIGH",
     "depends_on": ["TASK-005"],
-    "description": "Ajouter next_review calculé dynamiquement par chunk selon la classe de maîtrise. Affichage Dashboard + priorisation dans la suggestion.",
+    "description": "next_review calculé dynamiquement par chunk selon la classe de maîtrise. Affichage Dashboard + priorisation suggestion.",
     "goal": "Donner une dimension temporelle au moteur pédagogique.",
     "files": ["database.py", "app.py"],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "REVIEW_INTERVALS (1j/3j/7j). get_chunk_stats() +last_attempt_date. classify_mastery() +next_review +days_until_review +review_status. get_revision_suggestion() ORDER BY mis à jour avec datetime SQLite inline. Dashboard +Statut révision +Prochaine révision. Liste priorités +indicateur retard. 6/6 tests helpers OK. py_compile OK. Streamlit OK.",
+    "completion_notes": "REVIEW_INTERVALS (1j/3j/7j). get_chunk_stats() +last_attempt_date. classify_mastery() +next_review +days_until_review +review_status. get_revision_suggestion() ORDER BY mis à jour. 6/6 tests OK.",
+    "commit_hash": "c6424ed"
+  },
+  {
+    "id": "TASK-007",
+    "title": "Contenu de démo préchargé",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-006"],
+    "description": "Seed idempotente au démarrage : document de démonstration SNCF inséré si base vide.",
+    "goal": "Rendre l'application immédiatement démontrable sans import préalable.",
+    "files": ["database.py", "document_service.py", "app.py"],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "has_documents() dans database.py. _DEMO_TEXT (4 sections, ~3200 chars) + seed_demo_document() dans document_service.py. Appel après init_db() dans app.py. Idempotente, non bloquante, 4 chunks créés. 5/5 tests OK. py_compile 3/3 OK.",
     "commit_hash": null
   }
 ]

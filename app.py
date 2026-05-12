@@ -18,9 +18,10 @@ from database import (
     init_db,
     save_attempt,
 )
-from document_service import get_text_preview, ingest_document, reindex_document
+from document_service import get_text_preview, ingest_document, reindex_document, seed_demo_document
 
 init_db()
+seed_demo_document()
 
 st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
 st.title("📚 IA Révision Métier")

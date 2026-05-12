@@ -208,6 +208,40 @@ Format par entrée :
 - git status → 2 fichiers modifiés uniquement ✓
 
 **Prochaine étape :**
-- TASK-007 : contenu de démo préchargé et préparation démonstration SNCF.
+- TASK-007 : contenu de démo préchargé, seed idempotente au démarrage.
+
+---
+
+## 2026-05-12 — TASK-007 : Contenu de démo préchargé
+
+**Milestone :** L'application n'est plus vide au premier lancement — un document de démonstration SNCF est inséré automatiquement et de façon idempotente.
+
+**Actions :**
+- Ajout de `has_documents() -> bool` dans `database.py` : COUNT(*) sur documents, O(1).
+- Ajout import `has_documents` dans `document_service.py`.
+- Ajout de `_DEMO_TITLE`, `_DEMO_TEXT` (~3 200 chars, 4 sections : accueil, perturbations, PMR, traçabilité) et `seed_demo_document()` dans `document_service.py`.
+- `seed_demo_document()` : guard `has_documents()` → idempotente, appel `ingest_document()` avec try/except non bloquant, embeddings tentés si API key présente sinon NULL.
+- Ajout import `seed_demo_document` dans `app.py` + appel après `init_db()`.
+
+**Contenu du document de démo :**
+Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections pédagogiquement riches activant les 6 types de questions (délais, priorités, conditions d'exclusion, traçabilité, PMR). 4 chunks créés au découpage.
+
+**Invariants préservés :**
+- Aucune migration SQLite. Aucune nouvelle dépendance. RAG intact. Embeddings intacts.
+- Seed sans effet si un document existe déjà (idempotente).
+- Startup non bloquant : si seed échoue → logger.warning, app démarre quand même.
+- Toutes les fonctions TASK-001 à TASK-006 non modifiées.
+
+**Validation :**
+- `py_compile database.py / document_service.py / app.py` → OK (3/3)
+- `has_documents()` base vide → False ✓
+- `has_documents()` après seed → True ✓
+- Idempotence (2 appels) → 1 document en base ✓
+- Chunks créés → 4 ✓
+- Streamlit headless port 8506 → démarrage sans erreur ✓
+- git status → 3 fichiers code modifiés uniquement ✓
+
+**Prochaine étape :**
+- TASK-008 : dashboard reformaté pour utilisateur final (labels lisibles, masquage champs techniques).
 
 ---
