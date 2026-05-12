@@ -1,0 +1,30 @@
+{
+  "$schema": "./taskrc.schema.json",
+  "version": "1.0",
+  "docs": {
+    "prd": "PRD.md",
+    "context": "CLAUDE.md"
+  },
+  "git": {
+    "mainBranch": "main",
+    "commitTemplate": "feat(task-{taskId}): {description}",
+    "coAuthor": "Claude <noreply@anthropic.com>"
+  },
+  "review": {
+    "typecheck": "python -m py_compile app.py ai_service.py database.py document_service.py",
+    "lint": "",
+    "format": "",
+    "test": "",
+    "build": ""
+  },
+  "prompt": {
+    "extraInstructions": [
+      "Lire TASK_MASTER.md, ROADMAP.md, PRD.md, ARCHITECTURE.md et TASKS/current_tasks.json avant toute implémentation.",
+      "Ne jamais modifier app.py, ai_service.py, database.py ou document_service.py sans validation explicite.",
+      "Préserver le fallback texte brut en toutes circonstances.",
+      "Préserver les IDs stables : éviter DELETE+INSERT sur attempts et chunks.",
+      "Valider avec py_compile après chaque modification Python.",
+      "Aucun commit sans GO explicite de l'utilisateur."
+    ]
+  }
+}

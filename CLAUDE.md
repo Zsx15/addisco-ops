@@ -430,3 +430,91 @@ The project is evolving toward:
 
 \- long-term knowledge consolidation.
 
+
+
+\---
+
+
+
+\# APP FACTORY + DEVLOG POLICY
+
+
+
+\## App Factory role
+
+
+
+App Factory is a task orchestration layer only.
+
+It does not change the stack, the architecture, or the business logic.
+
+
+
+Files added by App Factory:
+
+\- task.mjs — orchestration CLI;
+
+\- taskrc.schema.json — config schema;
+
+\- .taskrc.json — project config (Python/Streamlit, py\_compile review);
+
+\- DEVLOG.md — chronological development journal.
+
+
+
+\## Workflow
+
+
+
+Use App Factory commands via Node:
+
+\- node task.mjs brief — daily briefing;
+
+\- node task.mjs status — project overview;
+
+\- node task.mjs review \<id\> — run py\_compile on core files;
+
+\- node task.mjs prompt \<id\> — generate Claude Code prompt;
+
+\- node task.mjs claim \<id\> — mark task in-progress;
+
+\- node task.mjs ship \<id\> — stage + commit;
+
+\- node task.mjs done \<id\> — mark done.
+
+
+
+\## DEVLOG policy
+
+
+
+After each significant task or milestone:
+
+\- add a dated entry to DEVLOG.md;
+
+\- record actions, decisions, and invariants preserved;
+
+\- record next step.
+
+
+
+Never skip DEVLOG update after a completed task.
+
+
+
+\## Constraints
+
+
+
+App Factory constraints:
+
+\- never replaces existing governance files;
+
+\- never modifies business logic;
+
+\- never breaks MVP stability;
+
+\- never breaks fallback mode;
+
+\- py\_compile is the mandatory minimum review for any Python change.
+
