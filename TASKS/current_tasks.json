@@ -133,5 +133,20 @@
     "human_validation_required": false,
     "completion_notes": "_SECTION_RE (numérotés + markdown, max 120 chars) + _detect_section_title() + current_section dans _create_chunks(). flush() + hard-split héritent du section courant. 8/8 tests OK. py_compile OK. Streamlit port 8508 OK. Chunks existants non modifiés (pas de re-seed).",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-010",
+    "title": "Guide de démo + README utilisateur",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-009"],
+    "description": "README réécrit (état réel du projet) + DEMO.md (scénario jury 7 étapes avec script de parole).",
+    "goal": "Rendre le projet présentable à un jury SNCF et installable par un tiers sans accompagnement.",
+    "files": ["README.md", "DEMO.md"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "README : description, install, API key + fallback, architecture réelle, stack. DEMO.md : 7 étapes ordonnées, actions + script jury + tableau points clés. Aucun code modifié.",
+    "commit_hash": null
   }
 ]

@@ -307,3 +307,19 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - TASK-010 : guide de démo + README utilisateur.
 
 ---
+
+## 2026-05-12 — TASK-010 : Guide de démo + README utilisateur
+
+**Milestone :** Rendre le projet présentable à un jury SNCF et installable par un tiers sans accompagnement.
+
+**Actions :**
+- `README.md` réécrit intégralement : description réelle du projet, prérequis, installation, configuration API key + fallback explicité, lancement, architecture réelle (5 fichiers), stack technique, commande de réinitialisation de la base.
+- `DEMO.md` créé : scénario 7 étapes ordonnées (Documents → Entraînement → correction → Dashboard → suggestion → boucle fermée → fallback optionnel), actions claires + script de parole jury, tableau récapitulatif des points clés, conseil de préparation préalable.
+
+**Invariants préservés :**
+- Aucune modification de code. Aucun changement de schéma. Pipeline intact.
+
+**Prochaine étape :**
+- À définir selon priorités : reset démo avec vrais titres de section, amélioration RAG, ou nouvelle fonctionnalité pédagogique.
+
+---
