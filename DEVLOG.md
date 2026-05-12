@@ -410,3 +410,31 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - À définir.
 
 ---
+
+## 2026-05-12 — TASK-014 : Dashboard pédagogique visuel moderne
+
+**Milestone :** FRONTEND/UX — refonte visuelle complète du Dashboard pour démonstration jury.
+
+**Actions :**
+- Ajout `import pandas as pd` (nécessaire pour `pd.concat` dans les cartes section).
+- Zone 1 — KPIs enrichis : remplacement "Meilleure notion / Notion fragile" par "Sections maîtrisées X/N" et "Révisions en retard N".
+- Zone 2 — Card révision prioritaire : `st.container(border=True)` mettant en avant la section la plus urgente (Fragile → En consolidation), immédiatement visible en haut du Dashboard.
+- Zone 3 — Cartes de section : remplacement du dataframe 9 colonnes + liste st.error/warning par des cartes visuelles avec badge couleur (🔴/🟡/🟢), `st.progress()` (barre de score), tentatives et statut révision.
+- Zone 4 — Graphiques conservés : évolution des scores, score par notion, types d'erreurs. Supprimés : "Notions fragiles" (redondant) et "Tentatives par notion" (faible valeur).
+- Zone 5 — Bloc IA adaptative : `st.info()` texte fixe explicitant le mécanisme de biais pédagogique au jury.
+- Zone 6 — Export : bouton de téléchargement conservé.
+
+**Fichiers modifiés :** `app.py` uniquement (FRONTEND/UX pur).
+
+**Invariants préservés :**
+- Aucune modification du moteur critique. Aucune nouvelle requête DB. Données réutilisées depuis `df_all`, `df_topics`, `df_chunks`.
+- `classify_mastery()` déplacée avant les métriques (reorder, pas de changement logique).
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit headless port 8511 → démarrage sans erreur (HTTP 200).
+
+**Prochaine étape :**
+- À définir.
+
+---

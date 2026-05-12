@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
@@ -373,7 +374,7 @@ with tab_history:
 # ── Onglet Dashboard ─────────────────────────────────────────────────────────
 
 with tab_dashboard:
-    st.subheader("Dashboard — Axes de progression")
+    st.subheader("Tableau de bord pédagogique")
 
     df_all = get_attempts()
 
@@ -381,21 +382,77 @@ with tab_dashboard:
         st.info("Effectuez au moins 2 tentatives pour afficher le dashboard.")
     else:
         df_topics = get_topic_stats()
+        df_chunks = classify_mastery(get_chunk_stats())
 
-        # ── Métriques globales ────────────────────────────────────────────────
+        # ── Zone 1 : KPIs enrichis ────────────────────────────────────────────
         scores_all = df_all["score"].dropna()
-        worst_topic = df_topics.iloc[0]["topic"] if not df_topics.empty else "—"
-        best_topic  = df_topics.iloc[-1]["topic"] if not df_topics.empty else "—"
+        n_sections = len(df_chunks)
+        n_mastered = int((df_chunks["mastery_class"] == "Maîtrisé").sum()) if not df_chunks.empty else 0
+        n_retard   = int((df_chunks["review_status"] == "En retard").sum()) if not df_chunks.empty and "review_status" in df_chunks.columns else 0
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Tentatives totales", len(df_all))
-        c2.metric("Score moyen global", f"{round(scores_all.mean() * 100)} %" if len(scores_all) else "—")
-        c3.metric("Meilleure notion", best_topic)
-        c4.metric("Notion la plus fragile", worst_topic)
+        c1.metric("Tentatives", len(df_all))
+        c2.metric("Score moyen", f"{round(scores_all.mean() * 100)} %" if len(scores_all) else "—")
+        c3.metric("Sections maîtrisées", f"{n_mastered} / {n_sections}" if n_sections else "—")
+        c4.metric("Révisions en retard", n_retard if n_sections else "—")
+
+        # ── Zone 2 : Révision prioritaire ────────────────────────────────────
+        if not df_chunks.empty:
+            _prio_fragile = df_chunks[df_chunks["mastery_class"] == "Fragile"].sort_values("avg_score")
+            _prio_consol  = df_chunks[df_chunks["mastery_class"] == "En consolidation"].sort_values("avg_score")
+            _prio_row     = _prio_fragile.iloc[0] if not _prio_fragile.empty else (
+                            _prio_consol.iloc[0]  if not _prio_consol.empty  else None)
+
+            if _prio_row is not None:
+                st.divider()
+                _pct    = round(float(_prio_row["avg_score"]) * 100)
+                _n      = int(_prio_row["attempts_count"])
+                _status = _prio_row.get("review_status", "—")
+                _retard = "⚠ En retard" if _status == "En retard" else _status
+                with st.container(border=True):
+                    st.markdown("🔴 **Révision prioritaire**")
+                    st.markdown(
+                        f"**{_prio_row['section_label']}** · _{_prio_row['document_title']}_  \n"
+                        f"Score : **{_pct} %** · {_n} tentative{'s' if _n > 1 else ''} · {_retard}"
+                    )
 
         st.divider()
 
-        # ── Évolution des scores ──────────────────────────────────────────────
+        # ── Zone 3 : Cartes de section ────────────────────────────────────────
+        st.markdown("#### Progression par section")
+        if not df_chunks.empty:
+            _BADGE = {
+                "Fragile":          ("🔴", "FRAGILE"),
+                "En consolidation": ("🟡", "EN CONSOLIDATION"),
+                "Maîtrisé":         ("🟢", "MAÎTRISÉ"),
+            }
+            df_ordered = pd.concat([
+                df_chunks[df_chunks["mastery_class"] == "Fragile"].sort_values("avg_score"),
+                df_chunks[df_chunks["mastery_class"] == "En consolidation"].sort_values("avg_score"),
+                df_chunks[df_chunks["mastery_class"] == "Maîtrisé"],
+            ])
+            _ncols = min(len(df_ordered), 3)
+            _card_cols = st.columns(_ncols)
+            for i, (_, r) in enumerate(df_ordered.iterrows()):
+                _icon, _badge = _BADGE.get(r["mastery_class"], ("⚪", r["mastery_class"].upper()))
+                _pct  = round(float(r["avg_score"]) * 100)
+                _n    = int(r["attempts_count"])
+                _st   = r.get("review_status", "—")
+                with _card_cols[i % _ncols]:
+                    with st.container(border=True):
+                        st.markdown(f"{_icon} **{_badge}**")
+                        st.markdown(f"**{r['section_label']}**")
+                        st.progress(min(float(r["avg_score"]), 1.0), text=f"{_pct} %")
+                        st.caption(f"{_n} tentative{'s' if _n > 1 else ''} · {_st}")
+        else:
+            st.info(
+                "Aucune donnée par section disponible. "
+                "Effectuez des tentatives en mode RAG (document importé avec embeddings)."
+            )
+
+        st.divider()
+
+        # ── Zone 4a : Évolution des scores ────────────────────────────────────
         st.markdown("#### Évolution des scores")
         df_evol = get_score_evolution(limit=20)
         if not df_evol.empty:
@@ -409,7 +466,7 @@ with tab_dashboard:
 
         col_left, col_right = st.columns(2)
 
-        # ── Score moyen par notion ────────────────────────────────────────────
+        # ── Zone 4b : Score moyen par notion ──────────────────────────────────
         with col_left:
             st.markdown("#### Score moyen par notion")
             if not df_topics.empty:
@@ -451,7 +508,7 @@ with tab_dashboard:
             else:
                 st.info("Pas encore de données par notion.")
 
-        # ── Types d'erreurs ───────────────────────────────────────────────────
+        # ── Zone 4c : Types d'erreurs ─────────────────────────────────────────
         with col_right:
             st.markdown("#### Types d'erreurs fréquents")
             df_errors = get_error_frequency()
@@ -488,132 +545,26 @@ with tab_dashboard:
 
         st.divider()
 
-        # ── Notions fragiles ──────────────────────────────────────────────────
-        st.markdown("#### Notions fragiles — score moyen < 60 %")
-        if not df_topics.empty:
-            fragile = df_topics[df_topics["avg_score"] < 0.6]
-            if fragile.empty:
-                st.success("Aucune notion fragile détectée — bon travail !")
-            else:
-                for _, r in fragile.iterrows():
-                    pct = round(float(r["avg_score"]) * 100)
-                    n = int(r["attempts"])
-                    st.error(
-                        f"**{r['topic']}** — Score moyen : {pct} %  "
-                        f"({n} tentative{'s' if n > 1 else ''})"
-                    )
-        else:
-            st.info("Pas encore assez de données par notion.")
+        # ── Zone 5 : Moteur adaptatif ─────────────────────────────────────────
+        st.info(
+            "**Moteur adaptatif actif** — Les types de questions (directe, cas pratique, "
+            "reformulation, conséquence, vrai/faux, piège) sont sélectionnés automatiquement "
+            "selon le niveau de maîtrise de chaque section. Les sections **Fragile** reçoivent "
+            "prioritairement des questions de reformulation et de conséquence. "
+            "Les sections **Maîtrisées** reçoivent des questions pièges et des cas pratiques."
+        )
 
         st.divider()
 
-        # ── Nombre de tentatives par notion ──────────────────────────────────
-        st.markdown("#### Tentatives par notion")
-        if not df_topics.empty:
-            df_tc = df_topics.copy()
-            df_tc["label"] = df_tc["topic"].apply(_truncate_label)
-            fig = px.bar(
-                df_tc.sort_values("attempts"),
-                x="attempts",
-                y="label",
-                orientation="h",
-                color_discrete_sequence=["#9b59b6"],
-                custom_data=["topic"],
-                height=max(260, len(df_tc) * 52),
-            )
-            fig.update_traces(
-                hovertemplate=(
-                    "<b>%{customdata[0]}</b><br>"
-                    "Tentatives : %{x:.0f}"
-                    "<extra></extra>"
-                )
-            )
-            fig.update_layout(
-                showlegend=False,
-                xaxis=dict(title="Tentatives", dtick=1),
-                yaxis=dict(title=""),
-                margin=dict(l=10, r=10, t=10, b=10),
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.divider()
-
-        # ── Analytics par chunk ───────────────────────────────────────────────
-        st.markdown("#### Progression par section")
-        df_chunks = classify_mastery(get_chunk_stats())
-        if df_chunks.empty:
-            st.info(
-                "Aucune donnée par chunk disponible. "
-                "Effectuez des tentatives en mode RAG (document importé avec embeddings)."
-            )
-        else:
-            # Tableau enrichi
-            df_display = df_chunks[
-                ["document_title", "section_label", "avg_score", "attempts_count",
-                 "mastery_class", "trend", "dominant_error_type",
-                 "next_review", "review_status"]
-            ].copy()
-            df_display["Score moyen (%)"] = (df_display["avg_score"] * 100).round().astype(int)
-            df_display["Erreur dominante"] = df_display["dominant_error_type"].map(
-                lambda x: _ERROR_LABELS.get(x, x) if x else "—"
-            )
-            df_display["Prochaine révision"] = df_display["next_review"].apply(
-                lambda dt: dt.strftime("%d/%m/%Y") if dt is not None else "—"
-            )
-            df_display = df_display.rename(columns={
-                "document_title": "Document",
-                "section_label":  "Section",
-                "attempts_count": "Tentatives",
-                "mastery_class":  "Maîtrise",
-                "trend":          "Tendance",
-                "review_status":  "Statut révision",
-            })[["Document", "Section", "Score moyen (%)", "Tentatives",
-                "Maîtrise", "Tendance", "Statut révision", "Prochaine révision", "Erreur dominante"]]
-            st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-            # Priorités de révision
-            st.markdown("**Priorités de révision :**")
-            fragile  = df_chunks[df_chunks["mastery_class"] == "Fragile"].sort_values("avg_score")
-            consol   = df_chunks[df_chunks["mastery_class"] == "En consolidation"].sort_values("attempts_count")
-            mastered = df_chunks[df_chunks["mastery_class"] == "Maîtrisé"]
-
-            if fragile.empty and consol.empty:
-                st.success("Toutes les sections sont maîtrisées — bon travail !")
-            else:
-                for _, r in fragile.iterrows():
-                    pct    = round(float(r["avg_score"]) * 100)
-                    n      = int(r["attempts_count"])
-                    status = r.get("review_status", "—")
-                    retard = " · ⚠ Révision en retard" if status == "En retard" else f" · {status}"
-                    st.error(
-                        f"**{r['section_label']}** ({r['document_title']}) "
-                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}{retard}"
-                    )
-                for _, r in consol.iterrows():
-                    pct    = round(float(r["avg_score"]) * 100)
-                    n      = int(r["attempts_count"])
-                    status = r.get("review_status", "—")
-                    retard = " · ⚠ Révision en retard" if status == "En retard" else f" · {status}"
-                    st.warning(
-                        f"**{r['section_label']}** ({r['document_title']}) "
-                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}{retard}"
-                    )
-                if not mastered.empty:
-                    n_ok = len(mastered)
-                    st.caption(
-                        f"✅ {n_ok} section{'s' if n_ok > 1 else ''} "
-                        f"maîtrisée{'s' if n_ok > 1 else ''}."
-                    )
-
-            st.divider()
-            _report_txt = _build_report(df_all, df_topics, df_chunks)
-            _fname = f"rapport_progression_{datetime.now().strftime('%Y%m%d')}.txt"
-            st.download_button(
-                "Télécharger le rapport de progression",
-                data=_report_txt.encode("utf-8"),
-                file_name=_fname,
-                mime="text/plain",
-            )
+        # ── Zone 6 : Export ───────────────────────────────────────────────────
+        _report_txt = _build_report(df_all, df_topics, df_chunks)
+        _fname = f"rapport_progression_{datetime.now().strftime('%Y%m%d')}.txt"
+        st.download_button(
+            "Télécharger le rapport de progression",
+            data=_report_txt.encode("utf-8"),
+            file_name=_fname,
+            mime="text/plain",
+        )
 
 
 # ── Onglet Documents ─────────────────────────────────────────────────────────

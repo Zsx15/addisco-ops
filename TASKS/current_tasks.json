@@ -193,5 +193,20 @@
     "human_validation_required": false,
     "completion_notes": "_build_report(df_all, df_topics, df_chunks) → str texte brut 60 cols. st.download_button rapport_progression_YYYYMMDD.txt. Corrections 'chunk' → 'section' (maîtrisée féminin). py_compile OK. Streamlit port 8509 OK.",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-014",
+    "title": "Dashboard pédagogique visuel moderne",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-013"],
+    "description": "FRONTEND/UX — Refonte visuelle complète du Dashboard : cartes de section avec barres de progression, card révision prioritaire, KPIs enrichis, bloc moteur adaptatif, suppression des sections redondantes.",
+    "goal": "Rendre l'intelligence pédagogique du moteur immédiatement visible en moins de 2 minutes pour un cadre ou un jury.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "import pandas. Zone 1 : KPIs (tentatives, score, sections maîtrisées X/N, révisions en retard). Zone 2 : card prioritaire st.container(border=True). Zone 3 : cartes section st.progress + badge couleur. Zone 4 : graphiques conservés. Zone 5 : bloc IA adaptative st.info. Zone 6 : export. Supprimé : 'Notions fragiles', 'Tentatives par notion', dataframe 9 cols, liste st.error/warning. py_compile OK. Streamlit port 8511 OK.",
+    "commit_hash": null
   }
 ]
