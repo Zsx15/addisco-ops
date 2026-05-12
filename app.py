@@ -6,6 +6,7 @@ import streamlit as st
 from ai_service import correct_answer, generate_question
 from database import (
     get_attempts,
+    get_chunk_stats,
     get_document_by_id,
     get_documents,
     get_error_frequency,
@@ -386,6 +387,46 @@ with tab_dashboard:
                 margin=dict(l=10, r=10, t=10, b=10),
             )
             st.plotly_chart(fig, use_container_width=True)
+
+        st.divider()
+
+        # ── Analytics par chunk ───────────────────────────────────────────────
+        st.markdown("#### Analytics par chunk")
+        df_chunks = get_chunk_stats()
+        if df_chunks.empty:
+            st.info(
+                "Aucune donnée par chunk disponible. "
+                "Effectuez des tentatives en mode RAG (document importé avec embeddings)."
+            )
+        else:
+            df_display = df_chunks[
+                ["document_title", "section_label", "avg_score", "attempts_count", "dominant_error_type"]
+            ].copy()
+            df_display["Score moyen (%)"] = (df_display["avg_score"] * 100).round().astype(int)
+            df_display["Niveau"] = df_display["avg_score"].apply(
+                lambda s: "Bon" if s >= 0.8 else ("Moyen" if s >= 0.5 else "Fragile")
+            )
+            df_display["Erreur dominante"] = df_display["dominant_error_type"].map(
+                lambda x: _ERROR_LABELS.get(x, x) if x else "—"
+            )
+            df_display = df_display.rename(columns={
+                "document_title": "Document",
+                "section_label":  "Section",
+                "attempts_count": "Tentatives",
+            })[["Document", "Section", "Score moyen (%)", "Tentatives", "Niveau", "Erreur dominante"]]
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+            fragile_chunks = df_chunks[df_chunks["avg_score"] < 0.6]
+            if not fragile_chunks.empty:
+                st.markdown("**Chunks fragiles (score < 60 %) :**")
+                for _, r in fragile_chunks.iterrows():
+                    pct = round(float(r["avg_score"]) * 100)
+                    n   = int(r["attempts_count"])
+                    st.error(
+                        f"**{r['section_label']}** ({r['document_title']}) "
+                        f"— Score moyen : {pct} %  "
+                        f"({n} tentative{'s' if n > 1 else ''})"
+                    )
 
 
 # ── Onglet Documents ─────────────────────────────────────────────────────────

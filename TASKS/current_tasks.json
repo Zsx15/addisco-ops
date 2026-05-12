@@ -17,5 +17,23 @@
     "human_validation_required": true,
     "completion_notes": "Migration douce ALTER TABLE attempts ADD COLUMN chunk_id INTEGER. generate_question() retourne tuple[str, list[int]]. chunk_id = chunk le plus pertinent (similarité cosinus max) ou NULL si fallback texte brut. 9/9 tests passés. document_service.py non modifié.",
     "commit_hash": "b622af5"
+  },
+  {
+    "id": "TASK-002",
+    "title": "Analytics pédagogiques par chunk",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-001"],
+    "description": "Exploiter attempts.chunk_id pour produire des analytics de progression par chunk source dans le Dashboard.",
+    "goal": "Identifier les chunks fragiles et préparer la mémoire pédagogique.",
+    "files": [
+      "database.py",
+      "app.py"
+    ],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "Ajout get_chunk_stats() dans database.py : JOIN attempts→chunks→documents, GROUP BY chunk_id, COALESCE section_title, sous-requête corr. pour erreur dominante. Section Dashboard conditionnelle avec st.dataframe + chunks fragiles < 60 %. py_compile OK. ai_service.py / document_service.py / pipeline RAG non modifiés.",
+    "commit_hash": null
   }
 ]

@@ -255,6 +255,44 @@ def get_documents() -> pd.DataFrame:
     return df
 
 
+def get_chunk_stats() -> pd.DataFrame:
+    """
+    Agrège les tentatives par chunk source (chunk_id IS NOT NULL = mode RAG uniquement).
+    Retourne un DataFrame trié par avg_score ASC (chunks les plus fragiles en premier).
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT
+                a.chunk_id,
+                COALESCE(c.section_title, 'Chunk #' || c.chunk_index) AS section_label,
+                d.title  AS document_title,
+                ROUND(AVG(a.score), 2) AS avg_score,
+                COUNT(*)               AS attempts_count,
+                (
+                    SELECT a2.error_type
+                    FROM attempts a2
+                    WHERE a2.chunk_id = a.chunk_id
+                      AND a2.error_type IS NOT NULL
+                      AND a2.error_type != ''
+                      AND a2.error_type != 'correct'
+                    GROUP BY a2.error_type
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 1
+                ) AS dominant_error_type
+            FROM attempts a
+            JOIN chunks    c ON a.chunk_id     = c.id
+            JOIN documents d ON c.document_id  = d.id
+            WHERE a.chunk_id IS NOT NULL
+              AND a.score    IS NOT NULL
+            GROUP BY a.chunk_id
+            ORDER BY avg_score ASC
+            """,
+            conn,
+        )
+    return df
+
+
 def get_document_by_id(doc_id: int) -> dict | None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
