@@ -6,7 +6,7 @@ import struct
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from database import get_chunk_question_history, search_similar_chunks
+from database import get_chunk_mastery, get_chunk_question_history, search_similar_chunks
 
 load_dotenv()
 
@@ -29,6 +29,14 @@ QUESTION_TYPES = [
     "reformulation",
     "consequence",
 ]
+
+# Types favorisés par classe de maîtrise.
+# Fragile  → compréhension et reformulation avant tout.
+# Maîtrisé → challenge et application en situation complexe.
+_MASTERY_BIAS: dict[str, list[str]] = {
+    "Fragile":  ["reformulation", "consequence", "cas_pratique"],
+    "Maîtrisé": ["question_piege", "cas_pratique", "consequence"],
+}
 
 _TYPE_PROMPTS = {
     "question_directe": (
@@ -57,18 +65,23 @@ _TYPE_PROMPTS = {
 }
 
 
-def _choose_question_type(used_types: list[str]) -> str:
+def _choose_question_type(
+    used_types: list[str], mastery_class: str | None = None
+) -> str:
     """
     Choisit le type de question le moins utilisé pour ce chunk.
-    En cas d'égalité, sélection aléatoire parmi les candidats.
-    Si aucun historique, sélection aléatoire parmi tous les types.
+    Si mastery_class est fourni, applique un biais pédagogique parmi les candidats
+    équitables. Si le biais ne recoupe aucun candidat, rotation standard (pas de régression).
     """
     if not used_types:
-        return random.choice(QUESTION_TYPES)
-    counts = {t: used_types.count(t) for t in QUESTION_TYPES}
+        bias = _MASTERY_BIAS.get(mastery_class or "", [])
+        return random.choice(bias if bias else QUESTION_TYPES)
+    counts    = {t: used_types.count(t) for t in QUESTION_TYPES}
     min_count = min(counts.values())
     candidates = [t for t, c in counts.items() if c == min_count]
-    return random.choice(candidates)
+    bias = _MASTERY_BIAS.get(mastery_class or "", [])
+    biased = [t for t in bias if t in candidates]
+    return random.choice(biased if biased else candidates)
 
 
 def _get_client() -> OpenAI:
@@ -148,14 +161,19 @@ def generate_question(
 
     # ── Choix du type pédagogique ─────────────────────────────────────────────
     history: list[dict] = []
+    mastery_class: str | None = None
     if chunk_ids:
         try:
             history = get_chunk_question_history(chunk_ids[0], limit=5)
         except Exception:
             pass
+        try:
+            mastery_class = get_chunk_mastery(chunk_ids[0])
+        except Exception:
+            pass
 
-    used_types       = [h["question_type"] for h in history if h.get("question_type")]
-    question_type    = _choose_question_type(used_types)
+    used_types    = [h["question_type"] for h in history if h.get("question_type")]
+    question_type = _choose_question_type(used_types, mastery_class=mastery_class)
     type_instruction = _TYPE_PROMPTS[question_type]
 
     # Instructions anti-doublon : 2 dernières questions de ce chunk

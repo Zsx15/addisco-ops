@@ -148,5 +148,20 @@
     "human_validation_required": false,
     "completion_notes": "README : description, install, API key + fallback, architecture réelle, stack. DEMO.md : 7 étapes ordonnées, actions + script jury + tableau points clés. Aucun code modifié.",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-011",
+    "title": "Adaptation pédagogique par niveau de maîtrise",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-010"],
+    "description": "Biaiser le choix du type de question selon la classe de maîtrise du chunk (Fragile → reformulation/consequence/cas_pratique, Maîtrisé → question_piège/cas_pratique/consequence).",
+    "goal": "Phase 8 MVP : adapter la pédagogie au niveau réel de l'agent, pas seulement à la rotation.",
+    "files": ["database.py", "ai_service.py"],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "get_chunk_mastery() dans database.py. _MASTERY_BIAS + _choose_question_type(mastery_class) + lookup dans generate_question() dans ai_service.py. Biais appliqué sur candidats équitables, fallback rotation si saturation. 9/9 tests OK. py_compile OK. Streamlit OK.",
+    "commit_hash": null
   }
 ]

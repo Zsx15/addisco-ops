@@ -323,3 +323,36 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - À définir selon priorités : reset démo avec vrais titres de section, amélioration RAG, ou nouvelle fonctionnalité pédagogique.
 
 ---
+
+## 2026-05-12 — TASK-011 : Adaptation pédagogique par niveau de maîtrise
+
+**Milestone :** Le moteur de questions adapte le type pédagogique au niveau de maîtrise de la section, pas seulement à l'historique de rotation.
+
+**Actions :**
+- Ajout de `get_chunk_mastery(chunk_id) -> str | None` dans `database.py` : requête `AVG(score), COUNT(*)` ciblée, retourne Fragile / En consolidation / Maîtrisé ou None. Mêmes règles que `classify_mastery()`.
+- Ajout de `_MASTERY_BIAS` dans `ai_service.py` : dict Fragile → [reformulation, consequence, cas_pratique] / Maîtrisé → [question_piege, cas_pratique, consequence].
+- Modification de `_choose_question_type(used_types, mastery_class=None)` : le biais est appliqué sur les candidats équitables (intersection). Si le biais ne recoupe aucun candidat équitable, rotation standard — aucune régression possible.
+- Modification de `generate_question()` : lookup `get_chunk_mastery(chunk_ids[0])` après retrieval RAG, passé à `_choose_question_type`. Protégé par try/except — non bloquant.
+- Import de `get_chunk_mastery` ajouté dans `ai_service.py`.
+
+**Comportement sur la démo :**
+- Section Posture (Fragile) : reformulation, consequence, cas_pratique favorisés.
+- Sections Perturbations / PMR (En consolidation) : rotation équitable inchangée.
+- Section Traçabilité (Maîtrisé) : question_piege, cas_pratique, consequence favorisés.
+- Fallback texte brut (chunk_ids=[]) : mastery=None → rotation équitable inchangée.
+
+**Invariants préservés :**
+- Aucune migration SQLite. Aucune nouvelle dépendance. RAG intact. Embeddings intacts. Fallback intact.
+- Signature de `generate_question()` inchangée (tuple[str, list[int], str]).
+- `correct_answer()` non modifié. `app.py` non modifié.
+
+**Validation :**
+- `py_compile database.py / ai_service.py` → OK
+- 9/9 tests OK : biais Fragile/Maîtrisé, saturation → fallback, En consolidation libre, get_chunk_mastery (None / Fragile / Maîtrisé).
+- Streamlit headless port 8511 → démarrage sans erreur.
+- git status → 2 fichiers code modifiés uniquement.
+
+**Prochaine étape :**
+- À définir.
+
+---

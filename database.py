@@ -407,6 +407,30 @@ def get_chunk_question_history(chunk_id: int, limit: int = 5) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def get_chunk_mastery(chunk_id: int) -> str | None:
+    """
+    Retourne la classe de maîtrise d'un chunk (Fragile / En consolidation / Maîtrisé)
+    ou None si pas assez de données. Même règles que classify_mastery().
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT ROUND(AVG(score), 2), COUNT(*)
+            FROM attempts
+            WHERE chunk_id = ? AND score IS NOT NULL
+            """,
+            (chunk_id,),
+        ).fetchone()
+    if not row or row[1] < 1:
+        return None
+    avg, n = row
+    if avg < 0.6:
+        return "Fragile"
+    if avg >= 0.8 and n >= 3:
+        return "Maîtrisé"
+    return "En consolidation"
+
+
 def get_revision_suggestion() -> dict | None:
     """
     Retourne le chunk le plus prioritaire à réviser, ou None si aucun chunk éligible.
