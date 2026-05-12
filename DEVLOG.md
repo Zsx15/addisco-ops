@@ -356,3 +356,30 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - À définir.
 
 ---
+
+## 2026-05-12 — TASK-012 : Sélecteur de document inline dans l'onglet Entraînement
+
+**Milestone :** FRONTEND/UX — éliminer la navigation entre onglets pour sélectionner un document.
+
+**Actions :**
+- Ajout d'un `st.selectbox` "Document de travail" dans l'onglet Entraînement, avant la zone de texte source. Options : "— Texte libre (sans RAG)" + liste des documents importés.
+- Sur changement de sélection : charge `cleaned_text` + met à jour `active_document_id`, `active_document_title`, `source_text_input` en session_state, réinitialise question et résultat, appelle `st.rerun()`.
+- Le sélecteur se pré-positionne sur le document actif (lecture de `active_document_id`). Si le document actif est changé via la suggestion de révision (`_make_use_callback`), le sélecteur se resynchronise au prochain rerun.
+- Correction du libellé `"Réviser ce chunk →"` → `"Réviser cette section →"` (oubli TASK-008).
+
+**Fichiers modifiés :** `app.py` uniquement (FRONTEND/UX pur).
+
+**Invariants préservés :**
+- Aucune modification du moteur critique. RAG, embeddings, scoring, répétition espacée intacts.
+- Onglet Documents inchangé. `_make_use_callback` inchangé.
+- Si aucun document en base : sélecteur masqué, comportement identique à l'existant.
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit headless port 8512 → démarrage sans erreur.
+- git status → 1 fichier modifié uniquement.
+
+**Prochaine étape :**
+- À définir.
+
+---

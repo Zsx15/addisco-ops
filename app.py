@@ -83,7 +83,7 @@ with tab_train:
         c2.metric("Score", f"{round(float(suggestion['avg_score']) * 100)} %")
         c3.metric("Tentatives", int(suggestion["attempts_count"]))
         c4.button(
-            "Réviser ce chunk →",
+            "Réviser cette section →",
             key="btn_revision_suggestion",
             on_click=_make_use_callback(
                 suggestion["chunk_text"], suggestion["document_id"],
@@ -91,6 +91,36 @@ with tab_train:
             ),
         )
         st.divider()
+
+    # ── Sélecteur de document ────────────────────────────────────────────
+    _df_docs = get_documents()
+    if not _df_docs.empty:
+        _doc_ids    = [None] + [int(r["id"]) for _, r in _df_docs.iterrows()]
+        _doc_titles = {None: "— Texte libre (sans RAG)"}
+        for _, _r in _df_docs.iterrows():
+            _doc_titles[int(_r["id"])] = _r["title"]
+        _active_id = st.session_state.get("active_document_id")
+        _sel_idx   = _doc_ids.index(_active_id) if _active_id in _doc_ids else 0
+        _selected  = st.selectbox(
+            "Document de travail",
+            options=_doc_ids,
+            format_func=lambda x: _doc_titles.get(x, "—"),
+            index=_sel_idx,
+        )
+        if _selected != _active_id:
+            if _selected is None:
+                st.session_state["active_document_id"]    = None
+                st.session_state["active_document_title"] = ""
+                st.session_state["source_text_input"]     = ""
+            else:
+                _full = get_document_by_id(_selected)
+                if _full:
+                    st.session_state["active_document_id"]    = _selected
+                    st.session_state["active_document_title"] = _full["title"]
+                    st.session_state["source_text_input"]     = _full.get("cleaned_text", "")
+            st.session_state["question"] = None
+            st.session_state["result"]   = None
+            st.rerun()
 
     st.subheader("Texte source")
     source_text = st.text_area(

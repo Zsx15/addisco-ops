@@ -163,5 +163,20 @@
     "human_validation_required": false,
     "completion_notes": "get_chunk_mastery() dans database.py. _MASTERY_BIAS + _choose_question_type(mastery_class) + lookup dans generate_question() dans ai_service.py. Biais appliqué sur candidats équitables, fallback rotation si saturation. 9/9 tests OK. py_compile OK. Streamlit OK.",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-012",
+    "title": "Sélecteur de document inline dans l'onglet Entraînement",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-011"],
+    "description": "FRONTEND/UX — st.selectbox dans l'onglet Entraînement pour charger un document sans naviguer vers l'onglet Documents.",
+    "goal": "Éliminer le va-et-vient entre onglets lors de la démo. Correction du libellé 'chunk' oublié.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "Selectbox 'Document de travail' avec options None + doc_ids. Chargement cleaned_text + session_state sur changement + st.rerun(). Resynchronisation automatique avec _make_use_callback. Libellé 'Réviser ce chunk' corrigé. py_compile OK. Streamlit OK.",
+    "commit_hash": null
   }
 ]
