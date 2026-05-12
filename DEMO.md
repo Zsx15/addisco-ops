@@ -9,9 +9,8 @@ Scénario de présentation jury. Durée estimée : 8 à 12 minutes.
 - [ ] `streamlit run app.py` lancé dans le terminal
 - [ ] Navigateur ouvert sur `http://localhost:8501`
 - [ ] Clé API OpenAI présente dans `.env`
-- [ ] Base de données fraîche (ou plusieurs tentatives déjà effectuées pour alimenter le Dashboard)
 
-> **Conseil :** effectuer 4 à 6 tentatives à l'avance sur le document de démo pour que le Dashboard soit déjà peuplé au moment de la présentation. Cela rend la démonstration plus lisible.
+> **Aucune préparation manuelle requise.** Au premier lancement, l'application insère automatiquement le document de démo SNCF et 11 tentatives simulées — le Dashboard est immédiatement peuplé avec des sections Fragile, En consolidation et Maîtrisé.
 
 ---
 
@@ -37,12 +36,12 @@ Scénario de présentation jury. Durée estimée : 8 à 12 minutes.
 
 ## Étape 3 — Sélection du document et génération d'une question (onglet Entraînement)
 
-**Action :** dans l'expander du document, cliquer **"Utiliser ce document pour l'entraînement"** → aller dans l'onglet **Entraînement** → cliquer **"Générer une question"**.
+**Action :** aller dans l'onglet **Entraînement** → sélectionner le document de démo dans le sélecteur **"Document de travail"** → cliquer **"Générer une question"**.
 
-**Ce que le jury voit :** une question générée par l'IA, dont le type est choisi par rotation (cas pratique, vrai/faux, reformulation…).
+**Ce que le jury voit :** une question générée par l'IA, dont le type est choisi par rotation (cas pratique, vrai/faux, reformulation…). Le caption sous la question indique le type et la source (RAG ou texte brut).
 
 **Script :**
-> "L'IA sélectionne la section la plus pertinente par similarité vectorielle, puis choisit un type de question parmi six — directe, cas pratique, vrai/faux, piège, reformulation, conséquence — en évitant de répéter le même type deux fois de suite sur la même section."
+> "L'IA sélectionne la section la plus pertinente par similarité vectorielle, puis choisit un type de question parmi six — directe, cas pratique, vrai/faux, piège, reformulation, conséquence — en évitant de répéter le même type deux fois de suite sur la même section. Le document se sélectionne directement ici, sans naviguer dans les onglets."
 
 ---
 
@@ -66,12 +65,13 @@ Scénario de présentation jury. Durée estimée : 8 à 12 minutes.
 **Ce que le jury voit :** métriques globales, évolution des scores, graphiques par notion, et — en bas — le tableau **"Progression par section"**.
 
 **Script :**
-> "Après quelques tentatives, le Dashboard identifie automatiquement les sections fragiles, en consolidation ou maîtrisées. Chaque section a une date de prochaine révision calculée selon son niveau — 1 jour pour une section fragile, 3 jours pour une section en consolidation, 7 jours pour une section maîtrisée."
+> "Le Dashboard identifie automatiquement les sections fragiles, en consolidation ou maîtrisées. Chaque section a une date de prochaine révision calculée selon son niveau — 1 jour pour une section fragile, 3 jours pour une section en consolidation, 7 jours pour une section maîtrisée."
 
 **Pointer :**
 - Colonne **Maîtrise** (Fragile / En consolidation / Maîtrisé)
 - Colonne **Statut révision** (En retard / Aujourd'hui / Dans N jour(s))
 - Liste **Priorités de révision** avec indicateur de retard
+- Bouton **"Télécharger le rapport de progression"** en bas — génère un fichier `.txt` structuré exportable
 
 ---
 
@@ -82,7 +82,7 @@ Scénario de présentation jury. Durée estimée : 8 à 12 minutes.
 **Ce que le jury voit :** bloc "Révision suggérée" en haut de l'onglet — section prioritaire, score actuel, ancienneté, bouton "Réviser ce chunk →".
 
 **Script :**
-> "La boucle est fermée : le système identifie la section la plus urgente à réviser et la propose directement dans l'onglet Entraînement, sans que l'agent ait besoin de consulter le Dashboard. Un clic suffit pour charger la section et générer une nouvelle question."
+> "La boucle est fermée : le système identifie la section la plus urgente à réviser et la propose directement dans l'onglet Entraînement, sans que l'agent ait besoin de consulter le Dashboard. Un clic sur **'Réviser cette section →'** suffit pour charger la section et générer une nouvelle question."
 
 ---
 
