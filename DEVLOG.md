@@ -383,3 +383,30 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - À définir.
 
 ---
+
+## 2026-05-12 — TASK-013 : Export du rapport de progression
+
+**Milestone :** FRONTEND/UX — générer et télécharger un rapport texte structuré depuis le Dashboard.
+
+**Actions :**
+- Ajout de `_build_report(df_all, df_topics, df_chunks) -> str` dans `app.py` : rapport texte brut 60 colonnes avec synthèse globale, maîtrise par section et priorités de révision.
+- Ajout d'un `st.download_button` à la fin du bloc Dashboard (df_chunks non vide) : génère `rapport_progression_YYYYMMDD.txt` encodé UTF-8.
+- Correction `"Tous les chunks sont maîtrisés"` → `"Toutes les sections sont maîtrisées"`.
+- Correction caption `"chunk maîtrisé"` → `"section maîtrisée"` (accord féminin).
+- Format choisi : texte brut structuré (robustesse, zéro dépendance, compatibilité maximale).
+
+**Fichiers modifiés :** `app.py` uniquement (FRONTEND/UX pur).
+
+**Invariants préservés :**
+- Aucune modification du moteur critique. RAG, embeddings, scoring, répétition espacée intacts.
+- `_build_report()` est un formateur de présentation pur — aucun accès DB direct.
+- Bouton visible seulement si df_chunks non vide (données RAG disponibles).
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit headless port 8509 → démarrage sans erreur (HTTP 200).
+
+**Prochaine étape :**
+- À définir.
+
+---

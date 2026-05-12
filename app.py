@@ -245,6 +245,66 @@ _ERROR_LABELS = {
 def _truncate_label(text: str, max_len: int = 25) -> str:
     return text if len(text) <= max_len else text[:max_len - 1] + "…"
 
+
+def _build_report(df_all, df_topics, df_chunks) -> str:
+    w     = 60
+    lines = []
+
+    def _sep(c="="):  lines.append(c * w)
+    def _h(t):        lines.extend([t, "-" * len(t)])
+    def _blank():     lines.append("")
+
+    _sep()
+    lines.append("RAPPORT DE PROGRESSION — IA REVISION METIER")
+    lines.append(f"Genere le {datetime.now().strftime('%d/%m/%Y a %H:%M')}")
+    _sep()
+    _blank()
+
+    _h("SYNTHESE GLOBALE")
+    scores = df_all["score"].dropna()
+    lines.append(f"  Tentatives totales  : {len(df_all)}")
+    lines.append(f"  Score moyen global  : {round(scores.mean() * 100)} %" if len(scores) else "  Score moyen global  : —")
+    if not df_topics.empty:
+        lines.append(f"  Meilleure notion    : {df_topics.iloc[-1]['topic']}")
+        lines.append(f"  Notion a renforcer  : {df_topics.iloc[0]['topic']}")
+    _blank()
+
+    if not df_chunks.empty:
+        _h("MAITRISE PAR SECTION")
+        _TAG = {
+            "Fragile":          "[FRAGILE]         ",
+            "En consolidation": "[EN CONSOLIDATION]",
+            "Maitrise":         "[MAITRISE]        ",
+            "Maîtrisé":         "[MAITRISE]        ",
+        }
+        for _, r in df_chunks.iterrows():
+            tag   = _TAG.get(r["mastery_class"], f"[{r['mastery_class']}]")
+            pct   = round(float(r["avg_score"]) * 100)
+            n     = int(r["attempts_count"])
+            rv_st = r.get("review_status", "—")
+            lines.append(f"  {tag}  {r['section_label']}  —  {pct} %  ·  {n} tent.  ·  {rv_st}")
+        _blank()
+
+        _h("PROCHAINES REVISIONS PRIORITAIRES")
+        for _, r in df_chunks[df_chunks["mastery_class"] == "Fragile"].sort_values("avg_score").iterrows():
+            rv_st = r.get("review_status", "—")
+            mk    = "  ! " if rv_st == "En retard" else "    "
+            lines.append(f"{mk}{r['section_label']}  [{rv_st}]  (Fragile)")
+        for _, r in df_chunks[df_chunks["mastery_class"] == "En consolidation"].sort_values("avg_score").iterrows():
+            rv_st = r.get("review_status", "—")
+            mk    = "  ! " if rv_st == "En retard" else "    "
+            lines.append(f"{mk}{r['section_label']}  [{rv_st}]  (En consolidation)")
+        for _, r in df_chunks[df_chunks["mastery_class"] == "Maîtrisé"].iterrows():
+            rv_st = r.get("review_status", "—")
+            lines.append(f"    {r['section_label']}  [{rv_st}]  (Maitrise)")
+        _blank()
+
+    _sep()
+    lines.append("Rapport genere par IA Revision Metier")
+    _sep()
+    return "\n".join(lines)
+
+
 with tab_history:
     st.subheader("Historique des tentatives")
 
@@ -513,7 +573,7 @@ with tab_dashboard:
             mastered = df_chunks[df_chunks["mastery_class"] == "Maîtrisé"]
 
             if fragile.empty and consol.empty:
-                st.success("Tous les chunks sont maîtrisés — bon travail !")
+                st.success("Toutes les sections sont maîtrisées — bon travail !")
             else:
                 for _, r in fragile.iterrows():
                     pct    = round(float(r["avg_score"]) * 100)
@@ -536,9 +596,19 @@ with tab_dashboard:
                 if not mastered.empty:
                     n_ok = len(mastered)
                     st.caption(
-                        f"✅ {n_ok} chunk{'s' if n_ok > 1 else ''} "
-                        f"maîtrisé{'s' if n_ok > 1 else ''}."
+                        f"✅ {n_ok} section{'s' if n_ok > 1 else ''} "
+                        f"maîtrisée{'s' if n_ok > 1 else ''}."
                     )
+
+            st.divider()
+            _report_txt = _build_report(df_all, df_topics, df_chunks)
+            _fname = f"rapport_progression_{datetime.now().strftime('%Y%m%d')}.txt"
+            st.download_button(
+                "Télécharger le rapport de progression",
+                data=_report_txt.encode("utf-8"),
+                file_name=_fname,
+                mime="text/plain",
+            )
 
 
 # ── Onglet Documents ─────────────────────────────────────────────────────────

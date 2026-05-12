@@ -178,5 +178,20 @@
     "human_validation_required": false,
     "completion_notes": "Selectbox 'Document de travail' avec options None + doc_ids. Chargement cleaned_text + session_state sur changement + st.rerun(). Resynchronisation automatique avec _make_use_callback. Libellé 'Réviser ce chunk' corrigé. py_compile OK. Streamlit OK.",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-013",
+    "title": "Export du rapport de progression",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-012"],
+    "description": "Bouton de téléchargement dans le Dashboard générant un rapport texte brut structuré (.txt) avec synthèse globale, maîtrise par section et priorités de révision.",
+    "goal": "Permettre à l'apprenant (ou au jury) d'exporter un bilan de progression instantané, sans dépendance supplémentaire.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "_build_report(df_all, df_topics, df_chunks) → str texte brut 60 cols. st.download_button rapport_progression_YYYYMMDD.txt. Corrections 'chunk' → 'section' (maîtrisée féminin). py_compile OK. Streamlit port 8509 OK.",
+    "commit_hash": null
   }
 ]
