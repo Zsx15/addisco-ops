@@ -173,6 +173,41 @@ Format par entrée :
 - Streamlit headless port 8504 → démarrage sans erreur ✓
 
 **Prochaine étape :**
-- TASK-006 : mémoire pédagogique persistée (error_patterns, notions fragiles, répétition espacée).
+- TASK-006 : répétition espacée légère.
+
+---
+
+## 2026-05-12 — TASK-006 : Répétition espacée légère
+
+**Milestone :** Ajouter une dimension temporelle au moteur pédagogique — chaque chunk a désormais une date de prochaine révision calculée dynamiquement.
+
+**Actions :**
+- Ajout `from datetime import datetime, timedelta` dans `database.py`.
+- Ajout constante `REVIEW_INTERVALS` (Fragile=1j, En consolidation=3j, Maîtrisé=7j) à la racine de `database.py` avec note de synchronisation avec le SQL.
+- `get_chunk_stats()` : ajout `MAX(a.created_at) AS last_attempt_date` dans le SELECT.
+- `classify_mastery(df)` : ajout de 3 colonnes calculées en Python pur : `next_review` (datetime), `days_until_review` (int), `review_status` (En retard / Aujourd'hui / Dans N jour(s) / —).
+- `get_revision_suggestion()` : ORDER BY mis à jour — chunks en retard de révision priorisés via `datetime(MAX(created_at), '+N days') <= datetime('now')` en SQLite inline.
+- `app.py` Dashboard "Analytics par chunk" : colonnes `Statut révision` et `Prochaine révision` ajoutées au tableau.
+- `app.py` "Priorités de révision" : indicateur "⚠ Révision en retard" sur les lignes en retard.
+
+**Règles de calcul :**
+- next_review = last_attempt_date + REVIEW_INTERVALS[mastery_class]
+- days_until_review = (next_review.date() - today).days
+- Négatif = en retard, 0 = aujourd'hui, positif = dans N jours
+
+**Invariants préservés :**
+- Aucune migration SQLite. Aucune nouvelle dépendance. RAG intact. Embeddings intacts. Fallback intact.
+- Toutes les fonctions TASK-001 à TASK-005 non modifiées dans leur comportement.
+- `classify_mastery()` retourne toujours `mastery_class` et `trend` (colonnes existantes inchangées).
+
+**Validation :**
+- `py_compile database.py` → OK
+- `py_compile app.py` → OK
+- Tests helpers : Fragile 2j ago → En retard ✓ | Fragile 1j ago → Aujourd'hui ✓ | Consolidation 1j ago → Dans 2 jours ✓ | Consolidation 4j ago → En retard ✓ | Maîtrisé 6j ago → Dans 1 jour ✓ | last_attempt_date=None → pas de crash ✓
+- Streamlit headless port 8505 → démarrage sans erreur ✓
+- git status → 2 fichiers modifiés uniquement ✓
+
+**Prochaine étape :**
+- TASK-007 : contenu de démo préchargé et préparation démonstration SNCF.
 
 ---

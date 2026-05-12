@@ -1,9 +1,20 @@
 import sqlite3
 import struct
+from datetime import datetime, timedelta
 from pathlib import Path
+
 import pandas as pd
 
 DB_PATH = Path("database.db")
+
+# Intervalles de répétition espacée par classe de maîtrise (en jours).
+# Valeurs dupliquées dans get_revision_suggestion() ORDER BY (SQLite datetime inline).
+# Toute modification ici doit être répercutée dans la requête SQL.
+REVIEW_INTERVALS = {
+    "Fragile":          1,
+    "En consolidation": 3,
+    "Maîtrisé":         7,
+}
 
 
 def _normalize_topic(topic: str | None) -> str | None:
@@ -287,7 +298,8 @@ def get_chunk_stats() -> pd.DataFrame:
                       AND a3.score IS NOT NULL
                     ORDER BY a3.created_at DESC
                     LIMIT 1
-                ) AS last_score
+                ) AS last_score,
+                MAX(a.created_at) AS last_attempt_date
             FROM attempts a
             JOIN chunks    c ON a.chunk_id     = c.id
             JOIN documents d ON c.document_id  = d.id
@@ -335,9 +347,35 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
             return "Dégradation"
         return "Stable"
 
+    def _next_review(row):
+        try:
+            last_dt = datetime.fromisoformat(str(row["last_attempt_date"]))
+            days    = REVIEW_INTERVALS.get(row["mastery_class"], 3)
+            return last_dt + timedelta(days=days)
+        except Exception:
+            return None
+
+    def _days_until(row):
+        if row["next_review"] is None:
+            return None
+        return (row["next_review"].date() - datetime.now().date()).days
+
+    def _review_status(row):
+        d = row["days_until_review"]
+        if d is None:
+            return "—"
+        if d < 0:
+            return "En retard"
+        if d == 0:
+            return "Aujourd'hui"
+        return f"Dans {d} jour{'s' if d > 1 else ''}"
+
     df = df.copy()
-    df["mastery_class"] = df.apply(_class, axis=1)
-    df["trend"] = df.apply(_trend, axis=1)
+    df["mastery_class"]    = df.apply(_class, axis=1)
+    df["trend"]            = df.apply(_trend, axis=1)
+    df["next_review"]      = df.apply(_next_review, axis=1)
+    df["days_until_review"] = df.apply(_days_until, axis=1)
+    df["review_status"]    = df.apply(_review_status, axis=1)
     return df
 
 
@@ -395,8 +433,20 @@ def get_revision_suggestion() -> dict | None:
             GROUP BY a.chunk_id
             HAVING NOT (ROUND(AVG(a.score), 2) >= 0.8 AND COUNT(*) >= 3)
             ORDER BY
+                -- 1. Chunks en retard de révision d'abord
+                --    Intervalles: Fragile=1j, En consolidation=3j (miroir de REVIEW_INTERVALS)
+                CASE
+                    WHEN ROUND(AVG(a.score), 2) < 0.6
+                         AND datetime(MAX(a.created_at), '+1 day')  <= datetime('now') THEN 0
+                    WHEN ROUND(AVG(a.score), 2) >= 0.6
+                         AND datetime(MAX(a.created_at), '+3 days') <= datetime('now') THEN 0
+                    ELSE 1
+                END ASC,
+                -- 2. Fragile avant En consolidation
                 CASE WHEN ROUND(AVG(a.score), 2) < 0.6 THEN 0 ELSE 1 END ASC,
+                -- 3. Tentative la plus ancienne
                 MAX(a.created_at) ASC,
+                -- 4. Score le plus faible
                 ROUND(AVG(a.score), 2) ASC
             LIMIT 1
             """

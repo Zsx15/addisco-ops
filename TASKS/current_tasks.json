@@ -11,7 +11,7 @@
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": true,
-    "completion_notes": "Migration douce ALTER TABLE attempts ADD COLUMN chunk_id INTEGER. generate_question() retourne tuple[str, list[int]]. chunk_id = chunk le plus pertinent (similarité cosinus max) ou NULL si fallback texte brut. 9/9 tests passés. document_service.py non modifié.",
+    "completion_notes": "Migration douce ALTER TABLE. generate_question() retourne tuple[str, list[int]]. 9/9 tests passés.",
     "commit_hash": "b622af5"
   },
   {
@@ -20,13 +20,13 @@
     "status": "DONE",
     "priority": "HIGH",
     "depends_on": ["TASK-001"],
-    "description": "Exploiter attempts.chunk_id pour produire des analytics de progression par chunk source dans le Dashboard.",
-    "goal": "Identifier les chunks fragiles et préparer la mémoire pédagogique.",
+    "description": "Exploiter attempts.chunk_id pour produire des analytics de progression par chunk dans le Dashboard.",
+    "goal": "Identifier les chunks fragiles.",
     "files": ["database.py", "app.py"],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout get_chunk_stats() dans database.py. Section Dashboard conditionnelle. py_compile OK.",
+    "completion_notes": "Ajout get_chunk_stats(). Section Dashboard conditionnelle.",
     "commit_hash": "bb8f6c9"
   },
   {
@@ -36,12 +36,12 @@
     "priority": "HIGH",
     "depends_on": ["TASK-002"],
     "description": "Classification Fragile / En consolidation / Maîtrisé et tendance par chunk.",
-    "goal": "Rendre les priorités de révision visibles et actionnables dans le Dashboard.",
+    "goal": "Rendre les priorités de révision visibles dans le Dashboard.",
     "files": ["database.py", "app.py"],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout last_score + classify_mastery(df). Section Dashboard enrichie : tableau + liste de révision. py_compile OK. Streamlit OK.",
+    "completion_notes": "Ajout last_score + classify_mastery(df). Tableau + liste de révision.",
     "commit_hash": "03f1671"
   },
   {
@@ -50,13 +50,13 @@
     "status": "DONE",
     "priority": "HIGH",
     "depends_on": ["TASK-003"],
-    "description": "Fermer la boucle pédagogique en proposant directement dans l'onglet Entraînement le chunk le plus prioritaire à réviser.",
-    "goal": "Passer de l'observation (Dashboard) à l'action guidée (Entraînement).",
+    "description": "Proposer directement dans l'onglet Entraînement le chunk le plus prioritaire à réviser.",
+    "goal": "Fermer la boucle pédagogique observation → action.",
     "files": ["database.py", "app.py"],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout get_revision_suggestion() : HAVING exclut Maîtrisés, ORDER BY Fragile→ancienneté→score. Bloc conditionnel dans Entraînement. py_compile OK. Streamlit OK.",
+    "completion_notes": "Ajout get_revision_suggestion(). Bloc conditionnel dans Entraînement.",
     "commit_hash": "faf7d43"
   },
   {
@@ -65,13 +65,28 @@
     "status": "DONE",
     "priority": "HIGH",
     "depends_on": ["TASK-004"],
-    "description": "Introduire 6 types de questions avec rotation par historique de chunk pour éviter les répétitions.",
-    "goal": "Rompre la monotonie des questions identiques et enrichir l'expérience pédagogique.",
+    "description": "6 types de questions avec rotation par historique de chunk.",
+    "goal": "Éviter la répétition de questions identiques.",
     "files": ["database.py", "ai_service.py", "app.py"],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout get_chunk_question_history() dans database.py. Ajout QUESTION_TYPES, _TYPE_PROMPTS, _choose_question_type() dans ai_service.py. generate_question() retourne tuple[str, list[int], str]. Prompt enrichi avec type + anti-doublon. pedagogy_type peuplé dans save_attempt(). 4/4 tests helpers OK. py_compile 3/3 OK. Streamlit OK.",
+    "completion_notes": "QUESTION_TYPES + _TYPE_PROMPTS + _choose_question_type(). generate_question() retourne 3-tuple. pedagogy_type peuplé.",
+    "commit_hash": "14e5dd3"
+  },
+  {
+    "id": "TASK-006",
+    "title": "Répétition espacée légère",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-005"],
+    "description": "Ajouter next_review calculé dynamiquement par chunk selon la classe de maîtrise. Affichage Dashboard + priorisation dans la suggestion.",
+    "goal": "Donner une dimension temporelle au moteur pédagogique.",
+    "files": ["database.py", "app.py"],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "REVIEW_INTERVALS (1j/3j/7j). get_chunk_stats() +last_attempt_date. classify_mastery() +next_review +days_until_review +review_status. get_revision_suggestion() ORDER BY mis à jour avec datetime SQLite inline. Dashboard +Statut révision +Prochaine révision. Liste priorités +indicateur retard. 6/6 tests helpers OK. py_compile OK. Streamlit OK.",
     "commit_hash": null
   }
 ]

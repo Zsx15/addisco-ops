@@ -437,11 +437,15 @@ with tab_dashboard:
             # Tableau enrichi
             df_display = df_chunks[
                 ["document_title", "section_label", "avg_score", "attempts_count",
-                 "mastery_class", "trend", "dominant_error_type"]
+                 "mastery_class", "trend", "dominant_error_type",
+                 "next_review", "review_status"]
             ].copy()
             df_display["Score moyen (%)"] = (df_display["avg_score"] * 100).round().astype(int)
             df_display["Erreur dominante"] = df_display["dominant_error_type"].map(
                 lambda x: _ERROR_LABELS.get(x, x) if x else "—"
+            )
+            df_display["Prochaine révision"] = df_display["next_review"].apply(
+                lambda dt: dt.strftime("%d/%m/%Y") if dt is not None else "—"
             )
             df_display = df_display.rename(columns={
                 "document_title": "Document",
@@ -449,7 +453,9 @@ with tab_dashboard:
                 "attempts_count": "Tentatives",
                 "mastery_class":  "Maîtrise",
                 "trend":          "Tendance",
-            })[["Document", "Section", "Score moyen (%)", "Tentatives", "Maîtrise", "Tendance", "Erreur dominante"]]
+                "review_status":  "Statut révision",
+            })[["Document", "Section", "Score moyen (%)", "Tentatives",
+                "Maîtrise", "Tendance", "Statut révision", "Prochaine révision", "Erreur dominante"]]
             st.dataframe(df_display, use_container_width=True, hide_index=True)
 
             # Priorités de révision
@@ -462,18 +468,22 @@ with tab_dashboard:
                 st.success("Tous les chunks sont maîtrisés — bon travail !")
             else:
                 for _, r in fragile.iterrows():
-                    pct = round(float(r["avg_score"]) * 100)
-                    n   = int(r["attempts_count"])
+                    pct    = round(float(r["avg_score"]) * 100)
+                    n      = int(r["attempts_count"])
+                    status = r.get("review_status", "—")
+                    retard = " · ⚠ Révision en retard" if status == "En retard" else f" · {status}"
                     st.error(
                         f"**{r['section_label']}** ({r['document_title']}) "
-                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}"
+                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}{retard}"
                     )
                 for _, r in consol.iterrows():
-                    pct = round(float(r["avg_score"]) * 100)
-                    n   = int(r["attempts_count"])
+                    pct    = round(float(r["avg_score"]) * 100)
+                    n      = int(r["attempts_count"])
+                    status = r.get("review_status", "—")
+                    retard = " · ⚠ Révision en retard" if status == "En retard" else f" · {status}"
                     st.warning(
                         f"**{r['section_label']}** ({r['document_title']}) "
-                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}"
+                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}{retard}"
                     )
                 if not mastered.empty:
                     n_ok = len(mastered)
