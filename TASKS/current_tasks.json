@@ -102,6 +102,21 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "has_documents() dans database.py. _DEMO_TEXT (4 sections, ~3200 chars) + seed_demo_document() dans document_service.py. Appel après init_db() dans app.py. Idempotente, non bloquante, 4 chunks créés. 5/5 tests OK. py_compile 3/3 OK.",
+    "commit_hash": "760a236"
+  },
+  {
+    "id": "TASK-008",
+    "title": "Dashboard reformaté pour utilisateur final",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-007"],
+    "description": "Supprimer les termes techniques (chunk, ID) dans l'interface utilisateur. Labels lisibles, section 1-indexée.",
+    "goal": "Rendre l'application démontrable à un jury SNCF sans vocabulaire technique exposé.",
+    "files": ["database.py", "app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "COALESCE 'Chunk #N' → 'Section N+1' dans get_chunk_stats() et get_revision_suggestion(). _make_use_callback +doc_title, active_document_title en session_state. Caption Entraînement → titre du document. 'Analytics par chunk' → 'Progression par section'. 'Chunks'/'chunks' → 'Sections'/'sections' dans Documents. py_compile 2/2 OK.",
     "commit_hash": null
   }
 ]

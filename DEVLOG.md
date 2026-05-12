@@ -245,3 +245,33 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - TASK-008 : dashboard reformaté pour utilisateur final (labels lisibles, masquage champs techniques).
 
 ---
+
+## 2026-05-12 — TASK-008 : Dashboard reformaté pour utilisateur final
+
+**Milestone :** Supprimer tous les termes techniques visibles par un utilisateur final lors d'une démonstration SNCF.
+
+**Actions :**
+- `database.py` : remplacement de `'Chunk #' || c.chunk_index` par `'Section ' || (c.chunk_index + 1)` dans `get_chunk_stats()` et `get_revision_suggestion()`. Les sections s'affichent désormais "Section 1", "Section 2"… (1-indexé).
+- `app.py` : ajout de `active_document_title` dans les clés session_state initialisées.
+- `app.py` : `_make_use_callback` reçoit un paramètre `doc_title` et le stocke dans `active_document_title`.
+- `app.py` Entraînement : caption `"Source : document importé (ID X)"` → `"Source : {titre du document}"`.
+- `app.py` Dashboard : titre `"Analytics par chunk"` → `"Progression par section"`.
+- `app.py` Documents — label expander : `"chunk"` → `"section"`.
+- `app.py` Documents — métrique : `"Chunks"` → `"Sections"`.
+- `app.py` Documents — bouton reindex : `"chunk(s) manquant(s)"` → `"section(s) manquante(s)"`.
+
+**Invariants préservés :**
+- Aucune migration SQLite. Aucune nouvelle dépendance.
+- Clé `section_label` inchangée dans les dicts retournés — seule la valeur change.
+- RAG intact. Embeddings intacts. Fallback intact.
+- Toutes les fonctions TASK-001 à TASK-007 non modifiées dans leur comportement.
+
+**Validation :**
+- `py_compile database.py` → OK
+- `py_compile app.py` → OK
+- Streamlit headless port 8507 → démarrage sans erreur
+
+**Prochaine étape :**
+- TASK-009 : détection automatique de section_title dans le chunker.
+
+---

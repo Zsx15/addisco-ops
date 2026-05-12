@@ -26,7 +26,7 @@ seed_demo_document()
 st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
 st.title("📚 IA Révision Métier")
 
-for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "chunk_ids", "question_type"):
+for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "active_document_title", "chunk_ids", "question_type"):
     if key not in st.session_state:
         st.session_state[key] = None
 if "source_text_input" not in st.session_state:
@@ -37,10 +37,11 @@ tab_train, tab_history, tab_dashboard, tab_docs = st.tabs(
 )
 
 
-def _make_use_callback(cleaned_text: str, doc_id: int):
+def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
     def _cb():
         st.session_state["source_text_input"] = cleaned_text
         st.session_state["active_document_id"] = doc_id
+        st.session_state["active_document_title"] = doc_title
         st.session_state["question"] = None
         st.session_state["result"] = None
         st.session_state["answer_input"] = ""
@@ -75,7 +76,8 @@ with tab_train:
             "Réviser ce chunk →",
             key="btn_revision_suggestion",
             on_click=_make_use_callback(
-                suggestion["chunk_text"], suggestion["document_id"]
+                suggestion["chunk_text"], suggestion["document_id"],
+                suggestion["document_title"],
             ),
         )
         st.divider()
@@ -89,7 +91,8 @@ with tab_train:
     )
 
     if st.session_state.get("active_document_id"):
-        st.caption(f"Source : document importé (ID {st.session_state['active_document_id']})")
+        _doc_title = st.session_state.get("active_document_title") or "Document importé"
+        st.caption(f"Source : {_doc_title}")
 
     if len(source_text) > 6000:
         st.warning("Texte trop long — seuls les 6 000 premiers caractères seront utilisés.")
@@ -427,7 +430,7 @@ with tab_dashboard:
         st.divider()
 
         # ── Analytics par chunk ───────────────────────────────────────────────
-        st.markdown("#### Analytics par chunk")
+        st.markdown("#### Progression par section")
         df_chunks = classify_mastery(get_chunk_stats())
         if df_chunks.empty:
             st.info(
@@ -537,11 +540,11 @@ with tab_docs:
         st.caption(f"{len(df_docs)} document{'s' if len(df_docs) > 1 else ''} dans la bibliothèque")
         for _, doc in df_docs.iterrows():
             doc_id   = int(doc["id"])
-            label    = f"📄 {doc['title']}  ·  {doc['source_type'].upper()}  ·  {int(doc['chunk_count'])} chunk{'s' if doc['chunk_count'] != 1 else ''}  ·  {str(doc['created_at'])[:16]}"
+            label    = f"📄 {doc['title']}  ·  {doc['source_type'].upper()}  ·  {int(doc['chunk_count'])} section{'s' if doc['chunk_count'] != 1 else ''}  ·  {str(doc['created_at'])[:16]}"
             with st.expander(label):
                 c1, c2, c3 = st.columns(3)
                 c1.metric("Caractères", f"{int(doc['char_count']):,}".replace(",", " "))
-                c2.metric("Chunks", int(doc["chunk_count"]))
+                c2.metric("Sections", int(doc["chunk_count"]))
                 c3.metric("Fichier", doc["filename"] or "—")
 
                 full_doc = get_document_by_id(doc_id)
@@ -555,6 +558,7 @@ with tab_docs:
                     on_click=_make_use_callback(
                         full_doc["cleaned_text"] if full_doc else "",
                         doc_id,
+                        doc["title"],
                     ),
                 )
 
@@ -570,7 +574,7 @@ with tab_docs:
                     )
                 else:
                     if st.button(
-                        f"Indexer les embeddings ({missing} chunk{'s' if missing > 1 else ''} manquant{'s' if missing > 1 else ''})",
+                        f"Indexer les embeddings ({missing} section{'s' if missing > 1 else ''} manquante{'s' if missing > 1 else ''})",
                         key=f"reindex_{doc_id}",
                     ):
                         with st.spinner("Calcul des embeddings en cours…"):

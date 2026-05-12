@@ -283,7 +283,7 @@ def get_chunk_stats() -> pd.DataFrame:
             """
             SELECT
                 a.chunk_id,
-                COALESCE(c.section_title, 'Chunk #' || c.chunk_index) AS section_label,
+                COALESCE(c.section_title, 'Section ' || (c.chunk_index + 1)) AS section_label,
                 d.title  AS document_title,
                 ROUND(AVG(a.score), 2) AS avg_score,
                 COUNT(*)               AS attempts_count,
@@ -427,7 +427,7 @@ def get_revision_suggestion() -> dict | None:
                 c.id       AS chunk_id,
                 c.chunk_text,
                 c.document_id,
-                COALESCE(c.section_title, 'Chunk #' || c.chunk_index) AS section_label,
+                COALESCE(c.section_title, 'Section ' || (c.chunk_index + 1)) AS section_label,
                 d.title                AS document_title,
                 ROUND(AVG(a.score), 2) AS avg_score,
                 COUNT(*)               AS attempts_count,
