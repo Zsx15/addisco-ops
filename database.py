@@ -502,7 +502,7 @@ def search_similar_chunks(
             """
             SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
             FROM chunks
-            WHERE document_id = ? AND embedding IS NOT NULL
+            WHERE document_id = ? AND embedding IS NOT NULL AND char_count >= 150
             """,
             (document_id,),
         ).fetchall()

@@ -37,6 +37,16 @@ tab_train, tab_history, tab_dashboard, tab_docs = st.tabs(
 )
 
 
+_TYPE_LABELS = {
+    "question_directe": "Question directe",
+    "cas_pratique":     "Cas pratique",
+    "vrai_faux":        "Vrai / Faux",
+    "question_piege":   "Question piège",
+    "reformulation":    "Reformulation",
+    "consequence":      "Conséquence / condition",
+}
+
+
 def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
     def _cb():
         st.session_state["source_text_input"] = cleaned_text
@@ -117,6 +127,10 @@ with tab_train:
         st.divider()
         st.subheader("Question")
         st.info(st.session_state["question"])
+        _q_type = st.session_state.get("question_type")
+        _mode   = "RAG actif" if st.session_state.get("chunk_ids") else "Texte brut"
+        _tlabel = _TYPE_LABELS.get(_q_type, _q_type) if _q_type else "—"
+        st.caption(f"Type : {_tlabel} · {_mode}")
 
         user_answer = st.text_area("Votre réponse", height=120, key="answer_input")
 
