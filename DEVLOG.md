@@ -107,6 +107,39 @@ Format par entrée :
 - `git status` → 2 fichiers modifiés uniquement
 
 **Prochaine étape :**
-- TASK-004 : mémoire pédagogique persistée (error_patterns, notions fragiles, base répétition espacée).
+- TASK-004 : suggestion de révision dans l'onglet Entraînement (fermeture de la boucle pédagogique).
+
+---
+
+## 2026-05-12 — TASK-004 : Suggestion de révision dans l'onglet Entraînement
+
+**Milestone :** Fermeture de la boucle pédagogique — passer de l'observation (Dashboard) à l'action directe (Entraînement).
+
+**Actions :**
+- Ajout de `get_revision_suggestion()` dans `database.py` : requête SQL autonome, JOIN attempts→chunks→documents, HAVING exclut les chunks Maîtrisés, ORDER BY priorité Fragile → ancienneté → score faible, LIMIT 1, retourne dict ou None.
+- Ajout de `from datetime import datetime` dans `app.py`.
+- Ajout de `get_revision_suggestion` dans les imports database de `app.py`.
+- Ajout du bloc "Révision suggérée" dans l'onglet Entraînement (avant la zone de texte) : section, document, score, tentatives, ancienneté, bouton "Réviser ce chunk →" via `_make_use_callback`.
+
+**Règles de priorité :**
+1. Fragile (avg_score < 0.6) avant En consolidation
+2. Tentative la plus ancienne (MAX(created_at) ASC)
+3. Score le plus faible (AVG(score) ASC)
+
+**Invariants préservés :**
+- Bloc conditionnel : absent si aucun chunk éligible (aucune tentative RAG ou tout maîtrisé).
+- `ai_service.py`, `document_service.py` non modifiés.
+- Pipeline RAG, embeddings, fallback inchangés.
+- Schéma SQLite inchangé.
+- Onglet Entraînement existant intact sous le bloc.
+
+**Validation :**
+- `py_compile database.py` → OK
+- `py_compile app.py` → OK
+- Streamlit headless port 8503 → démarrage sans erreur
+- `git status` → 2 fichiers modifiés uniquement
+
+**Prochaine étape :**
+- TASK-005 : mémoire pédagogique persistée (error_patterns, notions fragiles, répétition espacée).
 
 ---

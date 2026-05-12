@@ -341,6 +341,48 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def get_revision_suggestion() -> dict | None:
+    """
+    Retourne le chunk le plus prioritaire à réviser, ou None si aucun chunk éligible.
+
+    Priorité :
+    1. Fragile (avg_score < 0.6) avant En consolidation
+    2. Tentative la plus ancienne (last_attempt_date ASC)
+    3. Score le plus faible (avg_score ASC)
+
+    Exclut les chunks Maîtrisés (avg_score >= 0.8 ET attempts_count >= 3).
+    Mode RAG uniquement (chunk_id IS NOT NULL).
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            """
+            SELECT
+                c.id       AS chunk_id,
+                c.chunk_text,
+                c.document_id,
+                COALESCE(c.section_title, 'Chunk #' || c.chunk_index) AS section_label,
+                d.title                AS document_title,
+                ROUND(AVG(a.score), 2) AS avg_score,
+                COUNT(*)               AS attempts_count,
+                MAX(a.created_at)      AS last_attempt_date
+            FROM attempts a
+            JOIN chunks    c ON a.chunk_id    = c.id
+            JOIN documents d ON c.document_id = d.id
+            WHERE a.chunk_id IS NOT NULL
+              AND a.score    IS NOT NULL
+            GROUP BY a.chunk_id
+            HAVING NOT (ROUND(AVG(a.score), 2) >= 0.8 AND COUNT(*) >= 3)
+            ORDER BY
+                CASE WHEN ROUND(AVG(a.score), 2) < 0.6 THEN 0 ELSE 1 END ASC,
+                MAX(a.created_at) ASC,
+                ROUND(AVG(a.score), 2) ASC
+            LIMIT 1
+            """
+        ).fetchone()
+    return dict(row) if row else None
+
+
 def get_document_by_id(doc_id: int) -> dict | None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row

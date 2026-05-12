@@ -42,6 +42,21 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "Ajout last_score (sous-requête corrélée) dans get_chunk_stats(). Ajout classify_mastery(df) dans database.py : mastery_class (Fragile/En consolidation/Maîtrisé) + trend (Amélioration/Stable/Dégradation/N/A si 1 seule tentative). Section Dashboard remplacée : tableau enrichi + liste de révision prioritaire. py_compile OK. Streamlit OK. 2 fichiers modifiés uniquement.",
+    "commit_hash": "03f1671"
+  },
+  {
+    "id": "TASK-004",
+    "title": "Suggestion de révision dans l'onglet Entraînement",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-003"],
+    "description": "Fermer la boucle pédagogique en proposant directement dans l'onglet Entraînement le chunk le plus prioritaire à réviser, avec action immédiate.",
+    "goal": "Passer de l'observation (Dashboard) à l'action guidée (Entraînement).",
+    "files": ["database.py", "app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "Ajout get_revision_suggestion() dans database.py : HAVING exclut Maîtrisés, ORDER BY Fragile→ancienneté→score faible, LIMIT 1, retourne dict|None. Bloc conditionnel dans onglet Entraînement : section, document, score, tentatives, ancienneté, bouton via _make_use_callback. from datetime import datetime ajouté. py_compile OK. Streamlit OK.",
     "commit_hash": null
   }
 ]

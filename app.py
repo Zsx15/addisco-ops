@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 import plotly.express as px
 import streamlit as st
@@ -11,6 +12,7 @@ from database import (
     get_document_by_id,
     get_documents,
     get_error_frequency,
+    get_revision_suggestion,
     get_score_evolution,
     get_topic_stats,
     init_db,
@@ -47,6 +49,36 @@ def _make_use_callback(cleaned_text: str, doc_id: int):
 # ── Onglet Entraînement ──────────────────────────────────────────────────────
 
 with tab_train:
+    # ── Suggestion de révision ───────────────────────────────────────────
+    suggestion = get_revision_suggestion()
+    if suggestion:
+        try:
+            last_dt   = datetime.fromisoformat(str(suggestion["last_attempt_date"]))
+            days_ago  = (datetime.now() - last_dt).days
+            age_label = (
+                f"il y a {days_ago} jour{'s' if days_ago > 1 else ''}"
+                if days_ago > 0 else "aujourd'hui"
+            )
+        except Exception:
+            age_label = "—"
+
+        st.markdown("##### Révision suggérée")
+        c1, c2, c3, c4 = st.columns([4, 1, 1, 2])
+        c1.markdown(
+            f"**{suggestion['section_label']}**  \n"
+            f"_{suggestion['document_title']}_ · {age_label}"
+        )
+        c2.metric("Score", f"{round(float(suggestion['avg_score']) * 100)} %")
+        c3.metric("Tentatives", int(suggestion["attempts_count"]))
+        c4.button(
+            "Réviser ce chunk →",
+            key="btn_revision_suggestion",
+            on_click=_make_use_callback(
+                suggestion["chunk_text"], suggestion["document_id"]
+            ),
+        )
+        st.divider()
+
     st.subheader("Texte source")
     source_text = st.text_area(
         "Collez votre texte métier ici",
