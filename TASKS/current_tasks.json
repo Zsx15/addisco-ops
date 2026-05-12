@@ -118,5 +118,20 @@
     "human_validation_required": false,
     "completion_notes": "COALESCE 'Chunk #N' → 'Section N+1' dans get_chunk_stats() et get_revision_suggestion(). _make_use_callback +doc_title, active_document_title en session_state. Caption Entraînement → titre du document. 'Analytics par chunk' → 'Progression par section'. 'Chunks'/'chunks' → 'Sections'/'sections' dans Documents. py_compile 2/2 OK.",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-009",
+    "title": "Détection automatique de section_title dans le chunker",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-008"],
+    "description": "Peupler section_title à partir des titres numérotés et markdown dans le texte source.",
+    "goal": "Afficher de vrais titres de section dans le Dashboard et la suggestion de révision pour les nouveaux documents.",
+    "files": ["document_service.py"],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "_SECTION_RE (numérotés + markdown, max 120 chars) + _detect_section_title() + current_section dans _create_chunks(). flush() + hard-split héritent du section courant. 8/8 tests OK. py_compile OK. Streamlit port 8508 OK. Chunks existants non modifiés (pas de re-seed).",
+    "commit_hash": null
   }
 ]

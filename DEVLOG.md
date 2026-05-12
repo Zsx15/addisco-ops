@@ -275,3 +275,35 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - TASK-009 : détection automatique de section_title dans le chunker.
 
 ---
+
+## 2026-05-12 — TASK-009 : Détection automatique de section_title dans le chunker
+
+**Milestone :** Peupler la colonne `section_title` des chunks pour les documents ayant une structure numérotée ou markdown, sans migration SQLite ni nouvelle dépendance.
+
+**Actions :**
+- Ajout de la constante `_SECTION_RE` dans `document_service.py` : regex détectant les titres numérotés (`1. Titre`, `2) Titre`) et markdown (`## Titre`), avec limite de 120 chars anti-faux-positifs.
+- Ajout du helper `_detect_section_title(para) -> str | None` : pure function, retourne le paragraphe s'il est un titre, None sinon.
+- Modification de `_create_chunks()` : ajout de `current_section: str | None = None` ; `flush()` utilise `current_section` comme `section_title` ; boucle principale détecte les titres (flush + reset overlap + nouveau buffer) ; chemin hard-split hérite aussi de `current_section`.
+
+**Comportement :**
+- Document avec sections numérotées → `section_title` peuplé, titre inclus dans le chunk pour la qualité RAG.
+- Document sans structure → `section_title = None` pour tous les chunks, fallback "Section N+1" inchangé (aucune régression).
+- Chemin hard-split (paragraphe > 1000 chars) → hérite du `current_section` actif.
+
+**Non fait intentionnellement :**
+- Pas de réinitialisation de la base → chunks existants (dont le document de démo) conservent `section_title=NULL`. Seuls les nouveaux imports bénéficieront des vrais titres.
+
+**Invariants préservés :**
+- Aucune migration SQLite. Aucune nouvelle dépendance. RAG intact. Embeddings intacts. Fallback intact.
+- `ingest_document()`, `reindex_document()`, pipeline complet non modifiés.
+
+**Validation :**
+- `py_compile document_service.py` → OK
+- 8/8 tests OK : détection numérotée, markdown, trop long, paragraphe ordinaire, sections peuplées, sans structure, 4 sections démo, hard-split.
+- Streamlit headless port 8508 → démarrage sans erreur.
+- git status → 1 fichier code modifié uniquement.
+
+**Prochaine étape :**
+- TASK-010 : guide de démo + README utilisateur.
+
+---

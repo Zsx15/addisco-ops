@@ -217,6 +217,17 @@ def _clean_text(text: str) -> str:
 
 # ── Découpage ─────────────────────────────────────────────────────────────────
 
+# Détecte les titres de section : numérotés ("1. Titre", "2) Titre")
+# ou markdown ("## Titre"). Longueur max 120 chars pour éviter les faux positifs.
+_SECTION_RE = re.compile(r"^(\d+[\.\)]\s+\S|#{1,4}\s+\S)")
+
+
+def _detect_section_title(para: str) -> str | None:
+    if len(para) > 120:
+        return None
+    return para if _SECTION_RE.match(para) else None
+
+
 def _create_chunks(
     text: str,
     chunk_size: int = CHUNK_SIZE,
@@ -227,11 +238,12 @@ def _create_chunks(
     Consecutive chunks share chunk_overlap trailing chars as context prefix.
     Designed to be replaced by embedding-aware chunking in Phase 6.
     """
-    paragraphs   = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
-    result:      list[dict] = []
-    buffer:      list[str]  = []
-    buffer_len:  int        = 0
-    overlap_prefix: str     = ""
+    paragraphs       = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
+    result:          list[dict] = []
+    buffer:          list[str]  = []
+    buffer_len:      int        = 0
+    overlap_prefix:  str        = ""
+    current_section: str | None = None
 
     def flush() -> None:
         if not buffer:
@@ -241,13 +253,23 @@ def _create_chunks(
                      if overlap_prefix else body
         result.append({
             "chunk_index":   len(result),
-            "section_title": None,
+            "section_title": current_section,
             "chunk_text":    chunk_text,
             "char_count":    len(chunk_text),
             "embedding_id":  None,
         })
 
     for para in paragraphs:
+        # Section header detected → flush current buffer, start new section
+        title = _detect_section_title(para)
+        if title is not None:
+            flush()
+            overlap_prefix  = ""
+            current_section = title
+            buffer          = [para]
+            buffer_len      = len(para)
+            continue
+
         # Paragraph alone exceeds chunk_size → hard-split at word boundary
         if len(para) > chunk_size:
             flush()
@@ -262,7 +284,7 @@ def _create_chunks(
                 if piece:
                     result.append({
                         "chunk_index":   len(result),
-                        "section_title": None,
+                        "section_title": current_section,
                         "chunk_text":    piece,
                         "char_count":    len(piece),
                         "embedding_id":  None,
