@@ -341,6 +341,27 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def get_chunk_question_history(chunk_id: int, limit: int = 5) -> list[dict]:
+    """
+    Retourne les dernières tentatives pour un chunk donné.
+    Lit pedagogy_type comme question_type (colonne réutilisée sans migration).
+    Retourne [] si chunk inconnu ou aucun historique.
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT question, pedagogy_type AS question_type
+            FROM attempts
+            WHERE chunk_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (chunk_id, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_revision_suggestion() -> dict | None:
     """
     Retourne le chunk le plus prioritaire à réviser, ou None si aucun chunk éligible.

@@ -1,11 +1,12 @@
 import json
 import os
+import random
 import struct
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from database import search_similar_chunks
+from database import get_chunk_question_history, search_similar_chunks
 
 load_dotenv()
 
@@ -19,6 +20,55 @@ EMBEDDING_MAX_CHARS = 24_000  # ~8 000 tokens × 3 chars/token, marge de sécuri
 
 # Nombre de chunks récupérés lors du retrieval RAG
 RAG_TOP_K = 3
+
+QUESTION_TYPES = [
+    "question_directe",
+    "cas_pratique",
+    "vrai_faux",
+    "question_piege",
+    "reformulation",
+    "consequence",
+]
+
+_TYPE_PROMPTS = {
+    "question_directe": (
+        "Génère une question directe de compréhension qui teste une notion clé du texte."
+    ),
+    "cas_pratique": (
+        "Génère une question sous forme de cas pratique : décris une situation concrète "
+        "et demande comment l'apprenant devrait réagir selon le texte."
+    ),
+    "vrai_faux": (
+        "Génère une affirmation (vraie ou fausse) tirée du texte "
+        "et demande à l'apprenant de dire si elle est correcte et de la justifier."
+    ),
+    "question_piege": (
+        "Génère une question piège qui contient une erreur ou une nuance subtile "
+        "que l'apprenant doit identifier et corriger."
+    ),
+    "reformulation": (
+        "Demande à l'apprenant d'expliquer le concept principal du texte avec ses propres mots, "
+        "sans utiliser les termes exacts du document."
+    ),
+    "consequence": (
+        "Génère une question sur les conséquences, les conditions d'application "
+        "ou les cas d'exclusion d'une règle ou d'un processus décrit dans le texte."
+    ),
+}
+
+
+def _choose_question_type(used_types: list[str]) -> str:
+    """
+    Choisit le type de question le moins utilisé pour ce chunk.
+    En cas d'égalité, sélection aléatoire parmi les candidats.
+    Si aucun historique, sélection aléatoire parmi tous les types.
+    """
+    if not used_types:
+        return random.choice(QUESTION_TYPES)
+    counts = {t: used_types.count(t) for t in QUESTION_TYPES}
+    min_count = min(counts.values())
+    candidates = [t for t, c in counts.items() if c == min_count]
+    return random.choice(candidates)
 
 
 def _get_client() -> OpenAI:
@@ -65,18 +115,19 @@ def generate_embedding(text: str) -> bytes:
 
 def generate_question(
     source_text: str, document_id: int | None = None
-) -> tuple[str, list[int]]:
+) -> tuple[str, list[int], str]:
     """
     Génère une question de compréhension à partir du texte source.
 
-    Retourne un tuple (question, chunk_ids) :
-    - question   : str — la question générée
-    - chunk_ids  : list[int] — IDs des chunks utilisés pour le contexte RAG,
-                   vide [] si fallback texte brut (document_id absent, embeddings
-                   manquants, ou erreur API).
+    Retourne un tuple (question, chunk_ids, question_type) :
+    - question      : str — la question générée
+    - chunk_ids     : list[int] — IDs des chunks utilisés (vide si fallback)
+    - question_type : str — type pédagogique utilisé (issu de QUESTION_TYPES)
 
-    Chemin fallback : texte brut tronqué → LLM. chunk_ids = [].
-    Chemin RAG      : top-k chunks → LLM. chunk_ids contient leurs IDs.
+    Variation pédagogique : le type est choisi par rotation sur l'historique
+    du chunk primaire (chunk_ids[0]). En fallback texte brut, sélection aléatoire.
+    Les 2 dernières questions posées sur ce chunk sont passées au LLM pour éviter
+    les doublons.
     """
     client = _get_client()
 
@@ -95,27 +146,44 @@ def generate_question(
             # Fallback silencieux — context et chunk_ids restent inchangés
             pass
 
-    # ── Appel LLM — prompt identique quel que soit le chemin ────────────────
+    # ── Choix du type pédagogique ─────────────────────────────────────────────
+    history: list[dict] = []
+    if chunk_ids:
+        try:
+            history = get_chunk_question_history(chunk_ids[0], limit=5)
+        except Exception:
+            pass
+
+    used_types       = [h["question_type"] for h in history if h.get("question_type")]
+    question_type    = _choose_question_type(used_types)
+    type_instruction = _TYPE_PROMPTS[question_type]
+
+    # Instructions anti-doublon : 2 dernières questions de ce chunk
+    avoid_block = ""
+    previous_qs = [h["question"] for h in history[:2] if h.get("question")]
+    if previous_qs:
+        lines       = "\n".join(f"- {q}" for q in previous_qs)
+        avoid_block = (
+            f"\n\nNe pose pas une question identique ou très similaire à :\n{lines}"
+        )
+
+    # ── Appel LLM ─────────────────────────────────────────────────────────────
+    system_prompt = (
+        f"Tu es un formateur expert. {type_instruction} "
+        f"Réponds uniquement avec la question, sans introduction ni commentaire."
+        f"{avoid_block}"
+    )
+
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Tu es un formateur expert. À partir du texte fourni, génère une seule question "
-                    "de compréhension précise qui teste une notion clé. "
-                    "Réponds uniquement avec la question, sans introduction."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Texte source :\n\n{context}",
-            },
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": f"Texte source :\n\n{context}"},
         ],
         max_tokens=200,
         temperature=0.7,
     )
-    return response.choices[0].message.content.strip(), chunk_ids
+    return response.choices[0].message.content.strip(), chunk_ids, question_type
 
 
 def correct_answer(question: str, user_answer: str, source_text: str) -> dict:

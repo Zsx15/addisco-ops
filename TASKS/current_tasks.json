@@ -26,7 +26,7 @@
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout get_chunk_stats() dans database.py : JOIN attempts→chunks→documents, GROUP BY chunk_id, COALESCE section_title, sous-requête corr. pour erreur dominante. Section Dashboard conditionnelle avec st.dataframe + chunks fragiles < 60 %. py_compile OK. ai_service.py / document_service.py / pipeline RAG non modifiés.",
+    "completion_notes": "Ajout get_chunk_stats() dans database.py. Section Dashboard conditionnelle. py_compile OK.",
     "commit_hash": "bb8f6c9"
   },
   {
@@ -35,13 +35,13 @@
     "status": "DONE",
     "priority": "HIGH",
     "depends_on": ["TASK-002"],
-    "description": "Transformer les analytics bruts en indicateur pédagogique exploitable : classification Fragile / En consolidation / Maîtrisé et tendance par chunk.",
+    "description": "Classification Fragile / En consolidation / Maîtrisé et tendance par chunk.",
     "goal": "Rendre les priorités de révision visibles et actionnables dans le Dashboard.",
     "files": ["database.py", "app.py"],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout last_score (sous-requête corrélée) dans get_chunk_stats(). Ajout classify_mastery(df) dans database.py : mastery_class (Fragile/En consolidation/Maîtrisé) + trend (Amélioration/Stable/Dégradation/N/A si 1 seule tentative). Section Dashboard remplacée : tableau enrichi + liste de révision prioritaire. py_compile OK. Streamlit OK. 2 fichiers modifiés uniquement.",
+    "completion_notes": "Ajout last_score + classify_mastery(df). Section Dashboard enrichie : tableau + liste de révision. py_compile OK. Streamlit OK.",
     "commit_hash": "03f1671"
   },
   {
@@ -50,13 +50,28 @@
     "status": "DONE",
     "priority": "HIGH",
     "depends_on": ["TASK-003"],
-    "description": "Fermer la boucle pédagogique en proposant directement dans l'onglet Entraînement le chunk le plus prioritaire à réviser, avec action immédiate.",
+    "description": "Fermer la boucle pédagogique en proposant directement dans l'onglet Entraînement le chunk le plus prioritaire à réviser.",
     "goal": "Passer de l'observation (Dashboard) à l'action guidée (Entraînement).",
     "files": ["database.py", "app.py"],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
-    "completion_notes": "Ajout get_revision_suggestion() dans database.py : HAVING exclut Maîtrisés, ORDER BY Fragile→ancienneté→score faible, LIMIT 1, retourne dict|None. Bloc conditionnel dans onglet Entraînement : section, document, score, tentatives, ancienneté, bouton via _make_use_callback. from datetime import datetime ajouté. py_compile OK. Streamlit OK.",
+    "completion_notes": "Ajout get_revision_suggestion() : HAVING exclut Maîtrisés, ORDER BY Fragile→ancienneté→score. Bloc conditionnel dans Entraînement. py_compile OK. Streamlit OK.",
+    "commit_hash": "faf7d43"
+  },
+  {
+    "id": "TASK-005",
+    "title": "Variation pédagogique dans la génération de questions",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-004"],
+    "description": "Introduire 6 types de questions avec rotation par historique de chunk pour éviter les répétitions.",
+    "goal": "Rompre la monotonie des questions identiques et enrichir l'expérience pédagogique.",
+    "files": ["database.py", "ai_service.py", "app.py"],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "Ajout get_chunk_question_history() dans database.py. Ajout QUESTION_TYPES, _TYPE_PROMPTS, _choose_question_type() dans ai_service.py. generate_question() retourne tuple[str, list[int], str]. Prompt enrichi avec type + anti-doublon. pedagogy_type peuplé dans save_attempt(). 4/4 tests helpers OK. py_compile 3/3 OK. Streamlit OK.",
     "commit_hash": null
   }
 ]

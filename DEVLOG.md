@@ -140,6 +140,39 @@ Format par entrée :
 - `git status` → 2 fichiers modifiés uniquement
 
 **Prochaine étape :**
-- TASK-005 : mémoire pédagogique persistée (error_patterns, notions fragiles, répétition espacée).
+- TASK-005 : variation pédagogique dans la génération de questions.
+
+---
+
+## 2026-05-12 — TASK-005 : Variation pédagogique dans la génération de questions
+
+**Milestone :** Résoudre la répétition de questions identiques en introduisant 6 types de questions et une rotation par historique de chunk.
+
+**Actions :**
+- Ajout de `get_chunk_question_history(chunk_id, limit)` dans `database.py` : lit `pedagogy_type` comme `question_type` sur les dernières tentatives d'un chunk (colonne existante, aucune migration).
+- Ajout dans `ai_service.py` : `import random`, `QUESTION_TYPES` (6 types), `_TYPE_PROMPTS` (dict clé→instruction LLM), `_choose_question_type(used_types)` (rotation équitable, aléatoire en cas d'égalité).
+- Modification de `generate_question()` : lookup historique sur `chunk_ids[0]` après retrieval RAG, choix du type par rotation, prompt enrichi avec l'instruction du type + anti-doublon (2 dernières questions du chunk), retour `tuple[str, list[int], str]` (+question_type).
+- Mise à jour `app.py` : session_state `question_type` initialisé, dépaquetage 3-tuple, `pedagogy_type=question_type` passé à `save_attempt()`.
+
+**Types de questions implémentés :**
+1. question_directe, 2. cas_pratique, 3. vrai_faux, 4. question_piege, 5. reformulation, 6. consequence
+
+**Invariants préservés :**
+- Fallback texte brut intact : si chunk_ids=[], type aléatoire, pas de lookup DB.
+- Pipeline RAG inchangé. Embeddings inchangés.
+- Aucune nouvelle dépendance (random = stdlib).
+- Aucune migration SQLite (pedagogy_type existait déjà, était toujours NULL).
+- `correct_answer()` non modifié.
+
+**Validation :**
+- `py_compile database.py / ai_service.py / app.py` → OK (3/3)
+- `_choose_question_type([])` → type valide ✓
+- `_choose_question_type(["question_directe"]*4)` → rotation correcte ✓
+- `_choose_question_type([tous sauf consequence])` → consequence ✓
+- `get_chunk_question_history(99999)` → [] ✓
+- Streamlit headless port 8504 → démarrage sans erreur ✓
+
+**Prochaine étape :**
+- TASK-006 : mémoire pédagogique persistée (error_patterns, notions fragiles, répétition espacée).
 
 ---

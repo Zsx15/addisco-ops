@@ -25,7 +25,7 @@ init_db()
 st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
 st.title("📚 IA Révision Métier")
 
-for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "chunk_ids"):
+for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "chunk_ids", "question_type"):
     if key not in st.session_state:
         st.session_state[key] = None
 if "source_text_input" not in st.session_state:
@@ -96,15 +96,16 @@ with tab_train:
     if st.button("Générer une question", disabled=not source_text.strip()):
         with st.spinner("Génération en cours…"):
             try:
-                question, chunk_ids = generate_question(
+                question, chunk_ids, question_type = generate_question(
                     source_text,
                     document_id=st.session_state.get("active_document_id"),
                 )
-                st.session_state["question"] = question
-                st.session_state["chunk_ids"] = chunk_ids
-                st.session_state["source_text"] = source_text
-                st.session_state["start_time"] = time.time()
-                st.session_state["result"] = None
+                st.session_state["question"]      = question
+                st.session_state["chunk_ids"]     = chunk_ids
+                st.session_state["question_type"] = question_type
+                st.session_state["source_text"]   = source_text
+                st.session_state["start_time"]    = time.time()
+                st.session_state["result"]        = None
             except Exception as exc:
                 st.error(f"Erreur lors de la génération : {exc}")
 
@@ -137,6 +138,7 @@ with tab_train:
                         response_time_seconds=round(elapsed, 1),
                         error_type=result.get("error_type", ""),
                         topic=result.get("topic", ""),
+                        pedagogy_type=st.session_state.get("question_type"),
                         document_id=st.session_state.get("active_document_id"),
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
                     )
