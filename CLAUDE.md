@@ -312,6 +312,142 @@ Never perform without explicit user approval:
 
 
 
+\# UX / UI GOVERNANCE
+
+
+
+\## Scope Separation
+
+
+
+The pedagogical MVP engine is now stable (TASK-001 to TASK-011).
+
+UX and UI improvements are a separate scope from the backend engine.
+
+
+
+Every task that primarily affects the visual layer, user experience,
+
+labels, layout, or demonstration flow must be identified as FRONTEND/UX
+
+in its description.
+
+
+
+\---
+
+
+
+\## Protected Files — Critical Engine
+
+
+
+The following files form the critical pedagogical engine.
+
+A UX task must NOT modify them without explicit user validation:
+
+
+
+\- database.py — SQLite, analytics, spaced repetition, mastery;
+
+\- ai\_service.py — RAG, embeddings, LLM calls, question types, correction;
+
+\- document\_service.py — ingestion pipeline, chunking, demo seed.
+
+
+
+If a UX task requires a change to a critical engine file,
+
+state the reason explicitly and wait for GO before proceeding.
+
+
+
+\---
+
+
+
+\## UX Task Perimeter
+
+
+
+UX modifications must target:
+
+
+
+\- app.py — layout, widgets, tabs, conditional blocks;
+
+\- displayed text — labels, captions, headers, button text;
+
+\- visual hierarchy — colors, expanders, columns, metrics;
+
+\- demonstration flow — section order, entry points, suggestions.
+
+
+
+\---
+
+
+
+\## Pre-Task UX Checklist
+
+
+
+Before implementing any UX task, explicitly state:
+
+
+
+\- files to be modified;
+
+\- user-visible impact (what changes on screen);
+
+\- regression risk on the pedagogical engine;
+
+\- visual tests to perform after implementation.
+
+
+
+\---
+
+
+
+\## Double Validation for Engine Changes
+
+
+
+Any modification to a critical engine file requires:
+
+
+
+1\. explicit analysis and plan;
+
+2\. explicit GO from the user;
+
+3\. py\_compile + Streamlit startup + non-regression check.
+
+
+
+A UX task that inadvertently touches the engine must stop and ask before proceeding.
+
+
+
+\---
+
+
+
+\## Goal
+
+
+
+Make the demonstration clearer and more impactful
+
+without modifying the pedagogical engine behavior.
+
+
+
+\---
+
+
+
 \# Git Policy
 
 
@@ -352,19 +488,25 @@ Commit prefixes:
 
 Current priorities:
 
-\- governance stabilization;
+\- UX/UI clarity for demonstration (FRONTEND/UX tasks);
 
-\- RAG stabilization;
+\- adaptive pedagogical engine evolution (Phase 8);
 
-\- pedagogical tracking;
+\- production readiness preparation (Phase 10).
 
-\- architecture consistency.
+
+
+Current state:
+
+\- MVP pedagogical engine complete (TASK-001 to TASK-011).
+
+\- RAG, embeddings, spaced repetition, 6 question types, mastery bias: operational.
 
 
 
 Current next milestone:
 
-\- attempts.chunk\_id implementation.
+\- UX polish and demonstration flow.
 
 
 
