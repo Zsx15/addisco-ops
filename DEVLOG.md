@@ -69,6 +69,44 @@ Format par entrée :
 - `git status` → 2 fichiers modifiés uniquement.
 
 **Prochaine étape :**
-- TASK-003 : mémoire pédagogique (error_patterns, notions fragiles persistées, base répétition espacée).
+- TASK-003 : score de maîtrise par chunk (classification Fragile / En consolidation / Maîtrisé + tendance).
+
+---
+
+## 2026-05-12 — TASK-003 : Score de maîtrise par chunk
+
+**Milestone :** Transformation des analytics bruts (TASK-002) en indicateur pédagogique exploitable.
+
+**Actions :**
+- Ajout d'une sous-requête corrélée `last_score` dans `get_chunk_stats()` (database.py) : dernière tentative scorée par chunk, triée par `created_at DESC`.
+- Ajout de `classify_mastery(df)` dans `database.py` : helper Python pur enrichissant le DataFrame avec `mastery_class` (Fragile / En consolidation / Maîtrisé) et `trend` (Amélioration / Stable / Dégradation / N/A).
+- Remplacement de la section "Analytics par chunk" dans `app.py` : tableau enrichi (Maîtrise + Tendance) + liste de révision prioritaire (Fragile → En consolidation → caption Maîtrisé).
+- Import de `classify_mastery` dans `app.py`.
+
+**Règles de classification :**
+- Maîtrisé : avg_score ≥ 0.8 ET attempts_count ≥ 3
+- Fragile : avg_score < 0.6 (quel que soit le nombre de tentatives)
+- En consolidation : tout le reste
+
+**Règles de tendance :**
+- N/A si une seule tentative
+- Amélioration : last_score > avg_score + 0.1
+- Dégradation : last_score < avg_score − 0.1
+- Stable : écart ≤ 0.1
+
+**Invariants préservés :**
+- `ai_service.py`, `document_service.py` non modifiés.
+- Pipeline RAG inchangé. Embeddings inchangés. Fallback inchangé.
+- Schéma SQLite inchangé (aucune migration).
+- Les 4 sections Dashboard existantes intactes.
+
+**Validation :**
+- `py_compile database.py` → OK
+- `py_compile app.py` → OK
+- Streamlit headless port 8502 → démarrage sans erreur
+- `git status` → 2 fichiers modifiés uniquement
+
+**Prochaine étape :**
+- TASK-004 : mémoire pédagogique persistée (error_patterns, notions fragiles, base répétition espacée).
 
 ---

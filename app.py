@@ -5,6 +5,7 @@ import streamlit as st
 
 from ai_service import correct_answer, generate_question
 from database import (
+    classify_mastery,
     get_attempts,
     get_chunk_stats,
     get_document_by_id,
@@ -392,20 +393,19 @@ with tab_dashboard:
 
         # ── Analytics par chunk ───────────────────────────────────────────────
         st.markdown("#### Analytics par chunk")
-        df_chunks = get_chunk_stats()
+        df_chunks = classify_mastery(get_chunk_stats())
         if df_chunks.empty:
             st.info(
                 "Aucune donnée par chunk disponible. "
                 "Effectuez des tentatives en mode RAG (document importé avec embeddings)."
             )
         else:
+            # Tableau enrichi
             df_display = df_chunks[
-                ["document_title", "section_label", "avg_score", "attempts_count", "dominant_error_type"]
+                ["document_title", "section_label", "avg_score", "attempts_count",
+                 "mastery_class", "trend", "dominant_error_type"]
             ].copy()
             df_display["Score moyen (%)"] = (df_display["avg_score"] * 100).round().astype(int)
-            df_display["Niveau"] = df_display["avg_score"].apply(
-                lambda s: "Bon" if s >= 0.8 else ("Moyen" if s >= 0.5 else "Fragile")
-            )
             df_display["Erreur dominante"] = df_display["dominant_error_type"].map(
                 lambda x: _ERROR_LABELS.get(x, x) if x else "—"
             )
@@ -413,19 +413,39 @@ with tab_dashboard:
                 "document_title": "Document",
                 "section_label":  "Section",
                 "attempts_count": "Tentatives",
-            })[["Document", "Section", "Score moyen (%)", "Tentatives", "Niveau", "Erreur dominante"]]
+                "mastery_class":  "Maîtrise",
+                "trend":          "Tendance",
+            })[["Document", "Section", "Score moyen (%)", "Tentatives", "Maîtrise", "Tendance", "Erreur dominante"]]
             st.dataframe(df_display, use_container_width=True, hide_index=True)
 
-            fragile_chunks = df_chunks[df_chunks["avg_score"] < 0.6]
-            if not fragile_chunks.empty:
-                st.markdown("**Chunks fragiles (score < 60 %) :**")
-                for _, r in fragile_chunks.iterrows():
+            # Priorités de révision
+            st.markdown("**Priorités de révision :**")
+            fragile  = df_chunks[df_chunks["mastery_class"] == "Fragile"].sort_values("avg_score")
+            consol   = df_chunks[df_chunks["mastery_class"] == "En consolidation"].sort_values("attempts_count")
+            mastered = df_chunks[df_chunks["mastery_class"] == "Maîtrisé"]
+
+            if fragile.empty and consol.empty:
+                st.success("Tous les chunks sont maîtrisés — bon travail !")
+            else:
+                for _, r in fragile.iterrows():
                     pct = round(float(r["avg_score"]) * 100)
                     n   = int(r["attempts_count"])
                     st.error(
                         f"**{r['section_label']}** ({r['document_title']}) "
-                        f"— Score moyen : {pct} %  "
-                        f"({n} tentative{'s' if n > 1 else ''})"
+                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}"
+                    )
+                for _, r in consol.iterrows():
+                    pct = round(float(r["avg_score"]) * 100)
+                    n   = int(r["attempts_count"])
+                    st.warning(
+                        f"**{r['section_label']}** ({r['document_title']}) "
+                        f"— {pct} %  ·  {n} tentative{'s' if n > 1 else ''}"
+                    )
+                if not mastered.empty:
+                    n_ok = len(mastered)
+                    st.caption(
+                        f"✅ {n_ok} chunk{'s' if n_ok > 1 else ''} "
+                        f"maîtrisé{'s' if n_ok > 1 else ''}."
                     )
 
 

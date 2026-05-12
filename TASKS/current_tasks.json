@@ -7,11 +7,7 @@
     "depends_on": [],
     "description": "Relier chaque tentative utilisateur au chunk source utilisé pour générer la question.",
     "goal": "Préparer la mémoire pédagogique et la répétition espacée.",
-    "files": [
-      "database.py",
-      "ai_service.py",
-      "app.py"
-    ],
+    "files": ["database.py", "ai_service.py", "app.py"],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -26,14 +22,26 @@
     "depends_on": ["TASK-001"],
     "description": "Exploiter attempts.chunk_id pour produire des analytics de progression par chunk source dans le Dashboard.",
     "goal": "Identifier les chunks fragiles et préparer la mémoire pédagogique.",
-    "files": [
-      "database.py",
-      "app.py"
-    ],
+    "files": ["database.py", "app.py"],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "Ajout get_chunk_stats() dans database.py : JOIN attempts→chunks→documents, GROUP BY chunk_id, COALESCE section_title, sous-requête corr. pour erreur dominante. Section Dashboard conditionnelle avec st.dataframe + chunks fragiles < 60 %. py_compile OK. ai_service.py / document_service.py / pipeline RAG non modifiés.",
+    "commit_hash": "bb8f6c9"
+  },
+  {
+    "id": "TASK-003",
+    "title": "Score de maîtrise par chunk",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-002"],
+    "description": "Transformer les analytics bruts en indicateur pédagogique exploitable : classification Fragile / En consolidation / Maîtrisé et tendance par chunk.",
+    "goal": "Rendre les priorités de révision visibles et actionnables dans le Dashboard.",
+    "files": ["database.py", "app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "Ajout last_score (sous-requête corrélée) dans get_chunk_stats(). Ajout classify_mastery(df) dans database.py : mastery_class (Fragile/En consolidation/Maîtrisé) + trend (Amélioration/Stable/Dégradation/N/A si 1 seule tentative). Section Dashboard remplacée : tableau enrichi + liste de révision prioritaire. py_compile OK. Streamlit OK. 2 fichiers modifiés uniquement.",
     "commit_hash": null
   }
 ]

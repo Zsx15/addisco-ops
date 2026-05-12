@@ -279,7 +279,15 @@ def get_chunk_stats() -> pd.DataFrame:
                     GROUP BY a2.error_type
                     ORDER BY COUNT(*) DESC
                     LIMIT 1
-                ) AS dominant_error_type
+                ) AS dominant_error_type,
+                (
+                    SELECT a3.score
+                    FROM attempts a3
+                    WHERE a3.chunk_id = a.chunk_id
+                      AND a3.score IS NOT NULL
+                    ORDER BY a3.created_at DESC
+                    LIMIT 1
+                ) AS last_score
             FROM attempts a
             JOIN chunks    c ON a.chunk_id     = c.id
             JOIN documents d ON c.document_id  = d.id
@@ -290,6 +298,46 @@ def get_chunk_stats() -> pd.DataFrame:
             """,
             conn,
         )
+    return df
+
+
+def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Enrichit un DataFrame issu de get_chunk_stats() avec deux colonnes :
+    - mastery_class : 'Fragile' | 'En consolidation' | 'Maîtrisé'
+    - trend         : 'Amélioration' | 'Stable' | 'Dégradation' | 'N/A'
+
+    Règles de classification :
+    - Maîtrisé       : avg_score >= 0.8 ET attempts_count >= 3
+    - Fragile        : avg_score < 0.6  (quel que soit le nombre de tentatives)
+    - En consolidation : tout le reste
+
+    Règles de tendance (uniquement si attempts_count >= 2) :
+    - Amélioration : last_score > avg_score + 0.1
+    - Dégradation  : last_score < avg_score - 0.1
+    - Stable       : écart <= 0.1
+    - N/A          : une seule tentative ou last_score absent
+    """
+    def _class(row):
+        if row["avg_score"] < 0.6:
+            return "Fragile"
+        if row["avg_score"] >= 0.8 and row["attempts_count"] >= 3:
+            return "Maîtrisé"
+        return "En consolidation"
+
+    def _trend(row):
+        if row["attempts_count"] < 2 or pd.isna(row["last_score"]):
+            return "N/A"
+        delta = float(row["last_score"]) - float(row["avg_score"])
+        if delta > 0.1:
+            return "Amélioration"
+        if delta < -0.1:
+            return "Dégradation"
+        return "Stable"
+
+    df = df.copy()
+    df["mastery_class"] = df.apply(_class, axis=1)
+    df["trend"] = df.apply(_trend, axis=1)
     return df
 
 
