@@ -31,15 +31,81 @@ except Exception:
     pass
 
 st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
-st.title("IA Révision Métier")
-st.caption("Moteur pédagogique adaptatif · RAG documentaire · Répétition espacée")
-st.markdown(
-    "📄 Document &nbsp;→&nbsp; 🔍 RAG &nbsp;→&nbsp; ❓ Question &nbsp;→&nbsp; "
-    "✍️ Réponse &nbsp;→&nbsp; ✅ Correction &nbsp;→&nbsp; 🧠 Mémoire &nbsp;→&nbsp; "
-    "🔄 Révision prioritaire",
-    unsafe_allow_html=True,
-)
-st.divider()
+
+st.markdown("""
+<style>
+/* ── Layout compaction ── */
+.main .block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+/* ── Dividers ── */
+hr {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+/* ── Alerts ── */
+[data-testid="stAlert"] {
+    padding: 0.6rem 1rem !important;
+}
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab"] {
+    font-weight: 500 !important;
+    padding: 6px 14px !important;
+}
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2px !important;
+}
+/* ── Metric labels uppercase ── */
+[data-testid="stMetricLabel"] > div {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #64748b !important;
+}
+[data-testid="stMetricValue"] > div {
+    font-size: 1.7rem !important;
+    font-weight: 700 !important;
+}
+/* ── Bordered containers ── */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 8px !important;
+}
+/* ── Caption compact ── */
+[data-testid="stCaptionContainer"] {
+    margin-bottom: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="padding:4px 0 14px;border-bottom:2px solid #e2e8f0;margin-bottom:6px">
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px">
+    <span style="font-size:22px;font-weight:700;color:#1e293b;letter-spacing:-0.01em">
+      📚&nbsp;IA Révision Métier
+    </span>
+    <span style="font-size:12px;color:#94a3b8;font-weight:500">
+      Moteur pédagogique adaptatif &middot; RAG documentaire &middot; Répétition espacée
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">📄 Document</span>
+    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">🔍 RAG</span>
+    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">❓ Question</span>
+    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">✍️ Réponse</span>
+    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">✅ Correction</span>
+    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">🧠 Mémoire</span>
+    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
+    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">🔄 Révision</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "active_document_title", "chunk_ids", "question_type", "question_mastery"):
     if key not in st.session_state:
@@ -75,6 +141,17 @@ _MASTERY_BIAS_LABELS = {
     "En consolidation": "Section en progression — types variés pour ancrer les acquis.",
     "Maîtrisé":         "Section maîtrisée — questions pièges et cas pratiques pour challenger la maîtrise.",
 }
+
+
+def _kpi_card(icon: str, label: str, value: str, accent: str = "#1e293b") -> str:
+    return (
+        '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;'
+        'padding:18px 12px;text-align:center;">'
+        f'<div style="font-size:20px;line-height:1;margin-bottom:8px">{icon}</div>'
+        f'<div style="font-size:26px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:6px">{value}</div>'
+        f'<div style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em">{label}</div>'
+        '</div>'
+    )
 
 
 def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
@@ -447,11 +524,28 @@ with tab_dashboard:
         n_mastered = int((df_chunks["mastery_class"] == "Maîtrisé").sum()) if not df_chunks.empty else 0
         n_retard   = int((df_chunks["review_status"] == "En retard").sum()) if not df_chunks.empty and "review_status" in df_chunks.columns else 0
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Tentatives", len(df_all))
-        c2.metric("Score moyen", f"{round(scores_all.mean() * 100)} %" if len(scores_all) else "—")
-        c3.metric("Sections maîtrisées", f"{n_mastered} / {n_sections}" if n_sections else "—")
-        c4.metric("Révisions en retard", n_retard if n_sections else "—")
+        _kc1, _kc2, _kc3, _kc4 = st.columns(4)
+        _kc1.markdown(
+            _kpi_card("📊", "Tentatives", str(len(df_all))),
+            unsafe_allow_html=True,
+        )
+        _kc2.markdown(
+            _kpi_card("🎯", "Score moyen",
+                      f"{round(scores_all.mean() * 100)} %" if len(scores_all) else "—"),
+            unsafe_allow_html=True,
+        )
+        _kc3.markdown(
+            _kpi_card("✅", "Sections maîtrisées",
+                      f"{n_mastered} / {n_sections}" if n_sections else "—",
+                      "#15803d" if n_mastered == n_sections and n_sections else "#1e293b"),
+            unsafe_allow_html=True,
+        )
+        _kc4.markdown(
+            _kpi_card("⚠️", "Révisions en retard",
+                      str(n_retard) if n_sections else "—",
+                      "#c2410c" if n_retard > 0 else "#1e293b"),
+            unsafe_allow_html=True,
+        )
 
         # ── Zone 2 : Révision prioritaire ────────────────────────────────────
         if not df_chunks.empty:
@@ -730,92 +824,115 @@ with tab_docs:
 # ── Onglet Moteur IA ─────────────────────────────────────────────────────────
 
 with tab_engine:
-    st.subheader("Comment fonctionne ce moteur ?")
     st.markdown(
-        "Un pipeline en 7 étapes transforme vos documents métier "
-        "en révision adaptative et personnalisée."
+        "<h3 style='margin:0 0 2px;color:#1e293b;font-size:18px'>Comment fonctionne ce moteur ?</h3>"
+        "<p style='color:#64748b;font-size:13px;margin:0 0 10px'>"
+        "Un pipeline en 7 étapes transforme vos documents métier en révision adaptative et personnalisée."
+        "</p>",
+        unsafe_allow_html=True,
     )
 
-    st.divider()
-    st.markdown("#### Pipeline pédagogique")
-
-    _pipeline_steps = [
-        ("📄", "Document",
-         "Importez un PDF ou TXT. Le texte est extrait, nettoyé et découpé en sections logiques."),
-        ("🔍", "RAG — Retrieval Augmented Generation",
-         "Chaque section reçoit un embedding sémantique. Lors d'une session, le moteur retrouve "
-         "les passages les plus pertinents par similarité cosinus."),
-        ("❓", "Question adaptative",
-         "Une question est générée depuis la section la plus pertinente, avec un type choisi "
-         "selon votre niveau de maîtrise actuel."),
-        ("✍️", "Réponse libre",
-         "Vous répondez en langage naturel. Le moteur mesure le temps de réponse "
-         "et conserve l'historique complet."),
-        ("✅", "Correction par l'IA",
-         "L'IA compare votre réponse au contenu source et produit un score, "
-         "un diagnostic d'erreur et une explication détaillée."),
-        ("🧠", "Mémoire pédagogique",
-         "Chaque résultat est enregistré : score, notion, type d'erreur, section source, "
-         "date. La progression est tracée par section."),
-        ("🔄", "Révision prioritaire",
-         "Le moteur calcule automatiquement la prochaine révision selon votre maîtrise "
-         "et l'algorithme de répétition espacée."),
+    # ── Pipeline 7 étapes — grille 2 colonnes ────────────────────────────────
+    st.markdown(
+        "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 6px;text-transform:uppercase;"
+        "letter-spacing:.05em'>Pipeline pédagogique</p>",
+        unsafe_allow_html=True,
+    )
+    _pipe_data = [
+        ("📄", "Document",         "Importez un PDF ou TXT. Extraction, nettoyage et découpage en sections logiques."),
+        ("🔍", "RAG",              "Embeddings sémantiques par section. Retrieval par similarité cosinus lors de chaque session."),
+        ("❓", "Question",         "Générée depuis la section pertinente, avec un type adapté à votre maîtrise actuelle."),
+        ("✍️", "Réponse libre",    "Réponse en langage naturel. Temps de réponse mesuré, historique complet conservé."),
+        ("✅", "Correction IA",    "Score, diagnostic d'erreur et explication ancrés dans le contenu source du document."),
+        ("🧠", "Mémoire",          "Résultats enregistrés : score, notion, type d'erreur, section source, date."),
+        ("🔄", "Révision prioritaire", "Prochaine révision calculée selon la maîtrise et l'algorithme de répétition espacée."),
     ]
-
-    for _icon, _step_title, _step_desc in _pipeline_steps:
-        with st.container(border=True):
-            _ci, _ct = st.columns([1, 11])
-            _ci.markdown(f"### {_icon}")
-            _ct.markdown(f"**{_step_title}**  \n{_step_desc}")
-
-    st.divider()
-    st.markdown("#### 6 types de questions adaptatives")
+    _pipe_html = "".join(
+        f'<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px;background:#fafbfc">'
+        f'<div style="font-size:17px;margin-bottom:3px">{ic}</div>'
+        f'<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:2px">{ti}</div>'
+        f'<div style="font-size:11.5px;color:#64748b;line-height:1.4">{de}</div>'
+        f'</div>'
+        for ic, ti, de in _pipe_data
+    )
     st.markdown(
-        "Le moteur sélectionne automatiquement le type de question "
-        "selon le niveau de maîtrise détecté pour chaque section."
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px">'
+        f'{_pipe_html}</div>',
+        unsafe_allow_html=True,
     )
 
-    _types_info = [
-        ("question_directe", "Restitution directe d'une information clé — type de base pour initier la révision."),
-        ("reformulation",    "Expliquer avec ses propres mots — prioritaire pour les sections fragiles."),
-        ("consequence",      "Comprendre les enchaînements logiques et conditions d'application."),
-        ("cas_pratique",     "Appliquer les règles en situation concrète — renforce la mémorisation."),
-        ("vrai_faux",        "Distinguer le vrai du faux — teste la précision des connaissances."),
-        ("question_piege",   "Résister aux formulations trompeuses — réservé aux sections maîtrisées."),
+    st.divider()
+
+    # ── 6 types de questions — grille 3 colonnes ─────────────────────────────
+    st.markdown(
+        "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 2px;text-transform:uppercase;"
+        "letter-spacing:.05em'>6 types de questions adaptatives</p>"
+        "<p style='font-size:12px;color:#64748b;margin:0 0 7px'>"
+        "Le type est sélectionné automatiquement selon la maîtrise détectée pour chaque section.</p>",
+        unsafe_allow_html=True,
+    )
+    _qt_data = [
+        ("❶", "Question directe",  "Restitution directe d'une information clé.",                             "#f0f9ff", "#0369a1"),
+        ("❷", "Reformulation",     "Expliquer avec ses mots — prioritaire pour les sections fragiles.",      "#fdf4ff", "#7e22ce"),
+        ("❸", "Conséquence",       "Enchaînements logiques et conditions d'application.",                    "#fff7ed", "#c2410c"),
+        ("❹", "Cas pratique",      "Application des règles en situation concrète.",                          "#f0fdf4", "#15803d"),
+        ("❺", "Vrai / Faux",       "Distinguer vrai et faux — précision des connaissances.",                 "#f8fafc", "#475569"),
+        ("❻", "Question piège",    "Formulations trompeuses — réservé aux sections maîtrisées.",             "#fef2f2", "#991b1b"),
     ]
-
-    _tcols = st.columns(2)
-    for _ti, (_qt, _tdesc) in enumerate(_types_info):
-        with _tcols[_ti % 2]:
-            with st.container(border=True):
-                st.markdown(f"**{_TYPE_LABELS.get(_qt, _qt)}**  \n{_tdesc}")
-
-    st.divider()
-    st.markdown("#### Répétition espacée")
+    _qt_html = "".join(
+        f'<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:{bg}">'
+        f'<div style="font-size:11px;font-weight:700;color:{ac};text-transform:uppercase;'
+        f'letter-spacing:.04em;margin-bottom:3px">{num} {lbl}</div>'
+        f'<div style="font-size:11.5px;color:#475569;line-height:1.35">{dsc}</div>'
+        f'</div>'
+        for num, lbl, dsc, bg, ac in _qt_data
+    )
     st.markdown(
-        "L'intervalle de révision est calculé automatiquement selon la classe de maîtrise "
-        "de chaque section. Plus une section est fragile, plus la révision est rapprochée."
+        f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px">'
+        f'{_qt_html}</div>',
+        unsafe_allow_html=True,
     )
-
-    _rc1, _rc2, _rc3 = st.columns(3)
-    with _rc1:
-        with st.container(border=True):
-            st.markdown("🔴 **Fragile**")
-            st.caption("Prochain rappel · 1 jour")
-    with _rc2:
-        with st.container(border=True):
-            st.markdown("🟡 **En consolidation**")
-            st.caption("Prochain rappel · 3 jours")
-    with _rc3:
-        with st.container(border=True):
-            st.markdown("🟢 **Maîtrisé**")
-            st.caption("Prochain rappel · 7 jours")
 
     st.divider()
-    st.markdown("#### Adaptation cognitive")
-    st.info(
-        "**Moteur adaptatif actif** — Le type de question est biaisé selon la maîtrise détectée.  \n"
-        "🔴 **Fragile** → reformulation, conséquence (consolidation des bases)  \n"
-        "🟡 **En consolidation** → types variés (ancrage des acquis)  \n"
-        "🟢 **Maîtrisé** → questions pièges, cas pratiques (résistance et application)"
-    )
+
+    # ── Répétition espacée + Adaptation cognitive — 2 colonnes ───────────────
+    _col_rep, _col_adp = st.columns(2)
+
+    with _col_rep:
+        st.markdown(
+            "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 7px;"
+            "text-transform:uppercase;letter-spacing:.05em'>Répétition espacée</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">'
+            '<div style="border:1px solid #fca5a5;border-radius:8px;padding:10px 8px;'
+            'background:#fef2f2;text-align:center">'
+            '<div style="font-size:18px">🔴</div>'
+            '<div style="font-size:12px;font-weight:700;color:#991b1b;margin:3px 0">Fragile</div>'
+            '<div style="font-size:11px;color:#b91c1c">Rappel · 1 j</div></div>'
+            '<div style="border:1px solid #fde68a;border-radius:8px;padding:10px 8px;'
+            'background:#fffbeb;text-align:center">'
+            '<div style="font-size:18px">🟡</div>'
+            '<div style="font-size:12px;font-weight:700;color:#92400e;margin:3px 0">Consolidation</div>'
+            '<div style="font-size:11px;color:#b45309">Rappel · 3 j</div></div>'
+            '<div style="border:1px solid #86efac;border-radius:8px;padding:10px 8px;'
+            'background:#f0fdf4;text-align:center">'
+            '<div style="font-size:18px">🟢</div>'
+            '<div style="font-size:12px;font-weight:700;color:#166534;margin:3px 0">Maîtrisé</div>'
+            '<div style="font-size:11px;color:#15803d">Rappel · 7 j</div></div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    with _col_adp:
+        st.markdown(
+            "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 7px;"
+            "text-transform:uppercase;letter-spacing:.05em'>Adaptation cognitive</p>",
+            unsafe_allow_html=True,
+        )
+        st.info(
+            "🔴 **Fragile** → reformulation, conséquence  \n"
+            "🟡 **En consolidation** → types variés  \n"
+            "🟢 **Maîtrisé** → questions pièges, cas pratiques"
+        )
