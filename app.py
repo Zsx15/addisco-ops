@@ -9,6 +9,7 @@ from ai_service import correct_answer, generate_question
 from database import (
     classify_mastery,
     get_attempts,
+    get_chunk_mastery,
     get_chunk_stats,
     get_document_by_id,
     get_documents,
@@ -30,16 +31,24 @@ except Exception:
     pass
 
 st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
-st.title("📚 IA Révision Métier")
+st.title("IA Révision Métier")
+st.caption("Moteur pédagogique adaptatif · RAG documentaire · Répétition espacée")
+st.markdown(
+    "📄 Document &nbsp;→&nbsp; 🔍 RAG &nbsp;→&nbsp; ❓ Question &nbsp;→&nbsp; "
+    "✍️ Réponse &nbsp;→&nbsp; ✅ Correction &nbsp;→&nbsp; 🧠 Mémoire &nbsp;→&nbsp; "
+    "🔄 Révision prioritaire",
+    unsafe_allow_html=True,
+)
+st.divider()
 
-for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "active_document_title", "chunk_ids", "question_type"):
+for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "active_document_title", "chunk_ids", "question_type", "question_mastery"):
     if key not in st.session_state:
         st.session_state[key] = None
 if "source_text_input" not in st.session_state:
     st.session_state["source_text_input"] = ""
 
-tab_train, tab_history, tab_dashboard, tab_docs = st.tabs(
-    ["Entraînement", "Historique", "Dashboard", "Documents"]
+tab_train, tab_history, tab_dashboard, tab_docs, tab_engine = st.tabs(
+    ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA"]
 )
 
 
@@ -50,6 +59,21 @@ _TYPE_LABELS = {
     "question_piege":   "Question piège",
     "reformulation":    "Reformulation",
     "consequence":      "Conséquence / condition",
+}
+
+_TYPE_EXPLANATIONS = {
+    "question_directe": "Vérifie la restitution directe d'une information clé du document.",
+    "cas_pratique":     "Met en situation concrète pour tester l'application des règles métier.",
+    "vrai_faux":        "Teste la capacité à distinguer les affirmations correctes des erreurs.",
+    "question_piege":   "Éprouve la solidité de la maîtrise face à des formulations trompeuses.",
+    "reformulation":    "Demande d'expliquer avec ses propres mots pour consolider la compréhension.",
+    "consequence":      "Teste la compréhension des enchaînements logiques et des conditions d'application.",
+}
+
+_MASTERY_BIAS_LABELS = {
+    "Fragile":          "Section fragile — reformulation et conséquence prioritaires pour consolider les bases.",
+    "En consolidation": "Section en progression — types variés pour ancrer les acquis.",
+    "Maîtrisé":         "Section maîtrisée — questions pièges et cas pratiques pour challenger la maîtrise.",
 }
 
 
@@ -156,6 +180,13 @@ with tab_train:
                 st.session_state["source_text"]   = source_text
                 st.session_state["start_time"]    = time.time()
                 st.session_state["result"]        = None
+                if chunk_ids:
+                    try:
+                        st.session_state["question_mastery"] = get_chunk_mastery(chunk_ids[0])
+                    except Exception:
+                        st.session_state["question_mastery"] = None
+                else:
+                    st.session_state["question_mastery"] = None
             except Exception as exc:
                 st.error(f"Erreur lors de la génération : {exc}")
 
@@ -167,6 +198,22 @@ with tab_train:
         _mode   = "RAG actif" if st.session_state.get("chunk_ids") else "Texte brut"
         _tlabel = _TYPE_LABELS.get(_q_type, _q_type) if _q_type else "—"
         st.caption(f"Type : {_tlabel} · {_mode}")
+
+        with st.expander("Pourquoi cette question ?"):
+            _expl = _TYPE_EXPLANATIONS.get(_q_type, "")
+            st.markdown(f"**Type · {_tlabel}**  \n{_expl}" if _expl else f"**Type · {_tlabel}**")
+            _mastery = st.session_state.get("question_mastery")
+            if _mastery and st.session_state.get("chunk_ids"):
+                _bias_text = _MASTERY_BIAS_LABELS.get(_mastery, "")
+                st.markdown(
+                    f"**Maîtrise détectée · {_mastery}**  \n{_bias_text}"
+                    if _bias_text else f"**Maîtrise détectée · {_mastery}**"
+                )
+            elif not st.session_state.get("chunk_ids"):
+                st.caption(
+                    "Mode texte brut — RAG non actif. "
+                    "Sélectionnez un document pour activer la trace RAG et l'adaptation cognitive."
+                )
 
         user_answer = st.text_area("Votre réponse", height=120, key="answer_input")
 
@@ -226,6 +273,16 @@ with tab_train:
         if result.get("expected_answer"):
             with st.expander("Voir la réponse attendue"):
                 st.write(result["expected_answer"])
+
+        _chunk_ids_res = st.session_state.get("chunk_ids") or []
+        _topic_res     = result.get("topic") or "—"
+        if _chunk_ids_res:
+            st.caption(
+                f"🧠 Résultat enregistré · Notion : {_topic_res} · "
+                f"Score : {round(score * 100)} % · Mémoire pédagogique mise à jour"
+            )
+        else:
+            st.caption(f"🧠 Résultat enregistré · Notion : {_topic_res} · Score : {round(score * 100)} %")
 
         def _reset_question():
             st.session_state["result"] = None
@@ -415,6 +472,15 @@ with tab_dashboard:
                         f"**{_prio_row['section_label']}** · _{_prio_row['document_title']}_  \n"
                         f"Score : **{_pct} %** · {_n} tentative{'s' if _n > 1 else ''} · {_retard}"
                     )
+                    _why = []
+                    if _pct < 60:
+                        _why.append(f"score moyen de {_pct} %")
+                    if _status == "En retard":
+                        _why.append("révision en retard")
+                    if _n < 3:
+                        _why.append("peu de tentatives enregistrées")
+                    if _why:
+                        st.caption(f"Prioritaire car : {', '.join(_why)}.")
 
         st.divider()
 
@@ -659,3 +725,97 @@ with tab_docs:
                                 "Rechargez la page pour relancer les manquants."
                             )
                         st.rerun()
+
+
+# ── Onglet Moteur IA ─────────────────────────────────────────────────────────
+
+with tab_engine:
+    st.subheader("Comment fonctionne ce moteur ?")
+    st.markdown(
+        "Un pipeline en 7 étapes transforme vos documents métier "
+        "en révision adaptative et personnalisée."
+    )
+
+    st.divider()
+    st.markdown("#### Pipeline pédagogique")
+
+    _pipeline_steps = [
+        ("📄", "Document",
+         "Importez un PDF ou TXT. Le texte est extrait, nettoyé et découpé en sections logiques."),
+        ("🔍", "RAG — Retrieval Augmented Generation",
+         "Chaque section reçoit un embedding sémantique. Lors d'une session, le moteur retrouve "
+         "les passages les plus pertinents par similarité cosinus."),
+        ("❓", "Question adaptative",
+         "Une question est générée depuis la section la plus pertinente, avec un type choisi "
+         "selon votre niveau de maîtrise actuel."),
+        ("✍️", "Réponse libre",
+         "Vous répondez en langage naturel. Le moteur mesure le temps de réponse "
+         "et conserve l'historique complet."),
+        ("✅", "Correction par l'IA",
+         "L'IA compare votre réponse au contenu source et produit un score, "
+         "un diagnostic d'erreur et une explication détaillée."),
+        ("🧠", "Mémoire pédagogique",
+         "Chaque résultat est enregistré : score, notion, type d'erreur, section source, "
+         "date. La progression est tracée par section."),
+        ("🔄", "Révision prioritaire",
+         "Le moteur calcule automatiquement la prochaine révision selon votre maîtrise "
+         "et l'algorithme de répétition espacée."),
+    ]
+
+    for _icon, _step_title, _step_desc in _pipeline_steps:
+        with st.container(border=True):
+            _ci, _ct = st.columns([1, 11])
+            _ci.markdown(f"### {_icon}")
+            _ct.markdown(f"**{_step_title}**  \n{_step_desc}")
+
+    st.divider()
+    st.markdown("#### 6 types de questions adaptatives")
+    st.markdown(
+        "Le moteur sélectionne automatiquement le type de question "
+        "selon le niveau de maîtrise détecté pour chaque section."
+    )
+
+    _types_info = [
+        ("question_directe", "Restitution directe d'une information clé — type de base pour initier la révision."),
+        ("reformulation",    "Expliquer avec ses propres mots — prioritaire pour les sections fragiles."),
+        ("consequence",      "Comprendre les enchaînements logiques et conditions d'application."),
+        ("cas_pratique",     "Appliquer les règles en situation concrète — renforce la mémorisation."),
+        ("vrai_faux",        "Distinguer le vrai du faux — teste la précision des connaissances."),
+        ("question_piege",   "Résister aux formulations trompeuses — réservé aux sections maîtrisées."),
+    ]
+
+    _tcols = st.columns(2)
+    for _ti, (_qt, _tdesc) in enumerate(_types_info):
+        with _tcols[_ti % 2]:
+            with st.container(border=True):
+                st.markdown(f"**{_TYPE_LABELS.get(_qt, _qt)}**  \n{_tdesc}")
+
+    st.divider()
+    st.markdown("#### Répétition espacée")
+    st.markdown(
+        "L'intervalle de révision est calculé automatiquement selon la classe de maîtrise "
+        "de chaque section. Plus une section est fragile, plus la révision est rapprochée."
+    )
+
+    _rc1, _rc2, _rc3 = st.columns(3)
+    with _rc1:
+        with st.container(border=True):
+            st.markdown("🔴 **Fragile**")
+            st.caption("Prochain rappel · 1 jour")
+    with _rc2:
+        with st.container(border=True):
+            st.markdown("🟡 **En consolidation**")
+            st.caption("Prochain rappel · 3 jours")
+    with _rc3:
+        with st.container(border=True):
+            st.markdown("🟢 **Maîtrisé**")
+            st.caption("Prochain rappel · 7 jours")
+
+    st.divider()
+    st.markdown("#### Adaptation cognitive")
+    st.info(
+        "**Moteur adaptatif actif** — Le type de question est biaisé selon la maîtrise détectée.  \n"
+        "🔴 **Fragile** → reformulation, conséquence (consolidation des bases)  \n"
+        "🟡 **En consolidation** → types variés (ancrage des acquis)  \n"
+        "🟢 **Maîtrisé** → questions pièges, cas pratiques (résistance et application)"
+    )

@@ -208,5 +208,20 @@
     "human_validation_required": false,
     "completion_notes": "import pandas. Zone 1 : KPIs (tentatives, score, sections maîtrisées X/N, révisions en retard). Zone 2 : card prioritaire st.container(border=True). Zone 3 : cartes section st.progress + badge couleur. Zone 4 : graphiques conservés. Zone 5 : bloc IA adaptative st.info. Zone 6 : export. Supprimé : 'Notions fragiles', 'Tentatives par notion', dataframe 9 cols, liste st.error/warning. py_compile OK. Streamlit port 8511 OK.",
     "commit_hash": null
+  },
+  {
+    "id": "TASK-015",
+    "title": "Mode démo guidée / Storytelling produit",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-014"],
+    "description": "FRONTEND/UX — Transformer le MVP technique en démonstration produit convaincante et immédiatement lisible par un responsable non-tech en moins de 2 minutes. Quatre sous-livrables : A) Pipeline visuel pédagogique (Document → RAG → Question → Réponse → Correction → Mémoire → Révision prioritaire) affiché clairement dans l'interface. B) Mode démo guidée : encart ou assistant expliquant comment fonctionne le moteur, pourquoi certaines questions sont générées, pourquoi certaines notions deviennent prioritaires. C) Explicabilité pédagogique : blocs contextuels 'Pourquoi cette question ?', 'Pourquoi cette révision est prioritaire ?', 'Niveau de maîtrise détecté'. D) Valorisation produit : header produit renforcé, identité visuelle, clarté des KPI, impact démonstratif.",
+    "goal": "Rendre le moteur pédagogique compréhensible et démontrable par un responsable non-tech en moins de 2 minutes. Valoriser le pipeline RAG et la boucle pédagogique complète sans ajouter de nouveaux mécanismes IA.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "Import get_chunk_mastery. Header : title + tagline + pipeline banner 7 étapes. Session state question_mastery. 5ème tab 'Moteur IA'. _TYPE_EXPLANATIONS + _MASTERY_BIAS_LABELS. Expander 'Pourquoi cette question ?' (type + explicabilité maîtrise). Caption mémoire post-correction. Explication 'Pourquoi prioritaire ?' dans Dashboard priority card. Tab Moteur IA : pipeline 7 étapes, 6 types de questions, répétition espacée, adaptation cognitive. ai_service.py/database.py/document_service.py non modifiés. py_compile OK. Streamlit port 8515 OK.",
+    "commit_hash": null
   }
 ]
