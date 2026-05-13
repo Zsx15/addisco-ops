@@ -145,7 +145,12 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-for key in ("question", "source_text", "start_time", "result", "response_time", "active_document_id", "active_document_title", "chunk_ids", "question_type", "question_mastery"):
+for key in (
+    "question", "source_text", "start_time", "result", "response_time",
+    "active_document_id", "active_document_title", "chunk_ids", "question_type",
+    "question_mastery", "question_chunk_trend", "question_chunk_days",
+    "question_chunk_error", "question_chunk_status",
+):
     if key not in st.session_state:
         st.session_state[key] = None
 if "source_text_input" not in st.session_state:
@@ -179,6 +184,76 @@ _MASTERY_BIAS_LABELS = {
     "En consolidation": "Section en progression — types variés pour ancrer les acquis.",
     "Maîtrisé":         "Section maîtrisée — questions pièges et cas pratiques pour challenger la maîtrise.",
 }
+
+
+def _mastery_state(row) -> tuple[str, str, str]:
+    mc     = row.get("mastery_class", "")
+    trend  = row.get("trend", "N/A")
+    days   = row.get("days_until_review")
+    overdue = isinstance(days, (int, float)) and days < 0
+
+    if mc == "Maîtrisé":
+        if overdue:
+            return ("⚠️", "Oubli possible", "#9333ea")
+        if trend == "Dégradation":
+            return ("📉", "Maîtrise instable", "#d97706")
+        return ("✅", "Maîtrisé", "#16a34a")
+
+    if mc == "En consolidation":
+        if trend == "Amélioration":
+            return ("📈", "Forte progression", "#0891b2")
+        if trend == "Dégradation":
+            return ("📉", "Consolidation instable", "#d97706")
+        if overdue:
+            return ("⏰", "Révision en attente", "#7c3aed")
+        return ("🔄", "Consolidation active", "#d97706")
+
+    # Fragile
+    if trend == "Amélioration":
+        return ("📈", "En progression", "#0891b2")
+    if trend == "Dégradation":
+        return ("📉", "Régression active", "#dc2626")
+    return ("⚡", "Fragilité confirmée", "#dc2626")
+
+
+def _build_recommendations(df_chunks: pd.DataFrame, df_errors: pd.DataFrame) -> list[tuple[str, str]]:
+    recs: list[tuple[str, str]] = []
+    if df_chunks.empty:
+        return recs
+
+    overdue = df_chunks[df_chunks["review_status"] == "En retard"]
+    if len(overdue) == 1:
+        recs.append(("urgent", f"Section \"{overdue.iloc[0]['section_label']}\" doit être revue aujourd'hui"))
+    elif len(overdue) > 1:
+        recs.append(("urgent", f"{len(overdue)} sections en retard de révision — priorité immédiate"))
+
+    near = df_chunks[
+        (df_chunks["avg_score"] >= 0.68) &
+        (df_chunks["mastery_class"] == "En consolidation") &
+        (df_chunks["trend"] == "Amélioration")
+    ]
+    for _, r in near.iterrows():
+        recs.append(("success", f"\"{r['section_label']}\" proche de la maîtrise — {round(float(r['avg_score']) * 100)} %"))
+
+    for _, r in df_chunks[df_chunks["trend"] == "Dégradation"].head(2).iterrows():
+        recs.append(("warning", f"Régression détectée sur \"{r['section_label']}\" — révision recommandée"))
+
+    if not df_errors.empty and int(df_errors.iloc[0]["count"]) >= 3:
+        _te = df_errors.iloc[0]
+        recs.append((
+            "info",
+            f"{int(_te['count'])} erreurs \"{_ERROR_LABELS.get(_te['error_type'], _te['error_type'])}\" — notion sensible identifiée",
+        ))
+
+    fragile_err = df_chunks[
+        (df_chunks["mastery_class"] == "Fragile") &
+        df_chunks["dominant_error_type"].notna() &
+        (df_chunks["dominant_error_type"] != "")
+    ]
+    for _, r in fragile_err.head(1).iterrows():
+        recs.append(("warning", f"\"{r['section_label']}\" : erreur répétée \"{_ERROR_LABELS.get(r['dominant_error_type'], r['dominant_error_type'])}\""))
+
+    return recs[:5]
 
 
 def _kpi_card(icon: str, label: str, value: str, accent: str = "#0f172a") -> str:
@@ -301,10 +376,31 @@ with tab_train:
                 if chunk_ids:
                     try:
                         st.session_state["question_mastery"] = get_chunk_mastery(chunk_ids[0])
+                        _cs = classify_mastery(get_chunk_stats())
+                        _csr = _cs[_cs["chunk_id"] == chunk_ids[0]]
+                        if not _csr.empty:
+                            _cr = _csr.iloc[0]
+                            st.session_state["question_chunk_trend"]  = _cr.get("trend", "N/A")
+                            st.session_state["question_chunk_days"]   = _cr.get("days_until_review")
+                            st.session_state["question_chunk_error"]  = _cr.get("dominant_error_type")
+                            st.session_state["question_chunk_status"] = _cr.get("review_status", "—")
+                        else:
+                            st.session_state["question_chunk_trend"]  = "N/A"
+                            st.session_state["question_chunk_days"]   = None
+                            st.session_state["question_chunk_error"]  = None
+                            st.session_state["question_chunk_status"] = "—"
                     except Exception:
-                        st.session_state["question_mastery"] = None
+                        st.session_state["question_mastery"]          = None
+                        st.session_state["question_chunk_trend"]      = "N/A"
+                        st.session_state["question_chunk_days"]       = None
+                        st.session_state["question_chunk_error"]      = None
+                        st.session_state["question_chunk_status"]     = "—"
                 else:
-                    st.session_state["question_mastery"] = None
+                    st.session_state["question_mastery"]      = None
+                    st.session_state["question_chunk_trend"]  = "N/A"
+                    st.session_state["question_chunk_days"]   = None
+                    st.session_state["question_chunk_error"]  = None
+                    st.session_state["question_chunk_status"] = "—"
             except Exception as exc:
                 st.error(f"Erreur lors de la génération : {exc}")
 
@@ -327,6 +423,22 @@ with tab_train:
                     f"**Maîtrise détectée · {_mastery}**  \n{_bias_text}"
                     if _bias_text else f"**Maîtrise détectée · {_mastery}**"
                 )
+                _c_trend  = st.session_state.get("question_chunk_trend", "N/A")
+                _c_status = st.session_state.get("question_chunk_status", "—")
+                _c_error  = st.session_state.get("question_chunk_error")
+                _ctx = []
+                if _c_trend == "Amélioration":
+                    _ctx.append("📈 Progression récente détectée sur cette section")
+                elif _c_trend == "Dégradation":
+                    _ctx.append("📉 Régression récente — renforcement pédagogique actif")
+                if _c_status == "En retard":
+                    _ctx.append("⏰ Révision en retard — rappel prioritaire déclenché")
+                elif _c_status == "Aujourd'hui":
+                    _ctx.append("📅 Révision prévue aujourd'hui selon l'algorithme")
+                if _c_error and _c_error not in ("", "correct"):
+                    _ctx.append(f"🔍 Erreur récurrente identifiée : {_ERROR_LABELS.get(_c_error, _c_error)}")
+                if _ctx:
+                    st.markdown("  \n".join(f"_{line}_" for line in _ctx))
             elif not st.session_state.get("chunk_ids"):
                 st.caption(
                     "Mode texte brut — RAG non actif. "
@@ -562,6 +674,7 @@ with tab_dashboard:
     else:
         df_topics = get_topic_stats()
         df_chunks = classify_mastery(get_chunk_stats())
+        df_errors = get_error_frequency()
 
         # ── Zone 1 : KPIs enrichis ────────────────────────────────────────────
         scores_all = df_all["score"].dropna()
@@ -591,6 +704,27 @@ with tab_dashboard:
                       "#c2410c" if n_retard > 0 else "#1e293b"),
             unsafe_allow_html=True,
         )
+
+        # ── Zone 1b : Recommandations intelligentes ───────────────────────────
+        _recs = _build_recommendations(df_chunks, df_errors)
+        if _recs:
+            st.divider()
+            st.markdown(
+                "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
+                "text-transform:uppercase;letter-spacing:.07em'>Recommandations du moteur</p>",
+                unsafe_allow_html=True,
+            )
+            _rec_icons = {"urgent": "🔴", "warning": "🟡", "success": "🟢", "info": "🔵"}
+            _rec_html = "".join(
+                f'<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;'
+                f'background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:4px;'
+                f'box-shadow:0 1px 2px rgba(0,0,0,.04)">'
+                f'<span style="font-size:14px;flex-shrink:0">{_rec_icons.get(rt, "⚪")}</span>'
+                f'<span style="font-size:12.5px;color:#1e293b">{txt}</span>'
+                f'</div>'
+                for rt, txt in _recs
+            )
+            st.markdown(_rec_html, unsafe_allow_html=True)
 
         # ── Zone 2 : Révision prioritaire ────────────────────────────────────
         if not df_chunks.empty:
@@ -647,12 +781,25 @@ with tab_dashboard:
                 _pct  = round(float(r["avg_score"]) * 100)
                 _n    = int(r["attempts_count"])
                 _st   = r.get("review_status", "—")
+                _ms_icon, _ms_label, _ms_color = _mastery_state(r)
+                _dom_err = r.get("dominant_error_type") or ""
                 with _card_cols[i % _ncols]:
                     with st.container(border=True):
                         st.markdown(f"{_icon} **{_badge}**")
                         st.markdown(f"**{r['section_label']}**")
                         st.progress(min(float(r["avg_score"]), 1.0), text=f"{_pct} %")
-                        st.caption(f"{_n} tentative{'s' if _n > 1 else ''} · {_st}")
+                        st.markdown(
+                            f'<span style="font-size:11px;font-weight:600;color:{_ms_color}">'
+                            f'{_ms_icon} {_ms_label}</span>',
+                            unsafe_allow_html=True,
+                        )
+                        if _dom_err and _dom_err != "correct":
+                            st.caption(
+                                f"Erreur : {_ERROR_LABELS.get(_dom_err, _dom_err)}"
+                                f" · {_n} tent. · {_st}"
+                            )
+                        else:
+                            st.caption(f"{_n} tentative{'s' if _n > 1 else ''} · {_st}")
         else:
             st.info(
                 "Aucune donnée par section disponible. "
@@ -732,7 +879,6 @@ with tab_dashboard:
                 "text-transform:uppercase;letter-spacing:.07em'>Types d'erreurs fréquents</p>",
                 unsafe_allow_html=True,
             )
-            df_errors = get_error_frequency()
             if not df_errors.empty:
                 df_errors["label"] = df_errors["error_type"].map(
                     lambda x: _ERROR_LABELS.get(x, x)
@@ -766,13 +912,60 @@ with tab_dashboard:
 
         st.divider()
 
-        # ── Zone 5 : Moteur adaptatif ─────────────────────────────────────────
-        st.info(
-            "**Moteur adaptatif actif** — Type de question sélectionné automatiquement selon la maîtrise : "
-            "🔴 Fragile → reformulation / conséquence · "
-            "🟡 Consolidation → types variés · "
-            "🟢 Maîtrisé → question piège / cas pratique"
+        # ── Zone 4d : Mini-timeline ───────────────────────────────────────────
+        st.markdown(
+            "<p style='font-size:12px;font-weight:700;color:#475569;margin:8px 0 6px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Parcours récent</p>",
+            unsafe_allow_html=True,
         )
+        _recent = df_all.head(8)
+        _tl_items = []
+        for _, _row in _recent.iterrows():
+            try:
+                _sv = float(_row["score"])
+            except (TypeError, ValueError):
+                _sv = 0.0
+            _col = "#16a34a" if _sv >= 0.8 else ("#d97706" if _sv >= 0.5 else "#dc2626")
+            _topic_short = (_row["topic"] or "—")[:18]
+            _date_short  = str(_row["created_at"])[:10] if _row["created_at"] else "—"
+            _tl_items.append(
+                f'<div style="border:1px solid {_col};border-radius:8px;padding:5px 10px;'
+                f'background:{_col}12;text-align:center;min-width:58px;flex-shrink:0">'
+                f'<div style="font-size:13px;font-weight:700;color:{_col}">{round(_sv*100)}%</div>'
+                f'<div style="font-size:10px;color:#64748b;margin-top:1px">{_topic_short}</div>'
+                f'<div style="font-size:9px;color:#94a3b8">{_date_short}</div>'
+                f'</div>'
+            )
+        st.markdown(
+            '<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:flex-start">'
+            + "".join(_tl_items)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.divider()
+
+        # ── Zone 5 : Analyse pédagogique dynamique ────────────────────────────
+        _n_fragile  = int((df_chunks["mastery_class"] == "Fragile").sum()) if not df_chunks.empty else 0
+        _n_maitrise = int((df_chunks["mastery_class"] == "Maîtrisé").sum()) if not df_chunks.empty else 0
+        _n_progress = int((df_chunks["trend"] == "Amélioration").sum()) if not df_chunks.empty else 0
+        _n_regress  = int((df_chunks["trend"] == "Dégradation").sum()) if not df_chunks.empty else 0
+
+        _analyse = []
+        if _n_fragile:
+            _analyse.append(f"⚡ {_n_fragile} section{'s' if _n_fragile > 1 else ''} fragile{'s' if _n_fragile > 1 else ''} — révision prioritaire active, types reformulation/conséquence priorisés")
+        if _n_progress:
+            _analyse.append(f"📈 {_n_progress} section{'s' if _n_progress > 1 else ''} en progression — consolidation détectée")
+        if _n_regress:
+            _analyse.append(f"📉 {_n_regress} section{'s' if _n_regress > 1 else ''} en régression — adaptation du type de question en cours")
+        if _n_maitrise:
+            _analyse.append(f"✅ {_n_maitrise} section{'s' if _n_maitrise > 1 else ''} maîtrisée{'s' if _n_maitrise > 1 else ''} — questions pièges et cas pratiques activés")
+        if not df_errors.empty:
+            _te = df_errors.iloc[0]
+            _analyse.append(f"🔍 Erreur dominante : \"{_ERROR_LABELS.get(_te['error_type'], _te['error_type'])}\" ({int(_te['count'])} occurrences) — notion sensible identifiée")
+
+        if _analyse:
+            st.info("**Analyse pédagogique — Moteur adaptatif**  \n" + "  \n".join(_analyse))
 
         st.divider()
 
