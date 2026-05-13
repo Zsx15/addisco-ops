@@ -30,79 +30,117 @@ try:
 except Exception:
     pass
 
-st.set_page_config(page_title="IA Révision Métier", page_icon="📚", layout="wide")
+st.set_page_config(page_title="SYNPZ OPS", page_icon="🧠", layout="wide")
 
 st.markdown("""
 <style>
-/* ── Layout compaction ── */
+/* ── App background ── */
+.stApp {
+    background-color: #f5f6fa;
+}
+/* ── Main content ── */
 .main .block-container {
     padding-top: 1rem !important;
     padding-bottom: 1rem !important;
+    background-color: #f5f6fa;
+}
+/* ── Tabs background ── */
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: #f5f6fa;
+    padding-top: 10px !important;
 }
 /* ── Dividers ── */
 hr {
     margin-top: 0.5rem !important;
     margin-bottom: 0.5rem !important;
+    border-color: #e2e8f0 !important;
 }
 /* ── Alerts ── */
 [data-testid="stAlert"] {
     padding: 0.6rem 1rem !important;
+    border-radius: 8px !important;
 }
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab"] {
-    font-weight: 500 !important;
-    padding: 6px 14px !important;
+    font-weight: 600 !important;
+    padding: 6px 16px !important;
+    font-size: 13px !important;
 }
 .stTabs [data-baseweb="tab-list"] {
     gap: 2px !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    background-color: transparent !important;
 }
-/* ── Metric labels uppercase ── */
+/* ── Metric labels ── */
 [data-testid="stMetricLabel"] > div {
-    font-size: 0.7rem !important;
-    font-weight: 600 !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    color: #64748b !important;
+    letter-spacing: 0.06em !important;
+    color: #94a3b8 !important;
 }
 [data-testid="stMetricValue"] > div {
-    font-size: 1.7rem !important;
+    font-size: 1.8rem !important;
     font-weight: 700 !important;
+    color: #0f172a !important;
 }
-/* ── Bordered containers ── */
+/* ── Bordered containers — card with shadow ── */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 8px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04) !important;
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
 }
-/* ── Caption compact ── */
+/* ── Caption ── */
 [data-testid="stCaptionContainer"] {
     margin-bottom: 0 !important;
+}
+/* ── Progress bar ── */
+[data-testid="stProgress"] {
+    margin-bottom: 2px !important;
+}
+/* ── Info box border ── */
+[data-testid="stAlert"][kind="info"] {
+    background-color: #f0f4ff !important;
+    border-left-color: #4f46e5 !important;
+}
+/* ── Expander ── */
+[data-testid="stExpander"] {
+    border-radius: 8px !important;
+    border-color: #e2e8f0 !important;
+    background: #ffffff !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="padding:4px 0 14px;border-bottom:2px solid #e2e8f0;margin-bottom:6px">
-  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px">
-    <span style="font-size:22px;font-weight:700;color:#1e293b;letter-spacing:-0.01em">
-      📚&nbsp;IA Révision Métier
-    </span>
-    <span style="font-size:12px;color:#94a3b8;font-weight:500">
-      Moteur pédagogique adaptatif &middot; RAG documentaire &middot; Répétition espacée
-    </span>
+<div style="padding:6px 0 16px;border-bottom:2px solid #e2e8f0;margin-bottom:8px;background:#f5f6fa">
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:9px">
+    <div style="width:4px;min-height:40px;background:#4f46e5;border-radius:3px;flex-shrink:0;margin-top:2px"></div>
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px">
+        <span style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;line-height:1">SYNPZ OPS</span>
+        <span style="font-size:10px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.1em;background:#eef2ff;padding:2px 9px;border-radius:20px;border:1px solid #c7d2fe;white-space:nowrap">Adaptive Learning Intelligence</span>
+      </div>
+      <div style="font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px">
+        RAG documentaire &middot; Répétition espacée &middot; Adaptation cognitive
+      </div>
+    </div>
   </div>
-  <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">📄 Document</span>
-    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">🔍 RAG</span>
-    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">❓ Question</span>
-    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">✍️ Réponse</span>
-    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">✅ Correction</span>
-    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">🧠 Mémoire</span>
-    <span style="color:#cbd5e1;font-size:11px">&rarr;</span>
-    <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap">🔄 Révision</span>
+  <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-left:18px">
+    <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">📄 Document</span>
+    <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
+    <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">🔍 RAG</span>
+    <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
+    <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">❓ Question</span>
+    <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
+    <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">✍️ Réponse</span>
+    <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
+    <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">✅ Correction</span>
+    <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
+    <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">🧠 Mémoire</span>
+    <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
+    <span style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:20px;padding:2px 10px;font-size:11px;color:#4f46e5;white-space:nowrap;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.04)">🔄 Révision</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -143,13 +181,16 @@ _MASTERY_BIAS_LABELS = {
 }
 
 
-def _kpi_card(icon: str, label: str, value: str, accent: str = "#1e293b") -> str:
+def _kpi_card(icon: str, label: str, value: str, accent: str = "#0f172a") -> str:
     return (
-        '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;'
-        'padding:18px 12px;text-align:center;">'
-        f'<div style="font-size:20px;line-height:1;margin-bottom:8px">{icon}</div>'
-        f'<div style="font-size:26px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:6px">{value}</div>'
-        f'<div style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em">{label}</div>'
+        '<div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;'
+        'padding:20px 14px;text-align:center;'
+        'box-shadow:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);">'
+        f'<div style="font-size:22px;line-height:1;margin-bottom:10px">{icon}</div>'
+        f'<div style="font-size:30px;font-weight:800;color:{accent};line-height:1;'
+        f'margin-bottom:8px;letter-spacing:-0.02em">{value}</div>'
+        f'<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;'
+        f'letter-spacing:.08em">{label}</div>'
         '</div>'
     )
 
@@ -508,7 +549,11 @@ with tab_history:
 # ── Onglet Dashboard ─────────────────────────────────────────────────────────
 
 with tab_dashboard:
-    st.subheader("Tableau de bord pédagogique")
+    st.markdown(
+        "<h4 style='margin:0 0 10px;color:#0f172a;font-size:15px;font-weight:700;"
+        "letter-spacing:-0.01em'>Tableau de bord pédagogique</h4>",
+        unsafe_allow_html=True,
+    )
 
     df_all = get_attempts()
 
@@ -579,7 +624,11 @@ with tab_dashboard:
         st.divider()
 
         # ── Zone 3 : Cartes de section ────────────────────────────────────────
-        st.markdown("#### Progression par section")
+        st.markdown(
+            "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 8px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Progression par section</p>",
+            unsafe_allow_html=True,
+        )
         if not df_chunks.empty:
             _BADGE = {
                 "Fragile":          ("🔴", "FRAGILE"),
@@ -613,14 +662,18 @@ with tab_dashboard:
         st.divider()
 
         # ── Zone 4a : Évolution des scores ────────────────────────────────────
-        st.markdown("#### Évolution des scores")
+        st.markdown(
+            "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Évolution des scores</p>",
+            unsafe_allow_html=True,
+        )
         df_evol = get_score_evolution(limit=20)
         if not df_evol.empty:
             df_line = df_evol[["score"]].copy()
             df_line["Score (%)"] = (df_line["score"] * 100).round().astype(int)
             df_line["Tentative"] = range(1, len(df_line) + 1)
-            st.line_chart(df_line, x="Tentative", y="Score (%)", height=300)
-            st.caption(f"{len(df_evol)} dernières tentatives — ordre chronologique, de gauche à droite")
+            st.line_chart(df_line, x="Tentative", y="Score (%)", height=210)
+            st.caption(f"{len(df_evol)} dernières tentatives — ordre chronologique")
 
         st.divider()
 
@@ -628,7 +681,11 @@ with tab_dashboard:
 
         # ── Zone 4b : Score moyen par notion ──────────────────────────────────
         with col_left:
-            st.markdown("#### Score moyen par notion")
+            st.markdown(
+                "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
+                "text-transform:uppercase;letter-spacing:.07em'>Score moyen par notion</p>",
+                unsafe_allow_html=True,
+            )
             if not df_topics.empty:
                 df_plot = df_topics.copy()
                 df_plot["score_pct"] = (df_plot["avg_score"] * 100).round().astype(int)
@@ -643,12 +700,12 @@ with tab_dashboard:
                     orientation="h",
                     color="niveau",
                     color_discrete_map={
-                        "Bon":     "#27ae60",
-                        "Moyen":   "#e67e22",
-                        "Fragile": "#e74c3c",
+                        "Bon":     "#16a34a",
+                        "Moyen":   "#d97706",
+                        "Fragile": "#dc2626",
                     },
                     custom_data=["topic", "attempts"],
-                    height=max(260, len(df_plot) * 52),
+                    height=max(200, len(df_plot) * 44),
                 )
                 fig.update_traces(
                     hovertemplate=(
@@ -670,7 +727,11 @@ with tab_dashboard:
 
         # ── Zone 4c : Types d'erreurs ─────────────────────────────────────────
         with col_right:
-            st.markdown("#### Types d'erreurs fréquents")
+            st.markdown(
+                "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
+                "text-transform:uppercase;letter-spacing:.07em'>Types d'erreurs fréquents</p>",
+                unsafe_allow_html=True,
+            )
             df_errors = get_error_frequency()
             if not df_errors.empty:
                 df_errors["label"] = df_errors["error_type"].map(
@@ -682,9 +743,9 @@ with tab_dashboard:
                     x="count",
                     y="label_short",
                     orientation="h",
-                    color_discrete_sequence=["#3498db"],
+                    color_discrete_sequence=["#6366f1"],
                     custom_data=["label"],
-                    height=max(260, len(df_errors) * 52),
+                    height=max(200, len(df_errors) * 44),
                 )
                 fig.update_traces(
                     hovertemplate=(
@@ -707,11 +768,10 @@ with tab_dashboard:
 
         # ── Zone 5 : Moteur adaptatif ─────────────────────────────────────────
         st.info(
-            "**Moteur adaptatif actif** — Les types de questions (directe, cas pratique, "
-            "reformulation, conséquence, vrai/faux, piège) sont sélectionnés automatiquement "
-            "selon le niveau de maîtrise de chaque section. Les sections **Fragile** reçoivent "
-            "prioritairement des questions de reformulation et de conséquence. "
-            "Les sections **Maîtrisées** reçoivent des questions pièges et des cas pratiques."
+            "**Moteur adaptatif actif** — Type de question sélectionné automatiquement selon la maîtrise : "
+            "🔴 Fragile → reformulation / conséquence · "
+            "🟡 Consolidation → types variés · "
+            "🟢 Maîtrisé → question piège / cas pratique"
         )
 
         st.divider()
