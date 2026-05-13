@@ -222,6 +222,36 @@
     "rollback_safe": true,
     "human_validation_required": true,
     "completion_notes": "Import get_chunk_mastery. Header : title + tagline + pipeline banner 7 étapes. Session state question_mastery. 5ème tab 'Moteur IA'. _TYPE_EXPLANATIONS + _MASTERY_BIAS_LABELS. Expander 'Pourquoi cette question ?' (type + explicabilité maîtrise). Caption mémoire post-correction. Explication 'Pourquoi prioritaire ?' dans Dashboard priority card. Tab Moteur IA : pipeline 7 étapes, 6 types de questions, répétition espacée, adaptation cognitive. ai_service.py/database.py/document_service.py non modifiés. py_compile OK. Streamlit port 8515 OK.",
-    "commit_hash": null
+    "commit_hash": "479d0c0"
+  },
+  {
+    "id": "TASK-016",
+    "title": "UX Premium / Densification visuelle / Finition produit",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-015"],
+    "description": "FRONTEND/UX — Densification visuelle globale, KPI premium custom HTML, header HTML compact avec pipeline pills, refonte onglet Moteur IA en grilles HTML compactes (pipeline 2-col, types de questions 3-col, répétition espacée + adaptation cognitive en 2 colonnes). CSS global : padding block-container, dividers fins, tabs, metric labels uppercase.",
+    "goal": "Transformer l'interface en dashboard IA métier moderne, produit pédagogique premium, outil SaaS interne crédible. Supprimer la sensation prototype Streamlit brut.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "CSS : padding 1rem, hr fins, alerts compacts, tabs font-weight, metric labels uppercase, containers radius 8px, caption compact. Header HTML : titre + tagline + 7 pipeline pills. Helper _kpi_card() : fond #f8fafc, border, radius 10px, icône + valeur 26px + label uppercase. Dashboard KPI : 4 _kpi_card() en colonnes avec accent couleur (vert maitrise / rouge retard). Moteur IA : pipeline grille 2-col HTML, 6 types grille 3-col HTML, répétition espacée + adaptation cognitive 2-col. py_compile OK. Streamlit port 8525 OK.",
+    "commit_hash": "dd70b0b"
+  },
+  {
+    "id": "TASK-017",
+    "title": "Branding premium / Identité produit / Profondeur visuelle — SYNPZ OPS",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-016"],
+    "description": "FRONTEND/UX/BRANDING — Rebranding complet SYNPZ OPS. Profondeur visuelle : fond app #f5f6fa, cards box-shadow, expanders stylisés. Header : accent bar indigo, nom SYNPZ OPS bold-800, badge Adaptive Learning Intelligence, pills pipeline blanches ombragées. KPI executive-grade : valeur 30px bold-800, fond blanc, ombre. Analytics professionnels : titres sections uppercase, charts compacts, palette couleurs cohérente. Zone moteur condensée.",
+    "goal": "Faire passer SYNPZ OPS du registre bon MVP Streamlit à véritable produit IA métier identifiable et crédible. Identité visuelle forte, perception premium, cohérence UI complète.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "page_title SYNPZ OPS, icon 🧠. CSS : .stApp background #f5f6fa, cards box-shadow, expanders border #e2e8f0 bg blanc, info box border indigo. Header : accent bar 4px #4f46e5, SYNPZ OPS bold-800, badge #eef2ff/#c7d2fe Adaptive Learning Intelligence, pills blanches ombragées, dernière pill surlignée indigo. _kpi_card() : fond blanc, shadow, valeur 30px bold-800 letter-spacing, label 10px uppercase spacing .08em. Dashboard : subheader styled HTML, titres sections 12px uppercase .07em. Line chart 210px. Bar charts max(200,n*44). Palette #16a34a/#d97706/#dc2626 + erreurs #6366f1. Zone 5 moteur condensée 1 ligne. py_compile OK. Streamlit port 8535 OK.",
+    "commit_hash": "5baef8e"
   }
 ]
