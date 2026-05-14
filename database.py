@@ -8,14 +8,37 @@ import pandas as pd
 
 DB_PATH = Path("database.db")
 
-# Intervalles de répétition espacée par classe de maîtrise (en jours).
-# Valeurs dupliquées dans get_revision_suggestion() ORDER BY (SQLite datetime inline).
-# Toute modification ici doit être répercutée dans la requête SQL.
+# Intervalles de base de répétition espacée par classe de maîtrise (en jours).
+# Utilisés par _adaptive_interval() comme point de départ avant modulation par trend.
+# Les valeurs brutes (1j/3j) sont dupliquées dans get_revision_suggestion() ORDER BY.
 REVIEW_INTERVALS = {
     "Fragile":          1,
     "En consolidation": 3,
     "Maîtrisé":         7,
 }
+
+
+def _adaptive_interval(mastery_class: str, trend: str) -> int:
+    """
+    Retourne l'intervalle de révision (en jours) adapté à la tendance récente.
+
+    Modulation par rapport à REVIEW_INTERVALS :
+    - Fragile + Amélioration    → 2j  (progrès visible, délai légèrement allongé)
+    - Fragile + autre           → 1j  (inchangé — situation critique)
+    - En consolidation + Amélioration → 5j  (bonne trajectoire, espacer davantage)
+    - En consolidation + Dégradation  → 2j  (surveillance renforcée)
+    - En consolidation + autre        → 3j  (inchangé)
+    - Maîtrisé                  → 7j  (inchangé — déjà maîtrisé)
+    """
+    base = REVIEW_INTERVALS.get(mastery_class, 3)
+    if mastery_class == "Fragile":
+        return 2 if trend == "Amélioration" else base
+    if mastery_class == "En consolidation":
+        if trend == "Amélioration":
+            return 5
+        if trend == "Dégradation":
+            return 2
+    return base
 
 
 def _normalize_topic(topic: str | None) -> str | None:
@@ -383,7 +406,7 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
     def _next_review(row):
         try:
             last_dt = datetime.fromisoformat(str(row["last_attempt_date"]))
-            days    = REVIEW_INTERVALS.get(row["mastery_class"], 3)
+            days    = _adaptive_interval(row["mastery_class"], row["trend"])
             return last_dt + timedelta(days=days)
         except Exception:
             return None

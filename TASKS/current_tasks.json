@@ -509,5 +509,25 @@
     "human_validation_required": true,
     "completion_notes": "+user_id param database.py. ai_service.py passe user_id. +1 test isolation. _add_attempt +question param. 40/40 OK. py_compile 3/3 OK.",
     "commit_hash": "9655a1e"
+  },
+  {
+    "id": "TASK-027",
+    "title": "Intervalles de révision adaptatifs (Phase 9)",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": [
+      "TASK-026"
+    ],
+    "description": "ENGINE — _adaptive_interval(mastery_class, trend) dans database.py. Fragile+Amelioration=2j, Consolidation+Degradation=2j, Consolidation+Amelioration=5j. Branche dans classify_mastery._next_review().",
+    "goal": "Phase 9 : next_review modulee par la tendance recente. Le Dashboard affiche des echeances differenciees selon la progression reelle de l apprenant.",
+    "files": [
+      "database.py",
+      "test_regression.py"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "+_adaptive_interval() pure function. classify_mastery branche dessus. +4 tests TestClassifyMastery. 44/44 OK. py_compile 2/2 OK.",
+    "commit_hash": ""
   }
 ]

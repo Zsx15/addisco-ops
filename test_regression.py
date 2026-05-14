@@ -338,6 +338,40 @@ class TestClassifyMastery(unittest.TestCase):
         self.assertIn("days_until_review", result.columns)
         self.assertIn("review_status",     result.columns)
 
+    def test_adaptive_interval_amelioration_allonge(self):
+        """Invariant TASK-027 : Fragile+Amélioration → interval > Fragile+Stable."""
+        from database import _adaptive_interval
+        fragile_stable     = _adaptive_interval("Fragile", "Stable")
+        fragile_amelio     = _adaptive_interval("Fragile", "Amélioration")
+        consol_stable      = _adaptive_interval("En consolidation", "Stable")
+        consol_amelio      = _adaptive_interval("En consolidation", "Amélioration")
+        self.assertGreater(fragile_amelio, fragile_stable)
+        self.assertGreater(consol_amelio,  consol_stable)
+
+    def test_adaptive_interval_degradation_reduit(self):
+        """Invariant TASK-027 : En consolidation+Dégradation → interval < Stable."""
+        from database import _adaptive_interval
+        consol_stable = _adaptive_interval("En consolidation", "Stable")
+        consol_degrad = _adaptive_interval("En consolidation", "Dégradation")
+        self.assertLess(consol_degrad, consol_stable)
+
+    def test_adaptive_interval_maitrise_inchange(self):
+        """Invariant TASK-027 : Maîtrisé n'est pas modulé."""
+        from database import _adaptive_interval, REVIEW_INTERVALS
+        for trend in ("Amélioration", "Stable", "Dégradation", "N/A"):
+            self.assertEqual(_adaptive_interval("Maîtrisé", trend), REVIEW_INTERVALS["Maîtrisé"])
+
+    def test_classify_mastery_uses_adaptive_interval(self):
+        """next_review d'un chunk Fragile+Amélioration > Fragile+Stable (même date)."""
+        date = "2026-05-01 10:00:00"
+        df_amelio = pd.DataFrame([self._row(avg_score=0.45, attempts_count=3,
+                                            last_score=0.75, last_attempt_date=date)])
+        df_stable = pd.DataFrame([self._row(avg_score=0.45, attempts_count=3,
+                                            last_score=0.45, last_attempt_date=date)])
+        r_amelio = self.fn(df_amelio).iloc[0]
+        r_stable = self.fn(df_stable).iloc[0]
+        self.assertGreater(r_amelio["next_review"], r_stable["next_review"])
+
 
 class TestLearningProfile(_DbTestCase):
 

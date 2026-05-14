@@ -4,6 +4,36 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-027 : Intervalles de révision adaptatifs (Phase 9)
+
+**Milestone :** Phase 9 — répétition espacée modulée par la tendance récente de l'apprenant.
+
+**Actions :**
+- `database.py` : ajout de `_adaptive_interval(mastery_class, trend) -> int` (fonction pure). Branchement dans `classify_mastery._next_review()` à la place de `REVIEW_INTERVALS.get(...)`.
+- `test_regression.py` : +4 tests `TestClassifyMastery` (44/44 OK).
+
+**Table des intervalles adaptatifs :**
+| Classe | Trend | Intervalle |
+|--------|-------|-----------|
+| Fragile | Amélioration | 2j |
+| Fragile | Stable/N/A/Dégradation | 1j |
+| En consolidation | Amélioration | 5j |
+| En consolidation | Dégradation | 2j |
+| En consolidation | Stable/N/A | 3j |
+| Maîtrisé | (tout) | 7j |
+
+**Limitation connue :** `get_revision_suggestion()` ORDER BY conserve les intervalles base (1j/3j inline SQL). La modulation par trend s'applique uniquement à `next_review` dans le Dashboard. Gap acceptable.
+
+**Invariants préservés :**
+- `_adaptive_interval` retourne toujours un entier ≥ 1.
+- Maîtrisé non modulé (déjà maîtrisé, pas de raison de réduire l'intervalle).
+- py_compile 2/2 OK. 44/44 tests OK.
+
+**Prochaine étape :**
+- TASK-028 : à définir selon roadmap Phase 9 (affichage `next_review` adaptatif dans suggestion Entraînement) ou Phase 10.
+
+---
+
 ## 2026-05-14 — TASK-026 : Isolation per-user dans get_chunk_question_history()
 
 **Milestone :** Phase 8 — isolation multi-user complète sur toutes les fonctions engine.
