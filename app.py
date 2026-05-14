@@ -22,6 +22,17 @@ from database import (
 )
 from document_service import get_text_preview, ingest_document, reindex_document, seed_demo_document
 from seed_demo_attempts import seed as _seed_demo_attempts
+# =========================
+# ERROR LABELS
+# =========================
+
+_ERROR_LABELS = {
+    "memory": "Erreur de mémorisation",
+    "attention": "Erreur d'attention",
+    "comprehension": "Erreur de compréhension",
+    "logic": "Erreur logique",
+    "vocabulary": "Erreur de vocabulaire"
+}
 
 init_db()
 seed_demo_document()
