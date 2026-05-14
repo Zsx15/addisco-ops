@@ -4,6 +4,32 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-021 : Profil d'apprentissage dans le Dashboard
+
+**Milestone :** Exposition UI du profil pédagogique (TASK-020 rendu visible).
+
+**Actions :**
+- Import `compute_and_save_learning_profile` + `get_learning_profile` dans `app.py`.
+- Ajout Zone 7 dans l'onglet Dashboard (insertion entre Zone 5 analyse et Zone 6 export) :
+  - 4 KPI cards `_kpi_card()` : Analytique / Procédural / Narratif / Analogique — couleur selon score (vert ≥ 80 %, ambre ≥ 60 %, rouge < 60 %, gris = aucune donnée)
+  - Ligne résumé : Style dominant + Score global
+  - Caption notions fragiles (si existantes)
+  - Bouton "Calculer le profil" (premier calcul) / "Recalculer le profil" + `st.rerun()`
+
+**Décisions :**
+- Insertion non intrusive : aucune modification des Zones 1-6 existantes.
+- Profil calculé à la demande (pas automatique) : l'utilisateur contrôle la mise à jour.
+- Données de seed demo : profil affiche Procédural dominant, Analytique 72 %, Analogique 37 %.
+
+**Invariants préservés :**
+- `database.py`, `ai_service.py`, `document_service.py` non modifiés.
+- py_compile 2/2 OK. AST check imports OK.
+
+**Prochaine étape :**
+- TASK-022 : Réduction des responsabilités de `app.py` — extraction d'un helper `ui_helpers.py` (fonctions HTML/render) ou début de `adaptive_engine.py`.
+
+---
+
 ## 2026-05-14 — TASK-020 : Table user_learning_profile — profil pédagogique utilisateur
 
 **Milestone :** Fondation Phase 8 — profils pédagogiques par utilisateur.

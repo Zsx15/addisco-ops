@@ -298,5 +298,20 @@
     "human_validation_required": false,
     "completion_notes": "import json ajouté. CREATE TABLE IF NOT EXISTS user_learning_profile. _PEDAGOGY_GROUPS mapping. get_learning_profile() + compute_and_save_learning_profile(). Validation seed demo : preferred=procedural, 3 fragile_topics. 4/4 assertions OK. py_compile 2/2 OK.",
     "commit_hash": "0b251ed"
+  },
+  {
+    "id": "TASK-021",
+    "title": "Profil d'apprentissage dans le Dashboard",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-020"],
+    "description": "FRONTEND/UX — Zone 7 dans l'onglet Dashboard : 4 KPI cards par groupe pédagogique (Analytique/Procédural/Narratif/Analogique), style dominant, notions fragiles, bouton Calculer/Recalculer. Import compute_and_save_learning_profile + get_learning_profile.",
+    "goal": "Rendre visible le profil pédagogique calculé par TASK-020. Permettre à l'apprenant de voir son style dominant et ses notions fragiles sans quitter le Dashboard.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "Import 2 fonctions. Zone 7 insérée entre analyse pédagogique et export. 4 _kpi_card() couleur-codées. Style dominant + score global + caption fragile_topics. Bouton calcul/recalcul + st.rerun(). py_compile OK. AST imports OK.",
+    "commit_hash": "f3f11cc"
   }
 ]
