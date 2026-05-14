@@ -528,6 +528,6 @@
     "rollback_safe": true,
     "human_validation_required": true,
     "completion_notes": "+_adaptive_interval() pure function. classify_mastery branche dessus. +4 tests TestClassifyMastery. 44/44 OK. py_compile 2/2 OK.",
-    "commit_hash": ""
+    "commit_hash": "b64f1ba"
   }
 ]
