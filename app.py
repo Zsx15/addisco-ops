@@ -8,12 +8,14 @@ import streamlit as st
 from ai_service import correct_answer, generate_question
 from database import (
     classify_mastery,
+    compute_and_save_learning_profile,
     get_attempts,
     get_chunk_mastery,
     get_chunk_stats,
     get_document_by_id,
     get_documents,
     get_error_frequency,
+    get_learning_profile,
     get_revision_suggestion,
     get_score_evolution,
     get_topic_stats,
@@ -984,6 +986,73 @@ with tab_dashboard:
 
         if _analyse:
             st.info("**Analyse pédagogique — Moteur adaptatif**  \n" + "  \n".join(_analyse))
+
+        # ── Zone 7 : Profil d'apprentissage ──────────────────────────────────
+        st.markdown(
+            "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 8px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Profil d'apprentissage</p>",
+            unsafe_allow_html=True,
+        )
+
+        _SCORE_GROUPS = [
+            ("📐", "Analytique",  "logical_score",    "#0f172a"),
+            ("⚙️",  "Procédural",  "procedural_score", "#0f172a"),
+            ("📝", "Narratif",    "narrative_score",  "#0f172a"),
+            ("🔀", "Analogique",  "analogy_score",    "#0f172a"),
+        ]
+        _PEDAGOGY_FR = {
+            "logical":    "Analytique",
+            "procedural": "Procédural",
+            "narrative":  "Narratif",
+            "analogy":    "Analogique",
+        }
+
+        _profile = get_learning_profile(st.session_state["user_id"])
+
+        if _profile is not None:
+            _pg1, _pg2, _pg3, _pg4 = st.columns(4)
+            for _gcol, (icon, label, key, _) in zip(
+                (_pg1, _pg2, _pg3, _pg4), _SCORE_GROUPS
+            ):
+                _s = float(_profile.get(key) or 0.0)
+                _pct_str = f"{round(_s * 100)} %" if _s > 0 else "—"
+                _accent = (
+                    "#15803d" if _s >= 0.8
+                    else "#b45309" if _s >= 0.6
+                    else "#b91c1c" if _s > 0
+                    else "#94a3b8"
+                )
+                _gcol.markdown(
+                    _kpi_card(icon, label, _pct_str, _accent),
+                    unsafe_allow_html=True,
+                )
+
+            _pref = _profile.get("preferred_pedagogy")
+            _pref_label = _PEDAGOGY_FR.get(_pref, _pref) if _pref else None
+            _fragile = _profile.get("fragile_topics") or []
+            _avg = float(_profile.get("average_score") or 0.0)
+
+            _profile_lines = []
+            if _pref_label:
+                _profile_lines.append(f"**Style dominant :** {_pref_label}")
+            if _avg > 0:
+                _profile_lines.append(f"**Score global :** {round(_avg * 100)} %")
+            if _profile_lines:
+                st.markdown("  ·  ".join(_profile_lines))
+            if _fragile:
+                st.caption("Notions fragiles : " + " · ".join(_fragile))
+        else:
+            st.info(
+                "Profil non encore calculé. "
+                "Cliquez sur **Calculer le profil** pour générer votre analyse."
+            )
+
+        if st.button(
+            "Recalculer le profil" if _profile is not None else "Calculer le profil",
+            key="btn_recompute_profile",
+        ):
+            compute_and_save_learning_profile(st.session_state["user_id"])
+            st.rerun()
 
         st.divider()
 
