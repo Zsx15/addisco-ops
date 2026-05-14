@@ -4,6 +4,30 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-022 : Extraction ui_helpers.py — réduction responsabilités app.py
+
+**Milestone :** Architecture — séparation logique UI pure / orchestration Streamlit.
+
+**Actions :**
+- Création `ui_helpers.py` : `_ERROR_LABELS`, `_truncate_label`, `_kpi_card`, `_mastery_state`, `_build_recommendations`, `_build_report`. Aucune dépendance Streamlit.
+- Suppression des 5 définitions locales dans `app.py` (−110 lignes de définitions).
+- Import `from ui_helpers import (...)` en tête de `app.py`. Tous les call sites inchangés.
+- **Fix bug** : `_ERROR_LABELS` dupliqué supprimé (keys `'memory'`/`'attention'`/etc. morts depuis commit TASK-019 — écrasés par la seconde définition à l'exécution).
+
+**Résultats validation :**
+- AST : 5/5 fonctions absentes de `app.py`. 0 définition locale de `_ERROR_LABELS`.
+- Tests fonctionnels `ui_helpers.py` : 7/7 OK.
+- py_compile : `ui_helpers.py` OK + `app.py` OK.
+
+**Invariants préservés :**
+- `database.py`, `ai_service.py`, `document_service.py` non modifiés.
+- Comportement identique pour l'utilisateur final.
+
+**Prochaine étape :**
+- TASK-023 : Tests de non-régression automatisés sur `database.py` + `ui_helpers.py` (Phase 10 — robustesse).
+
+---
+
 ## 2026-05-14 — TASK-021 : Profil d'apprentissage dans le Dashboard
 
 **Milestone :** Exposition UI du profil pédagogique (TASK-020 rendu visible).

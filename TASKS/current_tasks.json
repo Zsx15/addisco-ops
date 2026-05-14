@@ -313,5 +313,20 @@
     "human_validation_required": true,
     "completion_notes": "Import 2 fonctions. Zone 7 insérée entre analyse pédagogique et export. 4 _kpi_card() couleur-codées. Style dominant + score global + caption fragile_topics. Bouton calcul/recalcul + st.rerun(). py_compile OK. AST imports OK.",
     "commit_hash": "f3f11cc"
+  },
+  {
+    "id": "TASK-022",
+    "title": "Extraction ui_helpers.py — réduction responsabilités app.py",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-021"],
+    "description": "Refactor — création ui_helpers.py (fonctions HTML/render sans dépendance Streamlit). Suppression des 5 définitions locales dans app.py. Fix bug _ERROR_LABELS dupliqué.",
+    "goal": "Réduire les responsabilités de app.py (priorité 5 TASK_MASTER.md). Rendre les fonctions UI pures testables indépendamment. Corriger le bug du dict _ERROR_LABELS écrasé silencieusement.",
+    "files": ["ui_helpers.py", "app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "ui_helpers.py : _ERROR_LABELS + 5 fonctions (170 lignes). app.py -168 lignes de definitions. AST 5/5 OK. Bug _ERROR_LABELS corrige. 7/7 tests fonctionnels OK. py_compile 2/2 OK.",
+    "commit_hash": "73a6a08"
   }
 ]
