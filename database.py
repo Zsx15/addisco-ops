@@ -93,48 +93,52 @@ def save_attempt(
     pedagogy_type: str = None,
     document_id: int = None,
     chunk_id: int = None,
+    user_id: str = "default",
 ):
     topic = _normalize_topic(topic)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
             INSERT INTO attempts
-                (question, user_answer, expected_answer, correction, score,
+                (user_id, question, user_answer, expected_answer, correction, score,
                  response_time_seconds, error_type, topic, pedagogy_type,
                  document_id, chunk_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (question, user_answer, expected_answer, correction, score,
+            (user_id, question, user_answer, expected_answer, correction, score,
              response_time_seconds, error_type, topic, pedagogy_type,
              document_id, chunk_id),
         )
 
 
-def get_attempts() -> pd.DataFrame:
+def get_attempts(user_id: str = "default") -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
-            "SELECT * FROM attempts ORDER BY created_at DESC", conn
+            "SELECT * FROM attempts WHERE user_id = ? ORDER BY created_at DESC",
+            conn,
+            params=(user_id,),
         )
     return df
 
 
-def get_score_evolution(limit: int = 20) -> pd.DataFrame:
+def get_score_evolution(limit: int = 20, user_id: str = "default") -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
             """
             SELECT id, score, created_at
             FROM attempts
             WHERE score IS NOT NULL
+              AND user_id = ?
             ORDER BY created_at DESC
             LIMIT ?
             """,
             conn,
-            params=(limit,),
+            params=(user_id, limit),
         )
     return df.iloc[::-1].reset_index(drop=True)
 
 
-def get_error_frequency() -> pd.DataFrame:
+def get_error_frequency(user_id: str = "default") -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
             """
@@ -143,15 +147,17 @@ def get_error_frequency() -> pd.DataFrame:
             WHERE error_type IS NOT NULL
               AND error_type != ''
               AND error_type != 'correct'
+              AND user_id = ?
             GROUP BY error_type
             ORDER BY count DESC
             """,
             conn,
+            params=(user_id,),
         )
     return df
 
 
-def get_topic_stats() -> pd.DataFrame:
+def get_topic_stats(user_id: str = "default") -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
             """
@@ -161,10 +167,12 @@ def get_topic_stats() -> pd.DataFrame:
                 COUNT(*)             AS attempts
             FROM attempts
             WHERE topic IS NOT NULL AND topic != ''
+              AND user_id = ?
             GROUP BY LOWER(TRIM(topic))
             ORDER BY avg_score ASC
             """,
             conn,
+            params=(user_id,),
         )
     return df
 
@@ -273,7 +281,7 @@ def get_documents() -> pd.DataFrame:
     return df
 
 
-def get_chunk_stats() -> pd.DataFrame:
+def get_chunk_stats(user_id: str = "default") -> pd.DataFrame:
     """
     Agrège les tentatives par chunk source (chunk_id IS NOT NULL = mode RAG uniquement).
     Retourne un DataFrame trié par avg_score ASC (chunks les plus fragiles en premier).
@@ -291,6 +299,7 @@ def get_chunk_stats() -> pd.DataFrame:
                     SELECT a2.error_type
                     FROM attempts a2
                     WHERE a2.chunk_id = a.chunk_id
+                      AND a2.user_id = a.user_id
                       AND a2.error_type IS NOT NULL
                       AND a2.error_type != ''
                       AND a2.error_type != 'correct'
@@ -302,6 +311,7 @@ def get_chunk_stats() -> pd.DataFrame:
                     SELECT a3.score
                     FROM attempts a3
                     WHERE a3.chunk_id = a.chunk_id
+                      AND a3.user_id = a.user_id
                       AND a3.score IS NOT NULL
                     ORDER BY a3.created_at DESC
                     LIMIT 1
@@ -312,10 +322,12 @@ def get_chunk_stats() -> pd.DataFrame:
             JOIN documents d ON c.document_id  = d.id
             WHERE a.chunk_id IS NOT NULL
               AND a.score    IS NOT NULL
+              AND a.user_id  = ?
             GROUP BY a.chunk_id
             ORDER BY avg_score ASC
             """,
             conn,
+            params=(user_id,),
         )
     return df
 
@@ -407,7 +419,7 @@ def get_chunk_question_history(chunk_id: int, limit: int = 5) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def get_chunk_mastery(chunk_id: int) -> str | None:
+def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> str | None:
     """
     Retourne la classe de maîtrise d'un chunk (Fragile / En consolidation / Maîtrisé)
     ou None si pas assez de données. Même règles que classify_mastery().
@@ -417,9 +429,9 @@ def get_chunk_mastery(chunk_id: int) -> str | None:
             """
             SELECT ROUND(AVG(score), 2), COUNT(*)
             FROM attempts
-            WHERE chunk_id = ? AND score IS NOT NULL
+            WHERE chunk_id = ? AND score IS NOT NULL AND user_id = ?
             """,
-            (chunk_id,),
+            (chunk_id, user_id),
         ).fetchone()
     if not row or row[1] < 1:
         return None
@@ -431,7 +443,7 @@ def get_chunk_mastery(chunk_id: int) -> str | None:
     return "En consolidation"
 
 
-def get_revision_suggestion() -> dict | None:
+def get_revision_suggestion(user_id: str = "default") -> dict | None:
     """
     Retourne le chunk le plus prioritaire à réviser, ou None si aucun chunk éligible.
 
@@ -461,6 +473,7 @@ def get_revision_suggestion() -> dict | None:
             JOIN documents d ON c.document_id = d.id
             WHERE a.chunk_id IS NOT NULL
               AND a.score    IS NOT NULL
+              AND a.user_id  = ?
             GROUP BY a.chunk_id
             HAVING NOT (ROUND(AVG(a.score), 2) >= 0.8 AND COUNT(*) >= 3)
             ORDER BY
@@ -480,7 +493,8 @@ def get_revision_suggestion() -> dict | None:
                 -- 4. Score le plus faible
                 ROUND(AVG(a.score), 2) ASC
             LIMIT 1
-            """
+            """,
+            (user_id,),
         ).fetchone()
     return dict(row) if row else None
 

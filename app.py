@@ -166,6 +166,12 @@ for key in (
         st.session_state[key] = None
 if "source_text_input" not in st.session_state:
     st.session_state["source_text_input"] = ""
+if "user_id" not in st.session_state:
+    st.session_state["user_id"] = "default"
+
+with st.sidebar:
+    st.markdown("**Session utilisateur**")
+    st.text_input("Identifiant", key="user_id", placeholder="ex : alice, bob…")
 
 tab_train, tab_history, tab_dashboard, tab_docs, tab_engine = st.tabs(
     ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA"]
@@ -296,7 +302,7 @@ def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
 
 with tab_train:
     # ── Suggestion de révision ───────────────────────────────────────────
-    suggestion = get_revision_suggestion()
+    suggestion = get_revision_suggestion(user_id=st.session_state["user_id"])
     if suggestion:
         try:
             last_dt   = datetime.fromisoformat(str(suggestion["last_attempt_date"]))
@@ -386,8 +392,8 @@ with tab_train:
                 st.session_state["result"]        = None
                 if chunk_ids:
                     try:
-                        st.session_state["question_mastery"] = get_chunk_mastery(chunk_ids[0])
-                        _cs = classify_mastery(get_chunk_stats())
+                        st.session_state["question_mastery"] = get_chunk_mastery(chunk_ids[0], user_id=st.session_state["user_id"])
+                        _cs = classify_mastery(get_chunk_stats(user_id=st.session_state["user_id"]))
                         _csr = _cs[_cs["chunk_id"] == chunk_ids[0]]
                         if not _csr.empty:
                             _cr = _csr.iloc[0]
@@ -483,6 +489,7 @@ with tab_train:
                         pedagogy_type=st.session_state.get("question_type"),
                         document_id=st.session_state.get("active_document_id"),
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
+                        user_id=st.session_state["user_id"],
                     )
                 except Exception as exc:
                     st.error(f"Erreur lors de la correction : {exc}")
@@ -612,7 +619,7 @@ def _build_report(df_all, df_topics, df_chunks) -> str:
 with tab_history:
     st.subheader("Historique des tentatives")
 
-    df = get_attempts()
+    df = get_attempts(user_id=st.session_state["user_id"])
 
     if df.empty:
         st.info("Aucune tentative enregistrée pour l'instant.")
@@ -678,14 +685,14 @@ with tab_dashboard:
         unsafe_allow_html=True,
     )
 
-    df_all = get_attempts()
+    df_all = get_attempts(user_id=st.session_state["user_id"])
 
     if len(df_all) < 2:
         st.info("Effectuez au moins 2 tentatives pour afficher le dashboard.")
     else:
-        df_topics = get_topic_stats()
-        df_chunks = classify_mastery(get_chunk_stats())
-        df_errors = get_error_frequency()
+        df_topics = get_topic_stats(user_id=st.session_state["user_id"])
+        df_chunks = classify_mastery(get_chunk_stats(user_id=st.session_state["user_id"]))
+        df_errors = get_error_frequency(user_id=st.session_state["user_id"])
 
         # ── Zone 1 : KPIs enrichis ────────────────────────────────────────────
         scores_all = df_all["score"].dropna()
@@ -825,7 +832,7 @@ with tab_dashboard:
             "text-transform:uppercase;letter-spacing:.07em'>Évolution des scores</p>",
             unsafe_allow_html=True,
         )
-        df_evol = get_score_evolution(limit=20)
+        df_evol = get_score_evolution(limit=20, user_id=st.session_state["user_id"])
         if not df_evol.empty:
             df_line = df_evol[["score"]].copy()
             df_line["Score (%)"] = (df_line["score"] * 100).round().astype(int)
