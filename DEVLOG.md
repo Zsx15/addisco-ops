@@ -4,6 +4,31 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-024 : Profil pédagogique intégré dans generate_question()
+
+**Milestone :** Phase 8 — adaptation cognitive per-user complète dans le moteur.
+
+**Actions :**
+- `ai_service.py` : import `get_learning_profile`. Ajout `_PROFILE_TYPES` (mapping `preferred_pedagogy` → types). Update `_choose_question_type(used_types, mastery_class, profile_types)` — biais profil comme niveau 3 (tie-breaker après rotation et mastery). Update `generate_question(source_text, document_id, user_id)` — passage `user_id` à `get_chunk_mastery` / `get_chunk_question_history`, lecture `get_learning_profile(user_id)`.
+- `app.py` : `generate_question()` reçoit `user_id=st.session_state["user_id"]`.
+- `test_regression.py` : +6 tests `TestChooseQuestionType` (39/39 OK).
+
+**Hiérarchie des biais dans `_choose_question_type` :**
+1. Rotation équitable (type le moins posé sur ce chunk)
+2. Biais mastery (Fragile → reformulation/consequence ; Maîtrisé → piège/pratique)
+3. Biais profil (preferred_pedagogy → types associés) — tie-breaker uniquement
+
+**Invariants préservés :**
+- `profile_types=None` → comportement identique à avant TASK-024.
+- Profil absent (None) → pas d'erreur, fallback transparent.
+- `correct_answer()` non modifié.
+- py_compile 3/3 OK. 39/39 tests OK.
+
+**Prochaine étape :**
+- TASK-025 : Mise à jour automatique du profil après chaque tentative — appel `compute_and_save_learning_profile()` dans le flux post-correction de `app.py`.
+
+---
+
 ## 2026-05-14 — TASK-023 : Tests de non-régression automatisés
 
 **Milestone :** Phase 10 — robustesse. Premier filet de sécurité automatisé.

@@ -343,5 +343,20 @@
     "human_validation_required": false,
     "completion_notes": "33/33 OK en 0.24s. 6 classes. DB temp + monkey-patch DB_PATH. 2 corrections de tests (normalize_topic capitalize, timestamps SQL). Exécution : python test_regression.py",
     "commit_hash": "4aa6b80"
+  },
+  {
+    "id": "TASK-024",
+    "title": "Profil pédagogique intégré dans generate_question()",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-023"],
+    "description": "Moteur — user_id dans generate_question(). _PROFILE_TYPES + biais profil tier-3 dans _choose_question_type(). Lecture get_learning_profile(user_id). user_id passé à get_chunk_mastery() et get_chunk_question_history().",
+    "goal": "Phase 8 : le moteur de génération adapte le type de question selon le profil pédagogique per-user. Mastery bias reste prioritaire. Fallback transparent si profil absent.",
+    "files": ["ai_service.py", "app.py", "test_regression.py"],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "_PROFILE_TYPES dict. _choose_question_type +profile_types param (niveau 3). generate_question +user_id. +6 tests TestChooseQuestionType. 39/39 OK. py_compile 3/3 OK.",
+    "commit_hash": "926a912"
   }
 ]
