@@ -7,7 +7,11 @@
     "depends_on": [],
     "description": "Relier chaque tentative utilisateur au chunk source utilisé pour générer la question.",
     "goal": "Préparer la mémoire pédagogique et la répétition espacée.",
-    "files": ["database.py", "ai_service.py", "app.py"],
+    "files": [
+      "database.py",
+      "ai_service.py",
+      "app.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -19,10 +23,15 @@
     "title": "Analytics pédagogiques par chunk",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-001"],
+    "depends_on": [
+      "TASK-001"
+    ],
     "description": "Exploiter attempts.chunk_id pour produire des analytics de progression par chunk dans le Dashboard.",
     "goal": "Identifier les chunks fragiles.",
-    "files": ["database.py", "app.py"],
+    "files": [
+      "database.py",
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -34,10 +43,15 @@
     "title": "Score de maîtrise par chunk",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-002"],
+    "depends_on": [
+      "TASK-002"
+    ],
     "description": "Classification Fragile / En consolidation / Maîtrisé et tendance par chunk.",
     "goal": "Rendre les priorités de révision visibles dans le Dashboard.",
-    "files": ["database.py", "app.py"],
+    "files": [
+      "database.py",
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -49,10 +63,15 @@
     "title": "Suggestion de révision dans l'onglet Entraînement",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-003"],
+    "depends_on": [
+      "TASK-003"
+    ],
     "description": "Proposer directement dans l'onglet Entraînement le chunk le plus prioritaire à réviser.",
     "goal": "Fermer la boucle pédagogique observation → action.",
-    "files": ["database.py", "app.py"],
+    "files": [
+      "database.py",
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -64,10 +83,16 @@
     "title": "Variation pédagogique dans la génération de questions",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-004"],
+    "depends_on": [
+      "TASK-004"
+    ],
     "description": "6 types de questions avec rotation par historique de chunk.",
     "goal": "Éviter la répétition de questions identiques.",
-    "files": ["database.py", "ai_service.py", "app.py"],
+    "files": [
+      "database.py",
+      "ai_service.py",
+      "app.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -79,10 +104,15 @@
     "title": "Répétition espacée légère",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-005"],
+    "depends_on": [
+      "TASK-005"
+    ],
     "description": "next_review calculé dynamiquement par chunk selon la classe de maîtrise. Affichage Dashboard + priorisation suggestion.",
     "goal": "Donner une dimension temporelle au moteur pédagogique.",
-    "files": ["database.py", "app.py"],
+    "files": [
+      "database.py",
+      "app.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -94,10 +124,16 @@
     "title": "Contenu de démo préchargé",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-006"],
+    "depends_on": [
+      "TASK-006"
+    ],
     "description": "Seed idempotente au démarrage : document de démonstration SNCF inséré si base vide.",
     "goal": "Rendre l'application immédiatement démontrable sans import préalable.",
-    "files": ["database.py", "document_service.py", "app.py"],
+    "files": [
+      "database.py",
+      "document_service.py",
+      "app.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -109,10 +145,15 @@
     "title": "Dashboard reformaté pour utilisateur final",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-007"],
+    "depends_on": [
+      "TASK-007"
+    ],
     "description": "Supprimer les termes techniques (chunk, ID) dans l'interface utilisateur. Labels lisibles, section 1-indexée.",
     "goal": "Rendre l'application démontrable à un jury SNCF sans vocabulaire technique exposé.",
-    "files": ["database.py", "app.py"],
+    "files": [
+      "database.py",
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -124,10 +165,14 @@
     "title": "Détection automatique de section_title dans le chunker",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-008"],
+    "depends_on": [
+      "TASK-008"
+    ],
     "description": "Peupler section_title à partir des titres numérotés et markdown dans le texte source.",
     "goal": "Afficher de vrais titres de section dans le Dashboard et la suggestion de révision pour les nouveaux documents.",
-    "files": ["document_service.py"],
+    "files": [
+      "document_service.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -139,10 +184,15 @@
     "title": "Guide de démo + README utilisateur",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-009"],
+    "depends_on": [
+      "TASK-009"
+    ],
     "description": "README réécrit (état réel du projet) + DEMO.md (scénario jury 7 étapes avec script de parole).",
     "goal": "Rendre le projet présentable à un jury SNCF et installable par un tiers sans accompagnement.",
-    "files": ["README.md", "DEMO.md"],
+    "files": [
+      "README.md",
+      "DEMO.md"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -154,10 +204,15 @@
     "title": "Adaptation pédagogique par niveau de maîtrise",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-010"],
+    "depends_on": [
+      "TASK-010"
+    ],
     "description": "Biaiser le choix du type de question selon la classe de maîtrise du chunk (Fragile → reformulation/consequence/cas_pratique, Maîtrisé → question_piège/cas_pratique/consequence).",
     "goal": "Phase 8 MVP : adapter la pédagogie au niveau réel de l'agent, pas seulement à la rotation.",
-    "files": ["database.py", "ai_service.py"],
+    "files": [
+      "database.py",
+      "ai_service.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -169,10 +224,14 @@
     "title": "Sélecteur de document inline dans l'onglet Entraînement",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-011"],
+    "depends_on": [
+      "TASK-011"
+    ],
     "description": "FRONTEND/UX — st.selectbox dans l'onglet Entraînement pour charger un document sans naviguer vers l'onglet Documents.",
     "goal": "Éliminer le va-et-vient entre onglets lors de la démo. Correction du libellé 'chunk' oublié.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -184,10 +243,14 @@
     "title": "Export du rapport de progression",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-012"],
+    "depends_on": [
+      "TASK-012"
+    ],
     "description": "Bouton de téléchargement dans le Dashboard générant un rapport texte brut structuré (.txt) avec synthèse globale, maîtrise par section et priorités de révision.",
     "goal": "Permettre à l'apprenant (ou au jury) d'exporter un bilan de progression instantané, sans dépendance supplémentaire.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -199,10 +262,14 @@
     "title": "Dashboard pédagogique visuel moderne",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-013"],
+    "depends_on": [
+      "TASK-013"
+    ],
     "description": "FRONTEND/UX — Refonte visuelle complète du Dashboard : cartes de section avec barres de progression, card révision prioritaire, KPIs enrichis, bloc moteur adaptatif, suppression des sections redondantes.",
     "goal": "Rendre l'intelligence pédagogique du moteur immédiatement visible en moins de 2 minutes pour un cadre ou un jury.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -214,10 +281,14 @@
     "title": "Mode démo guidée / Storytelling produit",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-014"],
+    "depends_on": [
+      "TASK-014"
+    ],
     "description": "FRONTEND/UX — Transformer le MVP technique en démonstration produit convaincante et immédiatement lisible par un responsable non-tech en moins de 2 minutes. Quatre sous-livrables : A) Pipeline visuel pédagogique (Document → RAG → Question → Réponse → Correction → Mémoire → Révision prioritaire) affiché clairement dans l'interface. B) Mode démo guidée : encart ou assistant expliquant comment fonctionne le moteur, pourquoi certaines questions sont générées, pourquoi certaines notions deviennent prioritaires. C) Explicabilité pédagogique : blocs contextuels 'Pourquoi cette question ?', 'Pourquoi cette révision est prioritaire ?', 'Niveau de maîtrise détecté'. D) Valorisation produit : header produit renforcé, identité visuelle, clarté des KPI, impact démonstratif.",
     "goal": "Rendre le moteur pédagogique compréhensible et démontrable par un responsable non-tech en moins de 2 minutes. Valoriser le pipeline RAG et la boucle pédagogique complète sans ajouter de nouveaux mécanismes IA.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -229,10 +300,14 @@
     "title": "UX Premium / Densification visuelle / Finition produit",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-015"],
+    "depends_on": [
+      "TASK-015"
+    ],
     "description": "FRONTEND/UX — Densification visuelle globale, KPI premium custom HTML, header HTML compact avec pipeline pills, refonte onglet Moteur IA en grilles HTML compactes (pipeline 2-col, types de questions 3-col, répétition espacée + adaptation cognitive en 2 colonnes). CSS global : padding block-container, dividers fins, tabs, metric labels uppercase.",
     "goal": "Transformer l'interface en dashboard IA métier moderne, produit pédagogique premium, outil SaaS interne crédible. Supprimer la sensation prototype Streamlit brut.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -244,10 +319,14 @@
     "title": "Branding premium / Identité produit / Profondeur visuelle — SYNPZ OPS",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-016"],
+    "depends_on": [
+      "TASK-016"
+    ],
     "description": "FRONTEND/UX/BRANDING — Rebranding complet SYNPZ OPS. Profondeur visuelle : fond app #f5f6fa, cards box-shadow, expanders stylisés. Header : accent bar indigo, nom SYNPZ OPS bold-800, badge Adaptive Learning Intelligence, pills pipeline blanches ombragées. KPI executive-grade : valeur 30px bold-800, fond blanc, ombre. Analytics professionnels : titres sections uppercase, charts compacts, palette couleurs cohérente. Zone moteur condensée.",
     "goal": "Faire passer SYNPZ OPS du registre bon MVP Streamlit à véritable produit IA métier identifiable et crédible. Identité visuelle forte, perception premium, cohérence UI complète.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -259,10 +338,14 @@
     "title": "Intelligence pédagogique adaptative / Expérience utilisateur cognitive — SYNPZ OPS",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-017"],
+    "depends_on": [
+      "TASK-017"
+    ],
     "description": "FRONTEND/UX — Enrichissement de l'intelligence pédagogique visible dans l'interface : états de maîtrise dynamiques (8 états combinant mastery_class + trend + days_until_review), moteur de recommandations (jusqu'à 5 recommandations urgent/warning/success/info), expander 'Pourquoi cette question ?' enrichi (type, biais, tendance, statut révision, erreur récurrente), mini-timeline des 8 dernières tentatives sous forme de pills colorées, analyse pédagogique dynamique (texte adaptatif selon profil global).",
     "goal": "Rendre l'intelligence pédagogique adaptative du moteur explicite et lisible dans l'interface. Chaque élément de l'UI reflète l'état réel du moteur d'apprentissage sans modifier le moteur critique.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -274,10 +357,15 @@
     "title": "Filtrage user_id analytics — fondation multi-utilisateur",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-018"],
+    "depends_on": [
+      "TASK-018"
+    ],
     "description": "Ajouter user_id='default' comme paramètre sur 8 fonctions database.py. Filtrer toutes les requêtes analytics par user_id. Sidebar text_input dans app.py pour changer d'utilisateur en session. 10 points d'appel mis à jour.",
     "goal": "Préparer le multi-utilisateur minimal : chaque utilisateur voit uniquement ses propres données. Rétrocompatibilité totale avec user_id='default'.",
-    "files": ["database.py", "app.py"],
+    "files": [
+      "database.py",
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -289,10 +377,14 @@
     "title": "Table user_learning_profile — profil pédagogique utilisateur",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-019"],
+    "depends_on": [
+      "TASK-019"
+    ],
     "description": "Création table user_learning_profile (migration douce). Fonctions get_learning_profile() et compute_and_save_learning_profile(). Mapping question_types → 4 groupes pédagogiques (logical/procedural/narrative/analogy). database.py uniquement.",
     "goal": "Fondation Phase 8 : stocker et calculer le profil d'apprentissage par utilisateur à partir des tentatives existantes.",
-    "files": ["database.py"],
+    "files": [
+      "database.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -304,10 +396,14 @@
     "title": "Profil d'apprentissage dans le Dashboard",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-020"],
+    "depends_on": [
+      "TASK-020"
+    ],
     "description": "FRONTEND/UX — Zone 7 dans l'onglet Dashboard : 4 KPI cards par groupe pédagogique (Analytique/Procédural/Narratif/Analogique), style dominant, notions fragiles, bouton Calculer/Recalculer. Import compute_and_save_learning_profile + get_learning_profile.",
     "goal": "Rendre visible le profil pédagogique calculé par TASK-020. Permettre à l'apprenant de voir son style dominant et ses notions fragiles sans quitter le Dashboard.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -319,10 +415,15 @@
     "title": "Extraction ui_helpers.py — réduction responsabilités app.py",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-021"],
+    "depends_on": [
+      "TASK-021"
+    ],
     "description": "Refactor — création ui_helpers.py (fonctions HTML/render sans dépendance Streamlit). Suppression des 5 définitions locales dans app.py. Fix bug _ERROR_LABELS dupliqué.",
     "goal": "Réduire les responsabilités de app.py (priorité 5 TASK_MASTER.md). Rendre les fonctions UI pures testables indépendamment. Corriger le bug du dict _ERROR_LABELS écrasé silencieusement.",
-    "files": ["ui_helpers.py", "app.py"],
+    "files": [
+      "ui_helpers.py",
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -334,10 +435,14 @@
     "title": "Tests de non-régression automatisés",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-022"],
+    "depends_on": [
+      "TASK-022"
+    ],
     "description": "QA — création test_regression.py (stdlib unittest). 33 tests couvrant database.py (isolation user_id, mastery, profil) et ui_helpers.py (fonctions pures). DB temporaire, zéro dépendance externe.",
     "goal": "Phase 10 robustesse : filet de sécurité automatisé pour détecter les régressions sur les invariants critiques avant toute prochaine modification.",
-    "files": ["test_regression.py"],
+    "files": [
+      "test_regression.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
@@ -349,10 +454,16 @@
     "title": "Profil pédagogique intégré dans generate_question()",
     "status": "DONE",
     "priority": "HIGH",
-    "depends_on": ["TASK-023"],
+    "depends_on": [
+      "TASK-023"
+    ],
     "description": "Moteur — user_id dans generate_question(). _PROFILE_TYPES + biais profil tier-3 dans _choose_question_type(). Lecture get_learning_profile(user_id). user_id passé à get_chunk_mastery() et get_chunk_question_history().",
     "goal": "Phase 8 : le moteur de génération adapte le type de question selon le profil pédagogique per-user. Mastery bias reste prioritaire. Fallback transparent si profil absent.",
-    "files": ["ai_service.py", "app.py", "test_regression.py"],
+    "files": [
+      "ai_service.py",
+      "app.py",
+      "test_regression.py"
+    ],
     "tests_required": true,
     "rollback_safe": true,
     "human_validation_required": true,
@@ -364,14 +475,18 @@
     "title": "Mise à jour automatique du profil après chaque tentative",
     "status": "DONE",
     "priority": "MEDIUM",
-    "depends_on": ["TASK-024"],
+    "depends_on": [
+      "TASK-024"
+    ],
     "description": "UX/ENGINE — Appel automatique de compute_and_save_learning_profile(user_id) après save_attempt() dans app.py. Non-bloquant (try/except silencieux). Le profil reste toujours à jour sans action manuelle.",
     "goal": "Phase 8 : le profil pédagogique se recalcule automatiquement à chaque correction, garantissant que le biais tier-3 reflète l'historique réel de l'utilisateur.",
-    "files": ["app.py"],
+    "files": [
+      "app.py"
+    ],
     "tests_required": false,
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "+3 lignes dans app.py après save_attempt(). py_compile OK. 39/39 tests OK (non-régression totale).",
-    "commit_hash": ""
+    "commit_hash": "74ef5a9"
   }
 ]
