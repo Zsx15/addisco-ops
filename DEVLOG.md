@@ -4,6 +4,36 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-020 : Table user_learning_profile — profil pédagogique utilisateur
+
+**Milestone :** Fondation Phase 8 — profils pédagogiques par utilisateur.
+
+**Actions :**
+- Ajout `import json` dans `database.py`.
+- Ajout `CREATE TABLE IF NOT EXISTS user_learning_profile` dans `init_db()` : colonnes `user_id` (PK), `preferred_pedagogy`, `logical_score`, `procedural_score`, `narrative_score`, `analogy_score`, `average_score`, `fragile_topics` (JSON), `updated_at`.
+- Ajout `_PEDAGOGY_GROUPS` : mapping `question_type → groupe pédagogique` (logical/procedural/narrative/analogy).
+- Ajout `get_learning_profile(user_id)` → `dict | None`.
+- Ajout `compute_and_save_learning_profile(user_id)` → `dict` (INSERT OR REPLACE depuis `attempts`).
+
+**Résultats validation (données seed demo) :**
+- `preferred_pedagogy`: `'procedural'` (cas_pratique + consequence, avg 0.746)
+- `logical_score`: 0.72 | `narrative_score`: 0.65 | `analogy_score`: 0.367
+- `average_score`: 0.649 | `fragile_topics`: 3 notions < 60 %
+- 4/4 assertions OK. py_compile 2/2 OK.
+
+**Décisions :**
+- Migration douce : `CREATE TABLE IF NOT EXISTS` — aucun impact sur base existante.
+- `seed_demo_attempts.py` compatible sans modification (`user_id='default'` par défaut).
+- `ai_service.py`, `app.py` non modifiés.
+
+**Invariants préservés :**
+- Moteur RAG inchangé. Fallback texte brut inchangé. Pipeline SQLite inchangé.
+
+**Prochaine étape :**
+- TASK-021 : Exposition du profil dans l'UI — bloc "Profil pédagogique" dans l'onglet Dashboard (lecture seule, recalcul au clic).
+
+---
+
 ## 2026-05-14 — TASK-019 : Filtrage user_id — fondation multi-utilisateur
 
 **Milestone :** Préparation multi-utilisateur minimale (Phase 10).

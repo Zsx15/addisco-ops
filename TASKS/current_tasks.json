@@ -283,5 +283,20 @@
     "human_validation_required": false,
     "completion_notes": "8 fonctions database.py avec user_id='default'. Filtres SQL AND user_id=? ajoutés. Sous-requêtes corrélées get_chunk_stats() filtrées. app.py : session_state user_id init + st.sidebar.text_input. 10 call sites mis à jour. get_chunk_question_history inchangée (moteur protégé). py_compile 2/2 OK. AST check 10/10 OK.",
     "commit_hash": "51c94f7"
+  },
+  {
+    "id": "TASK-020",
+    "title": "Table user_learning_profile — profil pédagogique utilisateur",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-019"],
+    "description": "Création table user_learning_profile (migration douce). Fonctions get_learning_profile() et compute_and_save_learning_profile(). Mapping question_types → 4 groupes pédagogiques (logical/procedural/narrative/analogy). database.py uniquement.",
+    "goal": "Fondation Phase 8 : stocker et calculer le profil d'apprentissage par utilisateur à partir des tentatives existantes.",
+    "files": ["database.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "import json ajouté. CREATE TABLE IF NOT EXISTS user_learning_profile. _PEDAGOGY_GROUPS mapping. get_learning_profile() + compute_and_save_learning_profile(). Validation seed demo : preferred=procedural, 3 fragile_topics. 4/4 assertions OK. py_compile 2/2 OK.",
+    "commit_hash": "0b251ed"
   }
 ]
