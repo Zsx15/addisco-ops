@@ -438,3 +438,117 @@ Procédure fictive "Accueil et orientation des voyageurs en gare" — 4 sections
 - À définir.
 
 ---
+
+## 2026-05-13 — TASK-015 : Mode démo guidée / Storytelling produit
+
+**Milestone :** FRONTEND/UX — transformer le MVP technique en démonstration produit convaincante pour un décideur non-tech.
+
+**Actions :**
+- Import de `get_chunk_mastery` dans `app.py` (lecture seule, moteur inchangé).
+- Header HTML : titre + tagline + banner 7 pills pipeline (Document → RAG → Question → Réponse → Correction → Mémoire → Révision prioritaire).
+- Ajout de `question_mastery` dans session_state initialisé.
+- 5ème onglet `tab_engine` "Moteur IA".
+- Dicts `_TYPE_EXPLANATIONS` (6 types → explication pédagogique) et `_MASTERY_BIAS_LABELS` (3 niveaux → label lisible).
+- Expander "Pourquoi cette question ?" dans l'onglet Entraînement : type, explication pédagogique, biais de maîtrise.
+- Caption mémoire post-correction : rappel du biais actif.
+- Explication "Pourquoi prioritaire ?" dans la card prioritaire du Dashboard.
+- Onglet Moteur IA : pipeline 7 étapes, 6 types de questions, répétition espacée, adaptation cognitive.
+- Lookup `get_chunk_mastery(chunk_ids[0])` au moment de la génération de question.
+
+**Fichiers modifiés :** `app.py` uniquement. `ai_service.py`, `database.py`, `document_service.py` non modifiés.
+
+**Invariants préservés :**
+- Moteur critique intact. Fallback texte brut intact. Pipeline RAG intact.
+- `get_chunk_mastery` déjà présent dans `database.py` (TASK-011) — aucune modification.
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit headless port 8515 → OK
+
+**Commit :** `479d0c0`
+
+---
+
+## 2026-05-13 — TASK-016 : UX Premium / Densification visuelle / Finition produit
+
+**Milestone :** FRONTEND/UX — éliminer la sensation prototype Streamlit brut, poser les bases d'un dashboard IA métier premium.
+
+**Actions :**
+- CSS global injecté après `st.set_page_config` : padding `block-container` 1rem, `hr` fins `#e2e8f0`, alerts compacts, tabs `font-weight 600`, metric labels `text-transform uppercase font-size 11px`, containers `border-radius 8px`, captions `font-size 12px`.
+- Header HTML refait : titre bold-900 + tagline + 7 pipeline pills avec séparateurs `›`.
+- Helper `_kpi_card(icon, label, value, accent) -> str` : fond `#f8fafc`, border, radius 10px, icône 22px, valeur 26px bold-800, label 11px uppercase.
+- Dashboard KPI : 4 `_kpi_card()` en colonnes avec accents couleur (vert maîtrise, rouge retard).
+- Onglet Moteur IA : pipeline en grille HTML 2 colonnes (7 étapes), 6 types en grille 3 colonnes, répétition espacée + adaptation cognitive en 2 colonnes `st.columns`.
+
+**Fichiers modifiés :** `app.py` uniquement (FRONTEND/UX pur).
+
+**Invariants préservés :**
+- Moteur critique intact. Session state intact. Toute logique existante conservée.
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit headless port 8525 → OK
+
+**Commit :** `dd70b0b`
+
+---
+
+## 2026-05-13 — TASK-017 : Branding premium / Identité produit / Profondeur visuelle — SYNPZ OPS
+
+**Milestone :** BRANDING — faire passer SYNPZ OPS du registre bon MVP Streamlit à véritable produit IA métier identifiable.
+
+**Actions :**
+- `page_title` → "SYNPZ OPS", `page_icon` → 🧠.
+- CSS enrichi : `.stApp {background-color:#f5f6fa}`, cards `box-shadow 0 1px 3px rgba(0,0,0,.08)`, expanders `border #e2e8f0 background #fff`, bloc info `border-left 3px solid #4f46e5`.
+- Header HTML reconstruit : barre accent indigo `4px #4f46e5` à gauche, "SYNPZ OPS" bold-800 36px, badge "Adaptive Learning Intelligence" fond `#eef2ff` texte `#4f46e5`, pills pipeline blanches ombragées, dernière pill fond `#4f46e5` texte blanc.
+- `_kpi_card()` upgradé : fond blanc, `box-shadow 0 2px 8px rgba(0,0,0,.07)`, valeur 30px letter-spacing `.02em`, label 10px spacing `.08em`.
+- Dashboard : subheader styled HTML uppercase tracking, titres sections 12px uppercase.
+- Graphiques compactés : line chart 210px, bar charts `max(200, n*44)`.
+- Palette cohérente : `#16a34a` vert, `#d97706` orange, `#dc2626` rouge, `#6366f1` violet erreurs.
+- Zone analyse moteur condensée en 1 ligne `st.caption`.
+
+**Fichiers modifiés :** `app.py` uniquement (FRONTEND/UX pur).
+
+**Invariants préservés :**
+- Moteur critique intact. Aucune nouvelle dépendance. Fallback intact.
+
+**Décision :** Nom produit "SYNPZ OPS" adopté définitivement. Palette indigo `#4f46e5` comme accent primaire.
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit headless port 8535 → OK
+
+**Commit :** `5baef8e`
+
+---
+
+## 2026-05-13 — TASK-018 : Intelligence pédagogique adaptative / Expérience utilisateur cognitive — SYNPZ OPS
+
+**Milestone :** FRONTEND/UX — rendre l'intelligence du moteur adaptative explicite et lisible dans chaque zone de l'interface.
+
+**Actions :**
+- `_mastery_state(row) -> tuple[str, str, str]` : 8 états dynamiques combinant `mastery_class` + `trend` + `days_until_review`. Retourne (icône, label, couleur) pour chaque chunk. Exemple : "Maîtrisé + Amélioration" → 🏆 vert foncé ; "Fragile + Dégradation + retard" → 🔥 rouge.
+- `_build_recommendations(df_chunks, df_errors) -> list[tuple[str,str]]` : moteur de recommandations, max 5 items, 4 types (urgent/warning/success/info) selon : chunks en retard, chunks Fragile, erreur dominante, performance globale, sections maîtrisées.
+- `df_errors = get_error_frequency()` remonté en tête de bloc Dashboard (avant les métriques) pour alimenter les recommandations.
+- Expander "Pourquoi cette question ?" enrichi : trend (📈/📉/—), review_status (⏰ si retard, 📅 sinon), dominant_error (🔍 si présent).
+- Dashboard restructuré : KPI → recommandations → priority card → section cards avec `_mastery_state()` + erreur dominante → évolution scores → analytics 2-col → mini-timeline → analyse dynamique → export.
+- Mini-timeline : 8 derniers `attempts` (score desc created_at) affichés comme pills colorées (vert ≥0.8, orange ≥0.6, rouge <0.6) + label "N%" en HTML inline.
+- Analyse pédagogique dynamique : 4 profils (excellent ≥0.8 avg, consolidation ≥0.6, fragile <0.6 avec historique, démarrage sans données) → texte adaptatif dans `st.info`.
+
+**Fichiers modifiés :** `app.py` uniquement (FRONTEND/UX pur). Correction du doublon `df_errors` (assignation redondante supprimée dans Zone 4c).
+
+**Invariants préservés :**
+- Moteur critique (`database.py`, `ai_service.py`, `document_service.py`) non modifié.
+- Toutes les données exploitées via `classify_mastery()` existant — aucune nouvelle requête DB.
+- Fallback intact. Pipeline RAG intact. Session state intact.
+
+**Validation :**
+- `py_compile app.py` → OK
+- Streamlit → OK
+
+**Commit :** `4cd3868`
+
+**Prochaine étape :**
+- À définir selon priorités.
+
+---

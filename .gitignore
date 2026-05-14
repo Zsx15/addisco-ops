@@ -55,3 +55,7 @@ _check_*.py
 
 # ── Docker (future stack cible) ───────────────────────────────────────────────
 *.env.docker
+sl_err.txt
+sl_out.txt
+streamlit_err.txt
+streamlit_out.txt

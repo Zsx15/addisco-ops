@@ -253,5 +253,20 @@
     "human_validation_required": true,
     "completion_notes": "page_title SYNPZ OPS, icon 🧠. CSS : .stApp background #f5f6fa, cards box-shadow, expanders border #e2e8f0 bg blanc, info box border indigo. Header : accent bar 4px #4f46e5, SYNPZ OPS bold-800, badge #eef2ff/#c7d2fe Adaptive Learning Intelligence, pills blanches ombragées, dernière pill surlignée indigo. _kpi_card() : fond blanc, shadow, valeur 30px bold-800 letter-spacing, label 10px uppercase spacing .08em. Dashboard : subheader styled HTML, titres sections 12px uppercase .07em. Line chart 210px. Bar charts max(200,n*44). Palette #16a34a/#d97706/#dc2626 + erreurs #6366f1. Zone 5 moteur condensée 1 ligne. py_compile OK. Streamlit port 8535 OK.",
     "commit_hash": "5baef8e"
+  },
+  {
+    "id": "TASK-018",
+    "title": "Intelligence pédagogique adaptative / Expérience utilisateur cognitive — SYNPZ OPS",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-017"],
+    "description": "FRONTEND/UX — Enrichissement de l'intelligence pédagogique visible dans l'interface : états de maîtrise dynamiques (8 états combinant mastery_class + trend + days_until_review), moteur de recommandations (jusqu'à 5 recommandations urgent/warning/success/info), expander 'Pourquoi cette question ?' enrichi (type, biais, tendance, statut révision, erreur récurrente), mini-timeline des 8 dernières tentatives sous forme de pills colorées, analyse pédagogique dynamique (texte adaptatif selon profil global).",
+    "goal": "Rendre l'intelligence pédagogique adaptative du moteur explicite et lisible dans l'interface. Chaque élément de l'UI reflète l'état réel du moteur d'apprentissage sans modifier le moteur critique.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "_mastery_state(row) → 8 états dynamiques (icône+label+couleur). _build_recommendations(df_chunks,df_errors) → max 5 recommandations. df_errors remonté en tête de bloc Dashboard. Expander enrichi : trend 📈/📉, review_status ⏰/📅, dominant_error 🔍. Dashboard : KPI → recommandations → priority card → section cards avec _mastery_state() + erreur dominante → évolution scores → analytics 2-col → mini-timeline 8 pills → analyse dynamique → export. Mini-timeline : 8 derniers attempts colorés selon score (vert/orange/rouge). Analyse dynamique : 4 profils (excellent/consolidation/fragile/démarrage). py_compile OK. Streamlit OK.",
+    "commit_hash": "4cd3868"
   }
 ]
