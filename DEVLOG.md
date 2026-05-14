@@ -4,6 +4,23 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-025 : Mise à jour automatique du profil après chaque tentative
+
+**Milestone :** Phase 8 — profil pédagogique toujours synchronisé avec l'historique réel.
+
+**Actions :**
+- `app.py` : appel `compute_and_save_learning_profile(st.session_state["user_id"])` dans le bloc post-correction, immédiatement après `save_attempt()`. Wrappé dans `try/except` silencieux — non-bloquant, fallback transparent.
+
+**Invariants préservés :**
+- Aucune régression moteur. py_compile OK. 39/39 tests OK.
+- Si `compute_and_save_learning_profile` lève une exception → silencieux, correction affichée normalement.
+- Le Dashboard peut afficher le profil sans recalcul manuel (bouton "Recalculer" reste disponible pour forcer).
+
+**Prochaine étape :**
+- TASK-026 : à définir selon roadmap Phase 8 / Phase 10.
+
+---
+
 ## 2026-05-14 — TASK-024 : Profil pédagogique intégré dans generate_question()
 
 **Milestone :** Phase 8 — adaptation cognitive per-user complète dans le moteur.

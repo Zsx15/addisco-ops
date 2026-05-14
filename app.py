@@ -407,6 +407,10 @@ with tab_train:
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
                         user_id=st.session_state["user_id"],
                     )
+                    try:
+                        compute_and_save_learning_profile(st.session_state["user_id"])
+                    except Exception:
+                        pass
                 except Exception as exc:
                     st.error(f"Erreur lors de la correction : {exc}")
 

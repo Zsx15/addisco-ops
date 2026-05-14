@@ -358,5 +358,20 @@
     "human_validation_required": true,
     "completion_notes": "_PROFILE_TYPES dict. _choose_question_type +profile_types param (niveau 3). generate_question +user_id. +6 tests TestChooseQuestionType. 39/39 OK. py_compile 3/3 OK.",
     "commit_hash": "926a912"
+  },
+  {
+    "id": "TASK-025",
+    "title": "Mise à jour automatique du profil après chaque tentative",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-024"],
+    "description": "UX/ENGINE — Appel automatique de compute_and_save_learning_profile(user_id) après save_attempt() dans app.py. Non-bloquant (try/except silencieux). Le profil reste toujours à jour sans action manuelle.",
+    "goal": "Phase 8 : le profil pédagogique se recalcule automatiquement à chaque correction, garantissant que le biais tier-3 reflète l'historique réel de l'utilisateur.",
+    "files": ["app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "+3 lignes dans app.py après save_attempt(). py_compile OK. 39/39 tests OK (non-régression totale).",
+    "commit_hash": ""
   }
 ]
