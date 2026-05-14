@@ -2,6 +2,33 @@
 
 Journal de développement chronologique du projet.
 
+---
+
+## 2026-05-14 — TASK-019 : Filtrage user_id — fondation multi-utilisateur
+
+**Milestone :** Préparation multi-utilisateur minimale (Phase 10).
+
+**Actions :**
+- Ajout paramètre `user_id: str = "default"` sur 8 fonctions dans `database.py` : `save_attempt`, `get_attempts`, `get_score_evolution`, `get_error_frequency`, `get_topic_stats`, `get_chunk_stats`, `get_chunk_mastery`, `get_revision_suggestion`.
+- Toutes les requêtes SQL filtrées par `AND user_id = ?`. Sous-requêtes corrélées dans `get_chunk_stats()` également filtrées.
+- `app.py` : init `session_state["user_id"] = "default"` + `st.sidebar.text_input(key="user_id")`.
+- 10 points d'appel dans `app.py` mis à jour.
+- `get_chunk_question_history` inchangée (appelée depuis `ai_service.py` — moteur protégé).
+
+**Décisions :**
+- `user_id="default"` comme valeur par défaut : rétrocompatibilité totale, aucune migration de données nécessaire.
+- Sidebar text_input : testable sans authentication, non intrusif dans le flux principal.
+- Moteur `ai_service.py` non touché : la question history reste cross-user pour l'instant (rotation chunk).
+
+**Invariants préservés :**
+- `ai_service.py`, `document_service.py` non modifiés.
+- Fallback texte brut inchangé.
+- Pipeline RAG inchangé.
+- py_compile 2/2 OK. AST check 10/10 call sites OK.
+
+**Prochaine étape :**
+- TASK-020 : Table `user_learning_profile` (migration douce, `database.py` uniquement).
+
 Format par entrée :
 - Date
 - Tâche / milestone

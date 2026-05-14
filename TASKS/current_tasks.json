@@ -268,5 +268,20 @@
     "human_validation_required": true,
     "completion_notes": "_mastery_state(row) → 8 états dynamiques (icône+label+couleur). _build_recommendations(df_chunks,df_errors) → max 5 recommandations. df_errors remonté en tête de bloc Dashboard. Expander enrichi : trend 📈/📉, review_status ⏰/📅, dominant_error 🔍. Dashboard : KPI → recommandations → priority card → section cards avec _mastery_state() + erreur dominante → évolution scores → analytics 2-col → mini-timeline 8 pills → analyse dynamique → export. Mini-timeline : 8 derniers attempts colorés selon score (vert/orange/rouge). Analyse dynamique : 4 profils (excellent/consolidation/fragile/démarrage). py_compile OK. Streamlit OK.",
     "commit_hash": "4cd3868"
+  },
+  {
+    "id": "TASK-019",
+    "title": "Filtrage user_id analytics — fondation multi-utilisateur",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-018"],
+    "description": "Ajouter user_id='default' comme paramètre sur 8 fonctions database.py. Filtrer toutes les requêtes analytics par user_id. Sidebar text_input dans app.py pour changer d'utilisateur en session. 10 points d'appel mis à jour.",
+    "goal": "Préparer le multi-utilisateur minimal : chaque utilisateur voit uniquement ses propres données. Rétrocompatibilité totale avec user_id='default'.",
+    "files": ["database.py", "app.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "8 fonctions database.py avec user_id='default'. Filtres SQL AND user_id=? ajoutés. Sous-requêtes corrélées get_chunk_stats() filtrées. app.py : session_state user_id init + st.sidebar.text_input. 10 call sites mis à jour. get_chunk_question_history inchangée (moteur protégé). py_compile 2/2 OK. AST check 10/10 OK.",
+    "commit_hash": "51c94f7"
   }
 ]
