@@ -4,6 +4,34 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-023 : Tests de non-régression automatisés
+
+**Milestone :** Phase 10 — robustesse. Premier filet de sécurité automatisé.
+
+**Actions :**
+- Création `test_regression.py` (stdlib `unittest`, aucun pytest requis).
+- 33 tests en 6 classes, exécution en 0.24 s, zéro accès `database.db` ni API OpenAI.
+- DB temporaire via `tempfile.NamedTemporaryFile` + monkey-patch `database.DB_PATH` → isolation totale.
+
+**Invariants critiques couverts :**
+- Isolation `user_id` (TASK-019) : user A ne voit pas les données de user B.
+- Classification Fragile / En consolidation / Maîtrisé (seuils 0.6 / 0.8).
+- Tendance Amélioration / Dégradation / Stable.
+- Profil pédagogique : calcul, persistance, isolation utilisateur, `fragile_topics`.
+- Ordre chronologique `get_score_evolution` (fix test : timestamps explicites en SQL).
+- Bug `_ERROR_LABELS` résolu : clés mortes `"memory"` / `"attention"` absentes.
+- Colonnes `next_review`, `days_until_review`, `review_status` présentes après `classify_mastery`.
+- Limite 5 recommandations dans `_build_recommendations`.
+
+**2 corrections de tests découvertes :**
+- `_normalize_topic` applique `.capitalize()` → "Procédure A" → "Procédure a" (comportement correct, test corrigé).
+- Inserts simultanés = timestamps identiques → ordre non déterministe corrigé par timestamps SQL explicites.
+
+**Prochaine étape :**
+- TASK-024 : Intégration du profil pédagogique dans la génération de questions — passer `user_id` à `generate_question()` pour enrichir le choix de type selon `preferred_pedagogy`.
+
+---
+
 ## 2026-05-14 — TASK-022 : Extraction ui_helpers.py — réduction responsabilités app.py
 
 **Milestone :** Architecture — séparation logique UI pure / orchestration Streamlit.

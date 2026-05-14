@@ -328,5 +328,20 @@
     "human_validation_required": false,
     "completion_notes": "ui_helpers.py : _ERROR_LABELS + 5 fonctions (170 lignes). app.py -168 lignes de definitions. AST 5/5 OK. Bug _ERROR_LABELS corrige. 7/7 tests fonctionnels OK. py_compile 2/2 OK.",
     "commit_hash": "73a6a08"
+  },
+  {
+    "id": "TASK-023",
+    "title": "Tests de non-régression automatisés",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-022"],
+    "description": "QA — création test_regression.py (stdlib unittest). 33 tests couvrant database.py (isolation user_id, mastery, profil) et ui_helpers.py (fonctions pures). DB temporaire, zéro dépendance externe.",
+    "goal": "Phase 10 robustesse : filet de sécurité automatisé pour détecter les régressions sur les invariants critiques avant toute prochaine modification.",
+    "files": ["test_regression.py"],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "33/33 OK en 0.24s. 6 classes. DB temp + monkey-patch DB_PATH. 2 corrections de tests (normalize_topic capitalize, timestamps SQL). Exécution : python test_regression.py",
+    "commit_hash": "4aa6b80"
   }
 ]
