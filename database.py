@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import struct
 from datetime import datetime, timedelta
@@ -66,6 +67,19 @@ def init_db():
                 embedding_id TEXT,
                 embedding BLOB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_learning_profile (
+                user_id            TEXT PRIMARY KEY,
+                preferred_pedagogy TEXT,
+                logical_score      REAL DEFAULT 0.0,
+                procedural_score   REAL DEFAULT 0.0,
+                narrative_score    REAL DEFAULT 0.0,
+                analogy_score      REAL DEFAULT 0.0,
+                average_score      REAL DEFAULT 0.0,
+                fragile_topics     TEXT,
+                updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         # Migrations douces : ALTER TABLE ADD COLUMN échoue si la colonne existe → ignoré
@@ -563,3 +577,132 @@ def search_similar_chunks(
 
     scored.sort(key=lambda x: x["similarity"], reverse=True)
     return scored[:top_k]
+
+
+# ── Profil d'apprentissage utilisateur ───────────────────────────────────────
+
+# Groupes pédagogiques : mappage question_type → dimension du profil.
+_PEDAGOGY_GROUPS: dict[str, list[str]] = {
+    "logical":    ["question_directe"],
+    "procedural": ["cas_pratique", "consequence"],
+    "narrative":  ["reformulation"],
+    "analogy":    ["vrai_faux", "question_piege"],
+}
+
+
+def get_learning_profile(user_id: str = "default") -> dict | None:
+    """Retourne le profil d'apprentissage d'un utilisateur, ou None s'il n'existe pas."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM user_learning_profile WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    if row is None:
+        return None
+    d = dict(row)
+    if d.get("fragile_topics"):
+        try:
+            d["fragile_topics"] = json.loads(d["fragile_topics"])
+        except (json.JSONDecodeError, TypeError):
+            d["fragile_topics"] = []
+    return d
+
+
+def compute_and_save_learning_profile(user_id: str = "default") -> dict:
+    """
+    Calcule le profil pédagogique depuis les tentatives et le sauvegarde (INSERT OR REPLACE).
+    Retourne le profil calculé.
+
+    Scores par groupe pédagogique (voir _PEDAGOGY_GROUPS) :
+    - logical     : question_directe
+    - procedural  : cas_pratique, consequence
+    - narrative   : reformulation
+    - analogy     : vrai_faux, question_piege
+
+    preferred_pedagogy : groupe avec le score moyen le plus élevé (min 1 tentative).
+    fragile_topics     : notions avec avg_score < 0.6 (JSON array).
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute(
+            """
+            SELECT pedagogy_type, topic, score
+            FROM attempts
+            WHERE user_id = ? AND score IS NOT NULL
+            """,
+            (user_id,),
+        ).fetchall()
+
+    if not rows:
+        profile = {
+            "user_id": user_id,
+            "preferred_pedagogy": None,
+            "logical_score": 0.0,
+            "procedural_score": 0.0,
+            "narrative_score": 0.0,
+            "analogy_score": 0.0,
+            "average_score": 0.0,
+            "fragile_topics": [],
+        }
+    else:
+        all_scores = [r[2] for r in rows]
+        average_score = round(sum(all_scores) / len(all_scores), 3)
+
+        group_scores: dict[str, list[float]] = {g: [] for g in _PEDAGOGY_GROUPS}
+        topic_scores: dict[str, list[float]] = {}
+
+        for ptype, topic, score in rows:
+            for group, types in _PEDAGOGY_GROUPS.items():
+                if ptype in types:
+                    group_scores[group].append(score)
+            if topic:
+                topic_scores.setdefault(topic, []).append(score)
+
+        def _avg(lst: list[float]) -> float:
+            return round(sum(lst) / len(lst), 3) if lst else 0.0
+
+        logical_score    = _avg(group_scores["logical"])
+        procedural_score = _avg(group_scores["procedural"])
+        narrative_score  = _avg(group_scores["narrative"])
+        analogy_score    = _avg(group_scores["analogy"])
+
+        scored_groups = {
+            g: _avg(v) for g, v in group_scores.items() if v
+        }
+        preferred_pedagogy = max(scored_groups, key=scored_groups.get) if scored_groups else None
+
+        fragile_topics = sorted(
+            t for t, s in topic_scores.items() if _avg(s) < 0.6
+        )
+
+        profile = {
+            "user_id": user_id,
+            "preferred_pedagogy": preferred_pedagogy,
+            "logical_score": logical_score,
+            "procedural_score": procedural_score,
+            "narrative_score": narrative_score,
+            "analogy_score": analogy_score,
+            "average_score": average_score,
+            "fragile_topics": fragile_topics,
+        }
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO user_learning_profile
+                (user_id, preferred_pedagogy, logical_score, procedural_score,
+                 narrative_score, analogy_score, average_score, fragile_topics, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (
+                profile["user_id"],
+                profile["preferred_pedagogy"],
+                profile["logical_score"],
+                profile["procedural_score"],
+                profile["narrative_score"],
+                profile["analogy_score"],
+                profile["average_score"],
+                json.dumps(profile["fragile_topics"], ensure_ascii=False),
+            ),
+        )
+
+    return profile
