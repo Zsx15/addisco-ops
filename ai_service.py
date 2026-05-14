@@ -6,7 +6,12 @@ import struct
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from database import get_chunk_mastery, get_chunk_question_history, search_similar_chunks
+from database import (
+    get_chunk_mastery,
+    get_chunk_question_history,
+    get_learning_profile,
+    search_similar_chunks,
+)
 
 load_dotenv()
 
@@ -38,6 +43,15 @@ _MASTERY_BIAS: dict[str, list[str]] = {
     "Maîtrisé": ["question_piege", "cas_pratique", "consequence"],
 }
 
+# Mapping profil pédagogique utilisateur → types de questions associés.
+# Utilisé comme tie-breaker secondaire (après rotation et biais mastery).
+_PROFILE_TYPES: dict[str, list[str]] = {
+    "logical":    ["question_directe"],
+    "procedural": ["cas_pratique", "consequence"],
+    "narrative":  ["reformulation"],
+    "analogy":    ["vrai_faux", "question_piege"],
+}
+
 _TYPE_PROMPTS = {
     "question_directe": (
         "Génère une question directe de compréhension qui teste une notion clé du texte."
@@ -66,22 +80,41 @@ _TYPE_PROMPTS = {
 
 
 def _choose_question_type(
-    used_types: list[str], mastery_class: str | None = None
+    used_types: list[str],
+    mastery_class: str | None = None,
+    profile_types: list[str] | None = None,
 ) -> str:
     """
     Choisit le type de question le moins utilisé pour ce chunk.
-    Si mastery_class est fourni, applique un biais pédagogique parmi les candidats
-    équitables. Si le biais ne recoupe aucun candidat, rotation standard (pas de régression).
+
+    Priorités décroissantes :
+    1. Rotation équitable (type le moins posé sur ce chunk).
+    2. Biais mastery (Fragile/Maîtrisé) parmi les candidats équitables.
+    3. Biais profil utilisateur (preferred_pedagogy) comme tie-breaker final.
+
+    Chaque niveau ne s'applique que si son ensemble candidat est non vide,
+    garantissant que l'absence de signal ne dégrade jamais le comportement.
     """
     if not used_types:
         bias = _MASTERY_BIAS.get(mastery_class or "", [])
-        return random.choice(bias if bias else QUESTION_TYPES)
-    counts    = {t: used_types.count(t) for t in QUESTION_TYPES}
-    min_count = min(counts.values())
+        pool = bias if bias else QUESTION_TYPES
+        if profile_types:
+            matched = [t for t in profile_types if t in pool]
+            if matched:
+                return random.choice(matched)
+        return random.choice(pool)
+
+    counts     = {t: used_types.count(t) for t in QUESTION_TYPES}
+    min_count  = min(counts.values())
     candidates = [t for t, c in counts.items() if c == min_count]
-    bias = _MASTERY_BIAS.get(mastery_class or "", [])
-    biased = [t for t in bias if t in candidates]
-    return random.choice(biased if biased else candidates)
+    bias       = _MASTERY_BIAS.get(mastery_class or "", [])
+    biased     = [t for t in bias if t in candidates]
+    pool       = biased if biased else candidates
+    if profile_types:
+        matched = [t for t in profile_types if t in pool]
+        if matched:
+            return random.choice(matched)
+    return random.choice(pool)
 
 
 def _get_client() -> OpenAI:
@@ -127,7 +160,9 @@ def generate_embedding(text: str) -> bytes:
 
 
 def generate_question(
-    source_text: str, document_id: int | None = None
+    source_text: str,
+    document_id: int | None = None,
+    user_id: str = "default",
 ) -> tuple[str, list[int], str]:
     """
     Génère une question de compréhension à partir du texte source.
@@ -141,6 +176,10 @@ def generate_question(
     du chunk primaire (chunk_ids[0]). En fallback texte brut, sélection aléatoire.
     Les 2 dernières questions posées sur ce chunk sont passées au LLM pour éviter
     les doublons.
+
+    Adaptation profil : si un profil pédagogique existe pour user_id, le
+    preferred_pedagogy est utilisé comme tie-breaker final après la rotation et
+    le biais mastery. Absent ou None → comportement inchangé.
     """
     client = _get_client()
 
@@ -168,12 +207,23 @@ def generate_question(
         except Exception:
             pass
         try:
-            mastery_class = get_chunk_mastery(chunk_ids[0])
+            mastery_class = get_chunk_mastery(chunk_ids[0], user_id=user_id)
         except Exception:
             pass
 
+    # Biais profil : preferred_pedagogy → types associés (tie-breaker secondaire)
+    profile_types: list[str] | None = None
+    try:
+        profile = get_learning_profile(user_id)
+        if profile and profile.get("preferred_pedagogy"):
+            profile_types = _PROFILE_TYPES.get(profile["preferred_pedagogy"])
+    except Exception:
+        pass
+
     used_types    = [h["question_type"] for h in history if h.get("question_type")]
-    question_type = _choose_question_type(used_types, mastery_class=mastery_class)
+    question_type = _choose_question_type(
+        used_types, mastery_class=mastery_class, profile_types=profile_types
+    )
     type_instruction = _TYPE_PROMPTS[question_type]
 
     # Instructions anti-doublon : 2 dernières questions de ce chunk

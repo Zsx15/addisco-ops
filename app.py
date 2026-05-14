@@ -298,6 +298,7 @@ with tab_train:
                 question, chunk_ids, question_type = generate_question(
                     source_text,
                     document_id=st.session_state.get("active_document_id"),
+                    user_id=st.session_state["user_id"],
                 )
                 st.session_state["question"]      = question
                 st.session_state["chunk_ids"]     = chunk_ids

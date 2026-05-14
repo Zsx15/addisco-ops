@@ -1,6 +1,7 @@
 """
 Tests de non-régression — SYNPZ OPS
-Couvre : database.py (invariants critiques) + ui_helpers.py (fonctions pures).
+Couvre : database.py (invariants critiques) + ui_helpers.py (fonctions pures)
+         + ai_service._choose_question_type (logique biais profil).
 
 Exécution : python test_regression.py
 Chaque test database utilise une base SQLite temporaire isolée (tempfile).
@@ -377,6 +378,65 @@ class TestLearningProfile(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests ai_service._choose_question_type
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestChooseQuestionType(unittest.TestCase):
+    """
+    Teste la logique de sélection du type de question sans appel API.
+    Vérifie les trois niveaux de priorité : rotation → mastery → profil.
+    """
+
+    def setUp(self):
+        from ai_service import _choose_question_type, QUESTION_TYPES
+        self.fn    = _choose_question_type
+        self.types = QUESTION_TYPES
+
+    def test_no_history_no_bias_returns_valid_type(self):
+        result = self.fn([])
+        self.assertIn(result, self.types)
+
+    def test_mastery_bias_applied_over_rotation(self):
+        # Tous les types sont équitables (1 occurrence chacun sauf reformulation)
+        # mastery Fragile → favorise reformulation/consequence/cas_pratique
+        used = ["question_directe", "vrai_faux", "question_piege",
+                "cas_pratique", "consequence"]  # reformulation = 0 occurrences
+        result = self.fn(used, mastery_class="Fragile")
+        # reformulation est le seul candidat équitable ET dans le biais Fragile
+        self.assertEqual(result, "reformulation")
+
+    def test_profile_bias_as_tiebreaker(self):
+        # 2 types equitables : question_directe et vrai_faux (0 occurrences chacun)
+        # mastery None → pas de biais mastery → les deux sont candidats
+        # profil logical → question_directe doit être choisi
+        used = ["cas_pratique", "reformulation", "consequence", "question_piege"]
+        result = self.fn(used, mastery_class=None, profile_types=["question_directe"])
+        self.assertEqual(result, "question_directe")
+
+    def test_profile_bias_no_match_falls_back(self):
+        # profile_types ne correspond à aucun candidat équitable → rotation normale
+        # Tous types à 1 occurrence sauf question_directe (0) → seul candidat
+        used = ["cas_pratique", "vrai_faux", "question_piege", "reformulation", "consequence"]
+        result = self.fn(used, mastery_class=None, profile_types=["reformulation"])
+        # reformulation est épuisé dans used, question_directe est le seul à 0
+        self.assertEqual(result, "question_directe")
+
+    def test_mastery_priority_over_profile(self):
+        # mastery Maîtrisé → biais vers question_piege/cas_pratique/consequence
+        # profile → narrative → reformulation
+        # Le biais mastery doit l'emporter sur le biais profil
+        used = ["question_directe", "vrai_faux"]  # question_piege, cas_pratique, consequence, reformulation à 0
+        result = self.fn(used, mastery_class="Maîtrisé", profile_types=["reformulation"])
+        # reformulation n'est PAS dans le biais Maîtrisé → mastery l'exclut
+        self.assertIn(result, ["question_piege", "cas_pratique", "consequence"])
+
+    def test_no_profile_unchanged_behavior(self):
+        # Sans profile_types, comportement identique à avant TASK-024
+        result = self.fn([], mastery_class="Fragile", profile_types=None)
+        self.assertIn(result, ["reformulation", "consequence", "cas_pratique"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -388,6 +448,7 @@ if __name__ == "__main__":
         TestDatabaseChunkMastery,
         TestClassifyMastery,
         TestLearningProfile,
+        TestChooseQuestionType,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
