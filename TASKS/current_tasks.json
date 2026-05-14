@@ -488,5 +488,26 @@
     "human_validation_required": false,
     "completion_notes": "+3 lignes dans app.py après save_attempt(). py_compile OK. 39/39 tests OK (non-régression totale).",
     "commit_hash": "74ef5a9"
+  },
+  {
+    "id": "TASK-026",
+    "title": "Isolation per-user dans get_chunk_question_history()",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": [
+      "TASK-025"
+    ],
+    "description": "ENGINE — Ajouter user_id a get_chunk_question_history() pour isoler le bloc anti-doublon LLM par utilisateur. Limitation documentee de TASK-019 fermee.",
+    "goal": "Phase 8 : isolation multi-user complete. Le LLM ne voit que les questions posees a cet utilisateur specifique sur ce chunk, pas celles de tous les users.",
+    "files": [
+      "database.py",
+      "ai_service.py",
+      "test_regression.py"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "+user_id param database.py. ai_service.py passe user_id. +1 test isolation. _add_attempt +question param. 40/40 OK. py_compile 3/3 OK.",
+    "commit_hash": ""
   }
 ]

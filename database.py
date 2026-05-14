@@ -412,9 +412,11 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_chunk_question_history(chunk_id: int, limit: int = 5) -> list[dict]:
+def get_chunk_question_history(
+    chunk_id: int, limit: int = 5, user_id: str = "default"
+) -> list[dict]:
     """
-    Retourne les dernières tentatives pour un chunk donné.
+    Retourne les dernières tentatives pour un chunk donné, filtrées par user_id.
     Lit pedagogy_type comme question_type (colonne réutilisée sans migration).
     Retourne [] si chunk inconnu ou aucun historique.
     """
@@ -424,11 +426,11 @@ def get_chunk_question_history(chunk_id: int, limit: int = 5) -> list[dict]:
             """
             SELECT question, pedagogy_type AS question_type
             FROM attempts
-            WHERE chunk_id = ?
+            WHERE chunk_id = ? AND user_id = ?
             ORDER BY created_at DESC
             LIMIT ?
             """,
-            (chunk_id, limit),
+            (chunk_id, user_id, limit),
         ).fetchall()
     return [dict(r) for r in rows]
 

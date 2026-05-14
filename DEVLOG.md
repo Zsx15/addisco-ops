@@ -4,6 +4,26 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-14 — TASK-026 : Isolation per-user dans get_chunk_question_history()
+
+**Milestone :** Phase 8 — isolation multi-user complète sur toutes les fonctions engine.
+
+**Actions :**
+- `database.py` : `get_chunk_question_history(chunk_id, limit, user_id="default")` — ajout paramètre + `AND user_id = ?` dans la requête SQL.
+- `ai_service.py` : appel mis à jour → `get_chunk_question_history(chunk_ids[0], limit=5, user_id=user_id)`.
+- `test_regression.py` : +1 test `test_chunk_history_user_isolation` (40/40 OK). Paramètre `question` ajouté à `_add_attempt`.
+
+**Limitation fermée :** TASK-019 avait volontairement laissé `get_chunk_question_history` sans filtre user_id. Le bloc "éviter les doublons" passé au LLM est maintenant strictement per-user.
+
+**Invariants préservés :**
+- Rétrocompatibilité totale : `user_id="default"` par défaut. Aucun appelant existant cassé.
+- py_compile 3/3 OK. 40/40 tests OK.
+
+**Prochaine étape :**
+- TASK-027 : à définir selon roadmap Phase 9 (révision espacée) ou Phase 10 (production readiness).
+
+---
+
 ## 2026-05-14 — TASK-025 : Mise à jour automatique du profil après chaque tentative
 
 **Milestone :** Phase 8 — profil pédagogique toujours synchronisé avec l'historique réel.

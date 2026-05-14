@@ -50,9 +50,9 @@ class _DbTestCase(unittest.TestCase):
 
     def _add_attempt(self, score=0.8, user_id="default", topic="T1",
                      error_type=None, pedagogy_type="question_directe",
-                     chunk_id=None):
+                     chunk_id=None, question="Q?"):
         self.db.save_attempt(
-            question="Q?", user_answer="A", expected_answer="EA",
+            question=question, user_answer="A", expected_answer="EA",
             correction="C", score=score,
             error_type=error_type, topic=topic,
             pedagogy_type=pedagogy_type, user_id=user_id,
@@ -273,6 +273,22 @@ class TestDatabaseChunkMastery(_DbTestCase):
 
     def test_chunk_mastery_no_data(self):
         self.assertIsNone(self.db.get_chunk_mastery(9999, "default"))
+
+    def test_chunk_history_user_isolation(self):
+        """Invariant TASK-026 : l'historique de questions d'un chunk est per-user."""
+        _, chunk_id = self._add_doc_and_chunk()
+        self._add_attempt(score=0.8, user_id="alice", chunk_id=chunk_id,
+                          question="Question alice")
+        self._add_attempt(score=0.5, user_id="bob",   chunk_id=chunk_id,
+                          question="Question bob")
+        alice_history = self.db.get_chunk_question_history(chunk_id, user_id="alice")
+        bob_history   = self.db.get_chunk_question_history(chunk_id, user_id="bob")
+        alice_qs = [h["question"] for h in alice_history]
+        bob_qs   = [h["question"] for h in bob_history]
+        self.assertIn("Question alice", alice_qs)
+        self.assertNotIn("Question bob", alice_qs)
+        self.assertIn("Question bob", bob_qs)
+        self.assertNotIn("Question alice", bob_qs)
 
 
 class TestClassifyMastery(unittest.TestCase):

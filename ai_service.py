@@ -203,7 +203,7 @@ def generate_question(
     mastery_class: str | None = None
     if chunk_ids:
         try:
-            history = get_chunk_question_history(chunk_ids[0], limit=5)
+            history = get_chunk_question_history(chunk_ids[0], limit=5, user_id=user_id)
         except Exception:
             pass
         try:
