@@ -593,5 +593,23 @@
     "human_validation_required": false,
     "completion_notes": "+logger.py (setup_logging : RotatingFileHandler 5MB/3, StreamHandler, format timestamp|LEVEL|module|msg). ai_service.py : +import logging, +logger, WARNING sur RAG fallback, INFO sur question type choisi, WARNING sur JSON decode error. database.py : +import logging, +logger, INFO sur init_db, INFO sur save_document. app.py : +from logger import setup_logging, setup_logging() au démarrage. .dockerignore : +logs/. document_service.py : logging déjà présent — non modifié. py_compile 4/4 OK. 72/72 tests OK.",
     "commit_hash": "8823ac1"
+  },
+  {
+    "id": "TASK-031",
+    "title": "Export CSV de l'historique (Phase 10)",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-030"],
+    "description": "Phase 10 — exports. Bouton st.download_button dans l'onglet Historique. Colonnes : created_at, question, user_answer, expected_answer, score, error_type, topic, pedagogy_type, response_time_seconds. Encoding utf-8-sig (BOM Excel). Conditionnel (masqué si df vide).",
+    "goal": "Phase 10 : l'utilisateur peut télécharger son historique de révision en CSV compatible Excel en un clic.",
+    "files": [
+      "app.py",
+      "test_regression.py"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "app.py : +st.download_button entre métriques et divider, 9 colonnes, encode utf-8-sig. test_regression.py : +test_export_columns_present dans TestDatabaseAttempts. py_compile 2/2 OK. 73/73 tests OK. Aucune modification engine.",
+    "commit_hash": "TBD"
   }
 ]

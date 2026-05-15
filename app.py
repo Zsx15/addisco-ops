@@ -510,6 +510,19 @@ with tab_history:
             str(df["created_at"].iloc[0])[:16] if not df.empty else "—",
         )
 
+        _EXPORT_COLS = [
+            "created_at", "question", "user_answer", "expected_answer",
+            "score", "error_type", "topic", "pedagogy_type", "response_time_seconds",
+        ]
+        _export_cols = [c for c in _EXPORT_COLS if c in df.columns]
+        _csv_bytes = df[_export_cols].to_csv(index=False).encode("utf-8-sig")
+        st.download_button(
+            label="⬇ Exporter l'historique (.csv)",
+            data=_csv_bytes,
+            file_name="synpz_historique.csv",
+            mime="text/csv",
+        )
+
         st.divider()
 
         for _, row in df.iterrows():

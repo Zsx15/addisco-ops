@@ -4,6 +4,23 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-031 : Export CSV de l'historique (Phase 10)
+
+**Milestone :** Phase 10 — exports.
+
+**Actions :**
+- `app.py` : bouton `⬇ Exporter l'historique (.csv)` dans l'onglet Historique, entre les métriques et le divider. Colonnes exportées : `created_at`, `question`, `user_answer`, `expected_answer`, `score`, `error_type`, `topic`, `pedagogy_type`, `response_time_seconds`. Encoding `utf-8-sig` (BOM, compatible Excel). Conditionnel — masqué si historique vide.
+- `test_regression.py` : +1 test `test_export_columns_present` dans `TestDatabaseAttempts` — vérifie que toutes les colonnes d'export sont présentes dans le DataFrame retourné par `get_attempts()`.
+
+**Invariants préservés :**
+- Aucune modification engine (`database.py`, `ai_service.py`, `document_service.py`)
+- Lecture seule — aucune écriture en base
+- 73/73 tests OK, py_compile 2/2 OK
+
+**Prochaine étape suggérée :** health check / bannière de statut API+DB au démarrage (Phase 10).
+
+---
+
 ## 2026-05-15 — TASK-030 : Logging structuré (Phase 10)
 
 **Milestone :** Phase 10 — industrialisation continue.

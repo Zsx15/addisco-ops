@@ -205,6 +205,17 @@ class TestDatabaseAttempts(_DbTestCase):
         df = self.db.get_attempts("nobody")
         self.assertTrue(df.empty)
 
+    def test_export_columns_present(self):
+        """TASK-031 : les colonnes nécessaires à l'export CSV sont toutes présentes."""
+        self._add_attempt(score=0.6)
+        df = self.db.get_attempts("default")
+        required = [
+            "created_at", "question", "user_answer", "expected_answer",
+            "score", "error_type", "topic", "pedagogy_type", "response_time_seconds",
+        ]
+        for col in required:
+            self.assertIn(col, df.columns, f"colonne manquante pour export : {col}")
+
     def test_score_evolution_chronological(self):
         """get_score_evolution retourne les scores en ordre chronologique (ASC)."""
         import sqlite3
