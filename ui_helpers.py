@@ -3,6 +3,7 @@ Fonctions utilitaires UI — rendu HTML, analyse pédagogique, rapport, explaina
 Aucune dépendance Streamlit : importable et testable indépendamment.
 """
 from datetime import datetime
+from typing import Optional
 
 import pandas as pd
 
@@ -333,7 +334,7 @@ def sanitize_user_id(raw: str) -> str:
     return cleaned if cleaned else "default"
 
 
-def validate_doc_title(title: str) -> str | None:
+def validate_doc_title(title: str) -> Optional[str]:
     """Retourne un message d'erreur ou None si le titre est valide."""
     stripped = title.strip()
     if not stripped:
@@ -343,7 +344,7 @@ def validate_doc_title(title: str) -> str | None:
     return None
 
 
-def validate_file_size(size_bytes: int) -> str | None:
+def validate_file_size(size_bytes: int) -> Optional[str]:
     """Retourne un message d'erreur ou None si la taille est acceptable."""
     if size_bytes > _FILE_MAX_BYTES:
         mb = size_bytes // (1024 * 1024)
