@@ -645,5 +645,23 @@
     "human_validation_required": true,
     "completion_notes": "+tab_formateur dans st.tabs(). 4 zones : KPIs, synthèse narrative HTML, cartes efficacité par pedagogy_type, couverture par document. Cohérence visuelle dashboard actuel (mêmes patterns _kpi_card, st.container border, st.progress, st.caption). py_compile OK. 73/73 tests OK.",
     "commit_hash": "1e5fa86"
+  },
+  {
+    "id": "TASK-034",
+    "title": "CI GitHub Actions (Phase 10)",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-033"],
+    "description": "Phase 10 — tests automatises. Workflow CI .github/workflows/ci.yml : push + pull_request sur main, ubuntu-latest, Python 3.11, cache pip, py_compile 5 fichiers critiques (guard if [ -f ]), python -m unittest test_regression.py -v. README : section CI. Aucun fichier Python modifie.",
+    "goal": "Phase 10 : chaque commit sur main declenche automatiquement compilation Python + 73 tests unitaires sans secret GitHub ni acces OpenAI.",
+    "files": [
+      ".github/workflows/ci.yml",
+      "README.md"
+    ],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "+.github/workflows/ci.yml (5 etapes, cache pip, guard if [ -f ] sur py_compile). README +section CI GitHub Actions. Validation structurelle YAML OK (9 assertions). py_compile 5/5 OK. 73/73 tests OK. Aucun fichier Python modifie.",
+    "commit_hash": "TBD"
   }
 ]

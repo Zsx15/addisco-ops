@@ -107,6 +107,19 @@ La base de données est conservée dans le volume `synpz_data` entre les redéma
 
 ---
 
+## CI GitHub Actions
+
+Le projet inclut un workflow CI (`.github/workflows/ci.yml`) déclenché automatiquement à chaque `push` et `pull_request` sur `main`.
+
+Pipeline :
+1. **Installation** des dépendances (`pip install -r requirements.txt`)
+2. **Compilation** Python — `py_compile` sur les 5 fichiers critiques
+3. **Tests unitaires** — `python -m unittest test_regression.py -v` (73 tests, SQLite en mémoire, aucun accès API requis)
+
+Objectif : garantir qu'aucun commit ne casse la compilation ou les tests sans intervention manuelle.
+
+---
+
 ## Réinitialiser la base
 
 ```bash

@@ -4,6 +4,26 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-034 : CI GitHub Actions (Phase 10)
+
+**Milestone :** Phase 10 — tests automatisés.
+
+**Actions :**
+- `.github/workflows/ci.yml` (nouveau) : workflow CI déclenché sur `push` et `pull_request` vers `main`. 5 étapes : Checkout (v4), Setup Python 3.11 (v5, cache pip), Install dependencies, Compile Python (boucle bash + guard `if [ -f ]` sur 5 fichiers critiques), Run tests (`python -m unittest test_regression.py -v`).
+- `README.md` : +section "CI GitHub Actions" (rôle, pipeline, objectif).
+- Aucun fichier Python modifié.
+
+**Invariants préservés :**
+- Aucune modification de logique métier, UI, engine
+- Aucun secret GitHub requis (tests SQLite en mémoire, pas d'appel OpenAI)
+- Rollback trivial : supprimer `.github/workflows/ci.yml`
+- YAML sans tabulation — indentation espaces uniquement
+- py_compile 5/5 OK, 73/73 tests OK
+
+**Prochaine étape suggérée :** validation entrées utilisateur (sécurité, Phase 10) ou authentification simple.
+
+---
+
 ## 2026-05-15 — TASK-033 : Dashboard formateur (Phase 10)
 
 **Milestone :** Phase 10 — dashboard formateur.
