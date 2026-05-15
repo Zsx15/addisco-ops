@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import struct
 from datetime import datetime, timedelta
@@ -6,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-DB_PATH = Path("database.db")
+DB_PATH = Path(os.getenv("DB_PATH", "database.db"))
 
 # Intervalles de base de répétition espacée par classe de maîtrise (en jours).
 # Utilisés par _adaptive_interval() comme point de départ avant modulation par trend.

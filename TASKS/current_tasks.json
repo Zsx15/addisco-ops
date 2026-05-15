@@ -549,5 +549,28 @@
     "human_validation_required": true,
     "completion_notes": "+4 fonctions pures ui_helpers.py (explain_question_decision, explain_interval_decision, explain_priority_decision, explain_profile_detection). +1 fonction additive ai_service.py (explain_type_choice). app.py : imports, session_state (question_type_reason, question_profile_pedagogy), expander enrichi, priority card algorithmique, section cards intervalles, profil avec explication. +28 tests (TestExplainFunctions 23 tests, TestExplainTypeChoice 5 tests). 72/72 OK. py_compile 4/4 OK. database.py non modifié. Aucune migration SQLite.",
     "commit_hash": "53a3341"
+  },
+  {
+    "id": "TASK-029",
+    "title": "Dockerisation + Configuration externalisée (Phase 10)",
+    "status": "DONE",
+    "priority": "HIGH",
+    "depends_on": ["TASK-028"],
+    "description": "Phase 10 — Rendre l'application déployable en conteneur Docker. Création Dockerfile, docker-compose.yml, .dockerignore, config.py (référence centralisée non importée). Freeze requirements.txt. DB_PATH depuis variable d'environnement dans database.py (1 ligne). Section Docker dans README.md.",
+    "goal": "Phase 10 : permettre le déploiement reproductible de SYNPZ OPS via docker compose up --build. Base SQLite persistée dans volume nommé synpz_data. Comportement local inchangé.",
+    "files": [
+      "Dockerfile",
+      "docker-compose.yml",
+      ".dockerignore",
+      "config.py",
+      "database.py",
+      "requirements.txt",
+      "README.md"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "Dockerfile python:3.11-slim + volume /app/data. docker-compose.yml : port 8501, env_file .env, volume synpz_data, DB_PATH=/app/data/database.db. .dockerignore : exclut .env, database.db, __pycache__, .git. config.py : référence 7 constantes (non importé). database.py : +import os, DB_PATH depuis os.getenv (fallback database.db). requirements.txt : versions freezées. README.md : section Déploiement Docker. py_compile 2/2 OK. 72/72 tests OK.",
+    "commit_hash": null
   }
 ]

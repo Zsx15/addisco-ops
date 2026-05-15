@@ -83,11 +83,39 @@ Aucune base de données externe. Aucun serveur tiers. SQLite + OpenAI uniquement
 
 ---
 
+## Déploiement Docker
+
+```bash
+# 1. Copier et remplir le fichier de configuration
+cp .env.example .env
+# Éditer .env et ajouter OPENAI_API_KEY=votre_cle
+
+# 2. Construire et démarrer
+docker compose up --build
+
+# L'application est accessible sur http://localhost:8501
+# La base SQLite est persistée dans un volume Docker nommé synpz_data
+```
+
+Arrêt :
+
+```bash
+docker compose down
+```
+
+La base de données est conservée dans le volume `synpz_data` entre les redémarrages.
+
+---
+
 ## Réinitialiser la base
 
 ```bash
-# Supprimer la base locale — elle sera recréée et re-seedée au prochain lancement
+# Mode local — supprimer la base locale
 del database.db       # Windows
 rm database.db        # macOS / Linux
 streamlit run app.py
+
+# Mode Docker — supprimer le volume
+docker compose down -v
+docker compose up --build
 ```

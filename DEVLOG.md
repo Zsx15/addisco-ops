@@ -4,6 +4,37 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-029 : Dockerisation + Configuration externalisée (Phase 10)
+
+**Milestone :** Phase 10 — début de l'industrialisation.
+
+**Actions :**
+- `Dockerfile` : image `python:3.11-slim`, WORKDIR `/app`, install dépendances, `mkdir -p /app/data`, port 8501, headless mode
+- `docker-compose.yml` : service `app`, port `8501:8501`, `env_file .env`, `DB_PATH=/app/data/database.db`, volume nommé `synpz_data`
+- `.dockerignore` : exclut `.env`, `database.db`, `__pycache__/`, `.git/`, `*.log`
+- `config.py` : référence centralisée des 7 constantes principales (non importé — refactoring Phase 10+)
+- `database.py` : +`import os`, `DB_PATH = Path(os.getenv("DB_PATH", "database.db"))` — fallback `database.db` inchangé
+- `requirements.txt` : versions freezées (`openai==2.34.0`, `pandas==3.0.2`, `plotly==6.7.0`, `pypdf==6.11.0`, `python-dotenv==1.2.2`, `streamlit==1.57.0`)
+- `README.md` : section "Déploiement Docker" avec `docker compose up --build` et gestion du volume
+
+**Commandes Docker :**
+```bash
+cp .env.example .env   # remplir OPENAI_API_KEY
+docker compose up --build
+# → http://localhost:8501
+docker compose down     # arrêt (volume préservé)
+docker compose down -v  # arrêt + suppression base
+```
+
+**Invariants préservés :**
+- Comportement local inchangé (`DB_PATH` fallback `database.db`)
+- Aucune modification de signature dans les modules existants
+- 72/72 tests OK · py_compile 2/2 OK
+
+**Prochaine étape logique :** TASK-030 — Logging structuré (`logging` Python sur ingestion, génération, correction, embeddings)
+
+---
+
 ## 2026-05-15 — TASK-028 : Memory & Decision Explainability Layer (Phase 9.5)
 
 **Milestone :** Phase 9.5 — rendre les décisions du moteur pédagogique lisibles par l'utilisateur.

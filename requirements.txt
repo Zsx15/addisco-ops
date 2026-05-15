@@ -1,6 +1,6 @@
-streamlit>=1.32.0
-openai>=1.30.0
-python-dotenv>=1.0.0
-pandas>=2.0.0
-plotly>=5.18.0
-pypdf>=3.0.0
+openai==2.34.0
+pandas==3.0.2
+plotly==6.7.0
+pypdf==6.11.0
+python-dotenv==1.2.2
+streamlit==1.57.0
