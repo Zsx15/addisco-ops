@@ -4,6 +4,28 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-033 : Dashboard formateur (Phase 10)
+
+**Milestone :** Phase 10 — dashboard formateur.
+
+**Actions :**
+- `app.py` : +onglet `"Formateur"` dans `st.tabs()`. Bloc `with tab_formateur:` (~120 lignes) en fin de fichier.
+  - **F1 KPIs** : Tentatives, Score moyen (coloré), Jours d'étude, Temps moyen/réponse (ou Sections testées si < 3 mesures)
+  - **F2 Synthèse narrative** : blocs HTML `#f8fafc` avec dot coloré (🟢/🟡/🔴/🔵) — régularité, niveau global, format le plus réussi, section prioritaire, temps de réponse. Langage non-technique.
+  - **F3 Efficacité par type de question** : cartes `st.container(border=True)` + `st.progress()` par `pedagogy_type` — tri par score décroissant, sans graphique brut.
+  - **F4 Couverture du corpus** : une carte par document avec barre de progression (sections testées / total) + compteurs fragile/consolidation/maîtrisé.
+- Aucune modification de `database.py`, `ai_service.py`, `document_service.py`, `ui_helpers.py`.
+- Données exclusivement issues des fonctions existantes : `get_attempts()`, `get_chunk_stats()`, `classify_mastery()`, `get_documents()`.
+
+**Invariants préservés :**
+- Dashboard apprenant existant (`tab_dashboard`) non modifié
+- Aucun nouveau graphique Plotly — cartes avec `st.progress()` uniquement
+- 73/73 tests OK, py_compile 1/1 OK
+
+**Prochaine étape suggérée :** CI GitHub Actions ou authentification simple (Phase 10).
+
+---
+
 ## 2026-05-15 — TASK-032 : Bannière de statut système (Phase 10)
 
 **Milestone :** Phase 10 — monitoring léger.

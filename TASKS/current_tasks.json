@@ -628,5 +628,22 @@
     "human_validation_required": false,
     "completion_notes": "+import os, +DB_PATH import. Sidebar : 3 st.caption avec ✅/❌/⚠️/📄. Lecture seule. py_compile OK. 73/73 tests OK.",
     "commit_hash": "3f9de2b"
+  },
+  {
+    "id": "TASK-033",
+    "title": "Dashboard formateur (Phase 10)",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-032"],
+    "description": "Phase 10 — dashboard formateur. Nouvel onglet 'Formateur' dans app.py. F1: KPIs (tentatives, score moyen coloré, jours d'étude, temps/réponse). F2: synthèse narrative non-technique (régularité, niveau, format efficace, section prioritaire). F3: efficacité par type de question en cartes progress. F4: couverture corpus par document. Aucune modification backend.",
+    "goal": "Phase 10 : un formateur ou responsable non technique peut lire la progression de l'apprenant en un coup d'œil sans connaître le moteur pédagogique.",
+    "files": [
+      "app.py"
+    ],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "+tab_formateur dans st.tabs(). 4 zones : KPIs, synthèse narrative HTML, cartes efficacité par pedagogy_type, couverture par document. Cohérence visuelle dashboard actuel (mêmes patterns _kpi_card, st.container border, st.progress, st.caption). py_compile OK. 73/73 tests OK.",
+    "commit_hash": "TBD"
   }
 ]
