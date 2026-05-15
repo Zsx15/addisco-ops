@@ -117,6 +117,67 @@ def _choose_question_type(
     return random.choice(pool)
 
 
+def explain_type_choice(
+    used_types: list[str],
+    mastery_class: str | None,
+    profile_pedagogy: str | None,
+    chosen_type: str,
+) -> str:
+    """
+    Retourne une explication textuelle de la décision de sélection du type de question.
+    Miroir narratif de _choose_question_type() — fonction additive, ne modifie pas le moteur.
+    Aucun appel API.
+    """
+    _type_fr: dict[str, str] = {
+        "question_directe": "question directe",
+        "cas_pratique":     "cas pratique",
+        "vrai_faux":        "vrai / faux",
+        "question_piege":   "question piège",
+        "reformulation":    "reformulation",
+        "consequence":      "conséquence",
+    }
+    _mastery_fr: dict[str, str] = {
+        "Fragile":          "Fragile",
+        "En consolidation": "En consolidation",
+        "Maîtrisé":         "Maîtrisé",
+    }
+    _profile_fr: dict[str, str] = {
+        "logical":    "analytique",
+        "procedural": "procédural",
+        "narrative":  "narratif",
+        "analogy":    "analogique",
+    }
+
+    chosen_fr = _type_fr.get(chosen_type, chosen_type)
+
+    if not used_types:
+        if mastery_class and mastery_class in _MASTERY_BIAS:
+            mc_fr = _mastery_fr.get(mastery_class, mastery_class)
+            return f"Premier type sur cette section — biais {mc_fr} appliqué ({chosen_fr})"
+        return f"Premier type sur cette section — sélection initiale ({chosen_fr})"
+
+    counts     = {t: used_types.count(t) for t in QUESTION_TYPES}
+    min_count  = min(counts.values())
+    candidates = [t for t, c in counts.items() if c == min_count]
+    bias       = _MASTERY_BIAS.get(mastery_class or "", [])
+    biased     = [t for t in bias if t in candidates]
+
+    profile_types = _PROFILE_TYPES.get(profile_pedagogy or "", []) if profile_pedagogy else []
+
+    if biased and chosen_type in biased:
+        mc_fr = _mastery_fr.get(mastery_class or "", mastery_class or "")
+        if profile_types and chosen_type in profile_types:
+            pf_fr = _profile_fr.get(profile_pedagogy or "", profile_pedagogy or "")
+            return f"Sélectionné par biais maîtrise ({mc_fr}) et profil {pf_fr} ({chosen_fr})"
+        return f"Sélectionné par biais maîtrise ({mc_fr} → {chosen_fr} priorisé)"
+
+    if profile_types and chosen_type in profile_types and chosen_type in candidates:
+        pf_fr = _profile_fr.get(profile_pedagogy or "", profile_pedagogy or "")
+        return f"Sélectionné par profil pédagogique ({pf_fr} → {chosen_fr} favorisé)"
+
+    return f"Sélectionné par rotation équitable ({chosen_fr} le moins utilisé sur cette section)"
+
+
 def _get_client() -> OpenAI:
     global _client
     if _client is None:

@@ -428,6 +428,203 @@ class TestLearningProfile(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests Phase 9.5 — Decision Explainability Layer
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestExplainFunctions(unittest.TestCase):
+    """
+    Teste les 4 fonctions d'explainability dans ui_helpers.py.
+    Fonctions pures — aucune base de données, aucun appel API.
+    """
+
+    def setUp(self):
+        from ui_helpers import (
+            explain_interval_decision,
+            explain_priority_decision,
+            explain_profile_detection,
+            explain_question_decision,
+        )
+        self.eqd  = explain_question_decision
+        self.eid  = explain_interval_decision
+        self.eprd = explain_priority_decision
+        self.epfd = explain_profile_detection
+
+    # ── explain_question_decision ────────────────────────────────────────────
+
+    def test_eqd_fragile_returns_bias_signal(self):
+        signals = self.eqd("reformulation", "Fragile", "N/A", "—", None, None)
+        icons   = [s[0] for s in signals]
+        texts   = [s[1] for s in signals]
+        self.assertIn("⚡", icons)
+        self.assertTrue(any("fragile" in t.lower() for t in texts))
+
+    def test_eqd_degradation_adds_signal(self):
+        signals = self.eqd("cas_pratique", None, "Dégradation", "—", None, None)
+        texts   = [s[1] for s in signals]
+        self.assertTrue(any("régression" in t.lower() for t in texts))
+
+    def test_eqd_en_retard_adds_signal(self):
+        signals = self.eqd("question_directe", None, "N/A", "En retard", None, None)
+        texts   = [s[1] for s in signals]
+        self.assertTrue(any("retard" in t.lower() for t in texts))
+
+    def test_eqd_dominant_error_adds_signal(self):
+        signals = self.eqd("vrai_faux", None, "N/A", "—", "oubli_etape", None)
+        texts   = [s[1] for s in signals]
+        self.assertTrue(any("Oubli" in t for t in texts))
+
+    def test_eqd_profile_adds_signal(self):
+        signals = self.eqd("cas_pratique", None, "N/A", "—", None, "procedural")
+        texts   = [s[1] for s in signals]
+        self.assertTrue(any("procédural" in t.lower() for t in texts))
+
+    def test_eqd_no_signals_when_empty(self):
+        signals = self.eqd("question_directe", None, "N/A", "—", None, None)
+        self.assertEqual(signals, [])
+
+    def test_eqd_maitrise_returns_correct_bias(self):
+        signals = self.eqd("question_piege", "Maîtrisé", "Stable", "—", None, None)
+        texts   = [s[1] for s in signals]
+        self.assertTrue(any("maîtrisée" in t.lower() for t in texts))
+
+    # ── explain_interval_decision ─────────────────────────────────────────────
+
+    def test_eid_fragile_stable(self):
+        result = self.eid("Fragile", "Stable")
+        self.assertIn("1j", result)
+        self.assertIn("prioritaire", result.lower())
+
+    def test_eid_fragile_amelioration(self):
+        result = self.eid("Fragile", "Amélioration")
+        self.assertIn("2j", result)
+        self.assertIn("progression", result.lower())
+
+    def test_eid_consolidation_amelioration(self):
+        result = self.eid("En consolidation", "Amélioration")
+        self.assertIn("5j", result)
+        self.assertIn("espacement", result.lower())
+
+    def test_eid_consolidation_degradation(self):
+        result = self.eid("En consolidation", "Dégradation")
+        self.assertIn("2j", result)
+        self.assertIn("surveillance", result.lower())
+
+    def test_eid_consolidation_stable(self):
+        result = self.eid("En consolidation", "Stable")
+        self.assertIn("3j", result)
+
+    def test_eid_maitrise(self):
+        result = self.eid("Maîtrisé", "Stable")
+        self.assertIn("7j", result)
+        self.assertIn("maximal", result.lower())
+
+    def test_eid_unknown_returns_empty(self):
+        result = self.eid("Inconnu", "N/A")
+        self.assertEqual(result, "")
+
+    # ── explain_priority_decision ─────────────────────────────────────────────
+
+    def test_eprd_fragile_score_in_reasons(self):
+        row = {"avg_score": 0.42, "mastery_class": "Fragile",
+               "review_status": "—", "trend": "N/A",
+               "dominant_error_type": None, "attempts_count": 5}
+        reasons = self.eprd(row)
+        self.assertTrue(any("42 %" in r for r in reasons))
+        self.assertTrue(any("fragilité" in r or "Fragile" in r for r in reasons))
+
+    def test_eprd_en_retard_in_reasons(self):
+        row = {"avg_score": 0.55, "mastery_class": "En consolidation",
+               "review_status": "En retard", "trend": "N/A",
+               "dominant_error_type": None, "attempts_count": 5}
+        reasons = self.eprd(row)
+        self.assertTrue(any("retard" in r.lower() for r in reasons))
+
+    def test_eprd_dominant_error_in_reasons(self):
+        row = {"avg_score": 0.4, "mastery_class": "Fragile",
+               "review_status": "—", "trend": "N/A",
+               "dominant_error_type": "confusion_notion", "attempts_count": 4}
+        reasons = self.eprd(row)
+        self.assertTrue(any("Confusion" in r for r in reasons))
+
+    def test_eprd_few_attempts_in_reasons(self):
+        row = {"avg_score": 0.5, "mastery_class": "En consolidation",
+               "review_status": "—", "trend": "N/A",
+               "dominant_error_type": None, "attempts_count": 1}
+        reasons = self.eprd(row)
+        self.assertTrue(any("tentative" in r.lower() for r in reasons))
+
+    def test_eprd_empty_row_no_crash(self):
+        reasons = self.eprd({})
+        self.assertIsInstance(reasons, list)
+
+    # ── explain_profile_detection ─────────────────────────────────────────────
+
+    def test_epfd_none_profile(self):
+        result = self.epfd(None)
+        self.assertIn("établi", result.lower())
+
+    def test_epfd_logical_dominant(self):
+        profile = {"preferred_pedagogy": "logical", "logical_score": 0.82,
+                   "average_score": 0.65}
+        result = self.epfd(profile)
+        self.assertIn("Analytique", result)
+        self.assertIn("82 %", result)
+
+    def test_epfd_procedural_dominant(self):
+        profile = {"preferred_pedagogy": "procedural", "procedural_score": 0.74,
+                   "average_score": 0.60}
+        result = self.epfd(profile)
+        self.assertIn("Procédural", result)
+
+    def test_epfd_missing_preferred_returns_fallback(self):
+        profile = {"preferred_pedagogy": None, "average_score": 0.5}
+        result = self.epfd(profile)
+        self.assertIn("insuffisant", result.lower())
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests ai_service.explain_type_choice
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestExplainTypeChoice(unittest.TestCase):
+    """
+    Teste explain_type_choice() dans ai_service.py.
+    Aucun appel API — logique pure de décision.
+    """
+
+    def setUp(self):
+        from ai_service import explain_type_choice
+        self.fn = explain_type_choice
+
+    def test_no_history_mastery_bias_mentioned(self):
+        result = self.fn([], "Fragile", None, "reformulation")
+        self.assertIn("Fragile", result)
+        self.assertIn("reformulation", result)
+
+    def test_rotation_tier_mentioned(self):
+        used   = ["question_directe", "cas_pratique", "vrai_faux", "question_piege", "consequence"]
+        result = self.fn(used, None, None, "reformulation")
+        self.assertIn("rotation", result.lower())
+        self.assertIn("reformulation", result)
+
+    def test_mastery_bias_tier_mentioned(self):
+        used   = ["question_directe", "vrai_faux"]
+        result = self.fn(used, "Fragile", None, "reformulation")
+        self.assertIn("biais", result.lower())
+        self.assertIn("Fragile", result)
+
+    def test_profile_tier_mentioned(self):
+        used   = ["cas_pratique", "vrai_faux", "question_piege", "reformulation", "consequence"]
+        result = self.fn(used, None, "logical", "question_directe")
+        self.assertIn("profil", result.lower())
+
+    def test_no_history_no_bias_returns_string(self):
+        result = self.fn([], None, None, "cas_pratique")
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 5)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tests ai_service._choose_question_type
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -493,6 +690,8 @@ if __name__ == "__main__":
     suite   = unittest.TestSuite()
     for cls in (
         TestUiHelpers,
+        TestExplainFunctions,
+        TestExplainTypeChoice,
         TestDatabaseInit,
         TestDatabaseAttempts,
         TestDatabaseChunkMastery,

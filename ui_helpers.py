@@ -1,5 +1,5 @@
 """
-Fonctions utilitaires UI — rendu HTML, analyse pédagogique, rapport.
+Fonctions utilitaires UI — rendu HTML, analyse pédagogique, rapport, explainability.
 Aucune dépendance Streamlit : importable et testable indépendamment.
 """
 from datetime import datetime
@@ -105,6 +105,157 @@ def _build_recommendations(
 
     return recs[:5]
 
+
+# ── Phase 9.5 — Decision Explainability Layer ─────────────────────────────────
+
+_PROFILE_LABELS_FR: dict[str, tuple[str, str]] = {
+    "logical":    ("Analytique",  "questions directes"),
+    "procedural": ("Procédural",  "cas pratiques et conséquences"),
+    "narrative":  ("Narratif",    "reformulations"),
+    "analogy":    ("Analogique",  "vrai/faux et questions pièges"),
+}
+
+
+def explain_question_decision(
+    question_type: str,
+    mastery_class: str | None,
+    trend: str,
+    review_status: str,
+    dominant_error: str | None,
+    profile_pedagogy: str | None,
+) -> list[tuple[str, str]]:
+    """
+    Produit une liste de signaux cognitifs expliquant la sélection de la question.
+    Retourne des tuples (icône, texte) — aucune dépendance Streamlit.
+    """
+    signals: list[tuple[str, str]] = []
+
+    _bias_map: dict[str, tuple[str, str]] = {
+        "Fragile":          ("⚡", "Section fragile — reformulation et conséquence priorisées par le moteur"),
+        "En consolidation": ("🔄", "Section en progression — types variés pour ancrer les acquis"),
+        "Maîtrisé":         ("✅", "Section maîtrisée — questions pièges et cas pratiques pour challenger"),
+    }
+    if mastery_class and mastery_class in _bias_map:
+        signals.append(_bias_map[mastery_class])
+
+    if trend == "Amélioration":
+        signals.append(("📈", "Progression récente détectée — consolidation des acquis en cours"))
+    elif trend == "Dégradation":
+        signals.append(("📉", "Régression récente — renforcement pédagogique actif"))
+
+    if review_status == "En retard":
+        signals.append(("⏰", "Révision en retard — rappel prioritaire déclenché par l'algorithme"))
+    elif review_status == "Aujourd'hui":
+        signals.append(("📅", "Révision prévue aujourd'hui selon l'intervalle calculé"))
+
+    if dominant_error and dominant_error not in ("", "correct"):
+        label = _ERROR_LABELS.get(dominant_error, dominant_error)
+        signals.append(("🔍", f"Erreur récurrente identifiée : {label}"))
+
+    if profile_pedagogy and profile_pedagogy in _PROFILE_LABELS_FR:
+        prf_label = _PROFILE_LABELS_FR[profile_pedagogy][0]
+        signals.append(("🎓", f"Profil {prf_label.lower()} détecté — type de question favorisé en conséquence"))
+
+    return signals
+
+
+def explain_interval_decision(mastery_class: str, trend: str) -> str:
+    """
+    Retourne une phrase expliquant l'intervalle de révision calculé par le moteur.
+    Miroir narratif de _adaptive_interval() dans database.py — aucun import backend.
+    """
+    _special: dict[tuple[str, str], tuple[int, str]] = {
+        ("Fragile",          "Amélioration"): (2, "section fragile en progression — délai légèrement allongé"),
+        ("En consolidation", "Amélioration"): (5, "bonne trajectoire — espacement augmenté"),
+        ("En consolidation", "Dégradation"):  (2, "consolidation dégradée — surveillance renforcée"),
+    }
+    _default: dict[str, tuple[int, str]] = {
+        "Fragile":          (1, "rappel immédiat prioritaire"),
+        "En consolidation": (3, "consolidation stable — intervalle standard"),
+        "Maîtrisé":         (7, "section maîtrisée — espacement maximal"),
+    }
+    key = (mastery_class, trend)
+    if key in _special:
+        days, reason = _special[key]
+        return f"Intervalle {days}j : {reason}"
+    if mastery_class in _default:
+        days, reason = _default[mastery_class]
+        return f"Intervalle {days}j : {reason}"
+    return ""
+
+
+def explain_priority_decision(row: dict) -> list[str]:
+    """
+    Produit la liste de raisons algorithmiques justifiant la priorité de révision d'un chunk.
+    row doit contenir : avg_score, mastery_class, review_status, trend,
+                        dominant_error_type, attempts_count.
+    Fonctionne avec dict ou pandas.Series (les deux ont .get()).
+    """
+    reasons: list[str] = []
+
+    avg_score     = float(row.get("avg_score")           or 0.0)
+    mastery_class = str(row.get("mastery_class")         or "")
+    review_status = str(row.get("review_status")         or "—")
+    trend         = str(row.get("trend")                 or "N/A")
+    dominant_err  = str(row.get("dominant_error_type")   or "")
+    attempts      = int(row.get("attempts_count")        or 0)
+    pct           = round(avg_score * 100)
+
+    if mastery_class == "Fragile":
+        reasons.append(f"Score moyen : {pct} % — seuil de fragilité < 60 %")
+    elif mastery_class == "En consolidation":
+        reasons.append(f"Score moyen : {pct} % — section en cours de consolidation")
+
+    if review_status == "En retard":
+        reasons.append("Révision en retard selon l'intervalle calculé")
+    elif review_status == "Aujourd'hui":
+        reasons.append("Révision prévue aujourd'hui")
+
+    if trend == "Dégradation":
+        reasons.append("Régression récente détectée")
+    elif trend == "Amélioration" and mastery_class == "Fragile":
+        reasons.append("En progression — consolidation à encourager")
+
+    if dominant_err and dominant_err not in ("", "correct"):
+        label = _ERROR_LABELS.get(dominant_err, dominant_err)
+        reasons.append(f"Erreur répétée : {label}")
+
+    if attempts < 3:
+        reasons.append(f"Peu de tentatives enregistrées ({attempts})")
+
+    return reasons
+
+
+def explain_profile_detection(profile: dict | None) -> str:
+    """
+    Retourne une phrase expliquant pourquoi le profil pédagogique dominant a été détecté.
+    Retourne une phrase d'attente si le profil est None ou insuffisant.
+    """
+    if not profile:
+        return "Profil non encore établi — effectuez davantage de tentatives."
+
+    pref = profile.get("preferred_pedagogy")
+    if not pref or pref not in _PROFILE_LABELS_FR:
+        return "Données insuffisantes pour établir un profil dominant."
+
+    label, types_fr = _PROFILE_LABELS_FR[pref]
+    score_key = f"{pref}_score"
+    score     = float(profile.get(score_key) or 0.0)
+    avg       = float(profile.get("average_score") or 0.0)
+    score_pct = round(score * 100)
+    avg_pct   = round(avg * 100)
+
+    if score_pct > 0 and avg_pct > 0:
+        return (
+            f"Profil {label} dominant : meilleur taux de réussite sur les {types_fr} "
+            f"({score_pct} % vs {avg_pct} % de moyenne globale)."
+        )
+    if score_pct > 0:
+        return f"Profil {label} dominant : meilleur taux de réussite sur les {types_fr} ({score_pct} %)."
+    return f"Profil {label} dominant détecté."
+
+
+# ── Rapport texte brut ────────────────────────────────────────────────────────
 
 def _build_report(df_all: pd.DataFrame, df_topics: pd.DataFrame, df_chunks: pd.DataFrame) -> str:
     w     = 60

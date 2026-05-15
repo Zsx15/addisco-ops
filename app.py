@@ -5,12 +5,13 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from ai_service import correct_answer, generate_question
+from ai_service import correct_answer, explain_type_choice, generate_question
 from database import (
     classify_mastery,
     compute_and_save_learning_profile,
     get_attempts,
     get_chunk_mastery,
+    get_chunk_question_history,
     get_chunk_stats,
     get_document_by_id,
     get_documents,
@@ -31,6 +32,10 @@ from ui_helpers import (
     _kpi_card,
     _mastery_state,
     _truncate_label,
+    explain_interval_decision,
+    explain_priority_decision,
+    explain_profile_detection,
+    explain_question_decision,
 )
 
 init_db()
@@ -160,6 +165,7 @@ for key in (
     "active_document_id", "active_document_title", "chunk_ids", "question_type",
     "question_mastery", "question_chunk_trend", "question_chunk_days",
     "question_chunk_error", "question_chunk_status",
+    "question_type_reason", "question_profile_pedagogy",
 ):
     if key not in st.session_state:
         st.session_state[key] = None
@@ -328,12 +334,27 @@ with tab_train:
                         st.session_state["question_chunk_days"]       = None
                         st.session_state["question_chunk_error"]      = None
                         st.session_state["question_chunk_status"]     = "—"
+                    # TASK-028e — trace de décision (bloc indépendant, non bloquant)
+                    try:
+                        _hist  = get_chunk_question_history(chunk_ids[0], user_id=st.session_state["user_id"])
+                        _used  = [h["question_type"] for h in _hist if h.get("question_type")]
+                        _prof  = get_learning_profile(st.session_state["user_id"])
+                        _pped  = _prof.get("preferred_pedagogy") if _prof else None
+                        st.session_state["question_type_reason"]      = explain_type_choice(
+                            _used, st.session_state.get("question_mastery"), _pped, question_type
+                        )
+                        st.session_state["question_profile_pedagogy"] = _pped
+                    except Exception:
+                        st.session_state["question_type_reason"]      = None
+                        st.session_state["question_profile_pedagogy"] = None
                 else:
-                    st.session_state["question_mastery"]      = None
-                    st.session_state["question_chunk_trend"]  = "N/A"
-                    st.session_state["question_chunk_days"]   = None
-                    st.session_state["question_chunk_error"]  = None
-                    st.session_state["question_chunk_status"] = "—"
+                    st.session_state["question_mastery"]          = None
+                    st.session_state["question_chunk_trend"]      = "N/A"
+                    st.session_state["question_chunk_days"]       = None
+                    st.session_state["question_chunk_error"]      = None
+                    st.session_state["question_chunk_status"]     = "—"
+                    st.session_state["question_type_reason"]      = None
+                    st.session_state["question_profile_pedagogy"] = None
             except Exception as exc:
                 st.error(f"Erreur lors de la génération : {exc}")
 
@@ -349,6 +370,10 @@ with tab_train:
         with st.expander("Pourquoi cette question ?"):
             _expl = _TYPE_EXPLANATIONS.get(_q_type, "")
             st.markdown(f"**Type · {_tlabel}**  \n{_expl}" if _expl else f"**Type · {_tlabel}**")
+            # TASK-028e — trace de décision moteur
+            _type_reason = st.session_state.get("question_type_reason")
+            if _type_reason:
+                st.caption(f"🧩 Décision moteur : {_type_reason}")
             _mastery = st.session_state.get("question_mastery")
             if _mastery and st.session_state.get("chunk_ids"):
                 _bias_text = _MASTERY_BIAS_LABELS.get(_mastery, "")
@@ -356,22 +381,22 @@ with tab_train:
                     f"**Maîtrise détectée · {_mastery}**  \n{_bias_text}"
                     if _bias_text else f"**Maîtrise détectée · {_mastery}**"
                 )
-                _c_trend  = st.session_state.get("question_chunk_trend", "N/A")
-                _c_status = st.session_state.get("question_chunk_status", "—")
-                _c_error  = st.session_state.get("question_chunk_error")
-                _ctx = []
-                if _c_trend == "Amélioration":
-                    _ctx.append("📈 Progression récente détectée sur cette section")
-                elif _c_trend == "Dégradation":
-                    _ctx.append("📉 Régression récente — renforcement pédagogique actif")
-                if _c_status == "En retard":
-                    _ctx.append("⏰ Révision en retard — rappel prioritaire déclenché")
-                elif _c_status == "Aujourd'hui":
-                    _ctx.append("📅 Révision prévue aujourd'hui selon l'algorithme")
-                if _c_error and _c_error not in ("", "correct"):
-                    _ctx.append(f"🔍 Erreur récurrente identifiée : {_ERROR_LABELS.get(_c_error, _c_error)}")
-                if _ctx:
-                    st.markdown("  \n".join(f"_{line}_" for line in _ctx))
+                # TASK-028a — signaux cognitifs structurés
+                _c_trend   = st.session_state.get("question_chunk_trend", "N/A")
+                _c_status  = st.session_state.get("question_chunk_status", "—")
+                _c_error   = st.session_state.get("question_chunk_error")
+                _c_pedagogy = st.session_state.get("question_profile_pedagogy")
+                _signals = explain_question_decision(
+                    _q_type or "", _mastery, _c_trend or "N/A",
+                    _c_status or "—", _c_error, _c_pedagogy,
+                )
+                if _signals:
+                    _sig_html = "".join(
+                        f'<div style="font-size:12px;color:#475569;padding:2px 0">'
+                        f'<span style="margin-right:6px">{icon}</span>{text}</div>'
+                        for icon, text in _signals
+                    )
+                    st.markdown(_sig_html, unsafe_allow_html=True)
             elif not st.session_state.get("chunk_ids"):
                 st.caption(
                     "Mode texte brut — RAG non actif. "
@@ -610,15 +635,16 @@ with tab_dashboard:
                         f"**{_prio_row['section_label']}** · _{_prio_row['document_title']}_  \n"
                         f"Score : **{_pct} %** · {_n} tentative{'s' if _n > 1 else ''} · {_retard}"
                     )
-                    _why = []
-                    if _pct < 60:
-                        _why.append(f"score moyen de {_pct} %")
-                    if _status == "En retard":
-                        _why.append("révision en retard")
-                    if _n < 3:
-                        _why.append("peu de tentatives enregistrées")
-                    if _why:
-                        st.caption(f"Prioritaire car : {', '.join(_why)}.")
+                    # TASK-028c — raisons algorithmiques
+                    for _w in explain_priority_decision(_prio_row):
+                        st.caption(f"· {_w}")
+                    # TASK-028b — explication de l'intervalle adaptatif
+                    _ivl_expl = explain_interval_decision(
+                        str(_prio_row.get("mastery_class") or ""),
+                        str(_prio_row.get("trend") or "N/A"),
+                    )
+                    if _ivl_expl:
+                        st.caption(f"⏱ {_ivl_expl}")
 
         st.divider()
 
@@ -665,6 +691,13 @@ with tab_dashboard:
                             )
                         else:
                             st.caption(f"{_n} tentative{'s' if _n > 1 else ''} · {_st}")
+                        # TASK-028b — explication de l'intervalle adaptatif
+                        _ivl = explain_interval_decision(
+                            str(r.get("mastery_class") or ""),
+                            str(r.get("trend") or "N/A"),
+                        )
+                        if _ivl:
+                            st.caption(f"⏱ {_ivl}")
         else:
             st.info(
                 "Aucune donnée par section disponible. "
@@ -886,6 +919,10 @@ with tab_dashboard:
                 st.markdown("  ·  ".join(_profile_lines))
             if _fragile:
                 st.caption("Notions fragiles : " + " · ".join(_fragile))
+            # TASK-028d — explication du profil détecté
+            _prof_expl = explain_profile_detection(_profile)
+            if _prof_expl:
+                st.caption(_prof_expl)
         else:
             st.info(
                 "Profil non encore calculé. "

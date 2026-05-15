@@ -4,6 +4,32 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-028 : Memory & Decision Explainability Layer (Phase 9.5)
+
+**Milestone :** Phase 9.5 — rendre les décisions du moteur pédagogique lisibles par l'utilisateur.
+
+**Actions :**
+- `ui_helpers.py` : +4 fonctions pures d'explainability (aucune dépendance Streamlit) :
+  - `explain_question_decision(question_type, mastery_class, trend, review_status, dominant_error, profile_pedagogy) → list[tuple]` — signaux cognitifs de sélection de question (028a)
+  - `explain_interval_decision(mastery_class, trend) → str` — miroir narratif de `_adaptive_interval()` (028b)
+  - `explain_priority_decision(row) → list[str]` — raisonnement algorithmique de la priorité de révision (028c)
+  - `explain_profile_detection(profile) → str` — explication du profil pédagogique dominant (028d)
+- `ai_service.py` : +1 fonction additive `explain_type_choice(used_types, mastery_class, profile_pedagogy, chosen_type) → str` — miroir narratif de `_choose_question_type()`, aucune modification du moteur (028e)
+- `app.py` : imports enrichis, 2 nouvelles clés session_state (`question_type_reason`, `question_profile_pedagogy`), expander "Pourquoi cette question ?" restructuré avec signaux HTML, priority card avec raisons algorithmiques et intervalle adaptatif, section cards avec caption intervalle, Zone 7 profil avec explication de détection
+- `test_regression.py` : +28 tests — `TestExplainFunctions` (23 tests couvrant les 4 fonctions pures) et `TestExplainTypeChoice` (5 tests)
+
+**Résultats :** 72/72 tests OK · py_compile 4/4 OK · `database.py` non modifié · 0 migration SQLite
+
+**Invariants préservés :**
+- Aucune modification de signature de `_choose_question_type()` ni `generate_question()`
+- Fallback silencieux sur toutes les nouvelles fonctions (try/except non bloquant dans app.py)
+- `explain_interval_decision()` est un miroir indépendant de `_adaptive_interval()` — synchronisation par convention, pas par import
+- 44 tests existants non régressés
+
+**Prochaine étape logique :** Phase 10 — Industrialisation (authentification, multi-user complet, Docker, tests automatisés CI)
+
+---
+
 ## 2026-05-14 — TASK-027 : Intervalles de révision adaptatifs (Phase 9)
 
 **Milestone :** Phase 9 — répétition espacée modulée par la tendance récente de l'apprenant.
