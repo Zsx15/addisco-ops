@@ -2,6 +2,7 @@
 Fonctions utilitaires UI — rendu HTML, analyse pédagogique, rapport, explainability.
 Aucune dépendance Streamlit : importable et testable indépendamment.
 """
+import hmac
 from datetime import datetime
 from typing import Optional
 
@@ -350,3 +351,8 @@ def validate_file_size(size_bytes: int) -> Optional[str]:
         mb = size_bytes // (1024 * 1024)
         return f"Fichier trop volumineux ({mb} Mo). Limite : {_FILE_MAX_MB} Mo."
     return None
+
+
+def check_app_password(entered: str, expected: str) -> bool:
+    """Vérifie le mot de passe d'application en temps constant (anti-timing attack)."""
+    return hmac.compare_digest(entered, expected)

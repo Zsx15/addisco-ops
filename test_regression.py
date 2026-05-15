@@ -188,6 +188,13 @@ class TestUiHelpers(unittest.TestCase):
         self.assertIsNotNone(err)
         self.assertIn("25", err)
 
+    def test_check_app_password(self):
+        from ui_helpers import check_app_password
+        self.assertTrue(check_app_password("secret", "secret"))
+        self.assertFalse(check_app_password("wrong", "secret"))
+        self.assertFalse(check_app_password("", "secret"))
+        self.assertTrue(check_app_password("", ""))
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tests database.py

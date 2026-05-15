@@ -42,6 +42,7 @@ from ui_helpers import (
     explain_priority_decision,
     explain_profile_detection,
     explain_question_decision,
+    check_app_password,
     sanitize_user_id,
     validate_doc_title,
     validate_file_size,
@@ -55,6 +56,21 @@ except Exception:
     pass
 
 st.set_page_config(page_title="SYNPZ OPS", page_icon="🧠", layout="wide")
+
+# ── Authentification (TASK-036) ───────────────────────────────────────────────
+_APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+if _APP_PASSWORD:
+    if not st.session_state.get("authenticated"):
+        st.title("🧠 SYNPZ OPS")
+        st.subheader("Accès protégé")
+        _pwd_input = st.text_input("Mot de passe", type="password", key="login_password")
+        if st.button("Connexion", type="primary"):
+            if check_app_password(_pwd_input, _APP_PASSWORD):
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("Mot de passe incorrect.")
+        st.stop()
 
 st.markdown("""
 <style>
