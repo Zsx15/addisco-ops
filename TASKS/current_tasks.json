@@ -571,6 +571,6 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "Dockerfile python:3.11-slim + volume /app/data. docker-compose.yml : port 8501, env_file .env, volume synpz_data, DB_PATH=/app/data/database.db. .dockerignore : exclut .env, database.db, __pycache__, .git. config.py : référence 7 constantes (non importé). database.py : +import os, DB_PATH depuis os.getenv (fallback database.db). requirements.txt : versions freezées. README.md : section Déploiement Docker. py_compile 2/2 OK. 72/72 tests OK.",
-    "commit_hash": null
+    "commit_hash": "8f304a9"
   }
 ]
