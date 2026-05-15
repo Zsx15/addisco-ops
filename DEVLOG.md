@@ -4,6 +4,22 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-032 : Bannière de statut système (Phase 10)
+
+**Milestone :** Phase 10 — monitoring léger.
+
+**Actions :**
+- `app.py` : +`import os`, +`DB_PATH` dans les imports database. Bloc sidebar étendu avec 3 indicateurs : `✅/❌ Base · opérationnelle/introuvable` (via `DB_PATH.exists()`), `✅/⚠️ OpenAI · connecté/mode fallback` (via `os.getenv("OPENAI_API_KEY")`), `📄 N document(s) chargé(s)` (via `len(get_documents())`).
+
+**Invariants préservés :**
+- Aucune modification engine (`database.py`, `ai_service.py`, `document_service.py`)
+- Lecture seule — aucune écriture en base, aucun appel API
+- 73/73 tests OK, py_compile 1/1 OK
+
+**Prochaine étape suggérée :** CI GitHub Actions (`.github/workflows/ci.yml`) ou dashboard formateur (Phase 10).
+
+---
+
 ## 2026-05-15 — TASK-031 : Export CSV de l'historique (Phase 10)
 
 **Milestone :** Phase 10 — exports.

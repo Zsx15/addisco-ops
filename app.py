@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime
 
@@ -11,6 +12,7 @@ setup_logging()
 
 from ai_service import correct_answer, explain_type_choice, generate_question
 from database import (
+    DB_PATH,
     classify_mastery,
     compute_and_save_learning_profile,
     get_attempts,
@@ -181,6 +183,15 @@ if "user_id" not in st.session_state:
 with st.sidebar:
     st.markdown("**Session utilisateur**")
     st.text_input("Identifiant", key="user_id", placeholder="ex : alice, bob…")
+
+    st.divider()
+    st.caption("**Statut système**")
+    _db_ok = DB_PATH.exists()
+    st.caption(f"{'✅' if _db_ok else '❌'} Base · {'opérationnelle' if _db_ok else 'introuvable'}")
+    _api_ok = bool(os.getenv("OPENAI_API_KEY"))
+    st.caption(f"{'✅' if _api_ok else '⚠️'} OpenAI · {'connecté' if _api_ok else 'mode fallback'}")
+    _n_docs = len(get_documents())
+    st.caption(f"📄 {_n_docs} document{'s' if _n_docs > 1 else ''} chargé{'s' if _n_docs > 1 else ''}")
 
 tab_train, tab_history, tab_dashboard, tab_docs, tab_engine = st.tabs(
     ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA"]

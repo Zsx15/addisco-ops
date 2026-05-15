@@ -611,5 +611,22 @@
     "human_validation_required": false,
     "completion_notes": "app.py : +st.download_button entre métriques et divider, 9 colonnes, encode utf-8-sig. test_regression.py : +test_export_columns_present dans TestDatabaseAttempts. py_compile 2/2 OK. 73/73 tests OK. Aucune modification engine.",
     "commit_hash": "d8442cf"
+  },
+  {
+    "id": "TASK-032",
+    "title": "Bannière de statut système (Phase 10)",
+    "status": "DONE",
+    "priority": "LOW",
+    "depends_on": ["TASK-031"],
+    "description": "Phase 10 — monitoring léger. Bloc statut permanent dans la sidebar : DB_PATH.exists(), OPENAI_API_KEY présente ou non, nombre de documents chargés. Indicateurs visuels emoji. Aucune modification engine.",
+    "goal": "Phase 10 : l'opérateur voit en un coup d'œil l'état des composants critiques (base, API, documents) sans quitter l'interface.",
+    "files": [
+      "app.py"
+    ],
+    "tests_required": false,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "+import os, +DB_PATH import. Sidebar : 3 st.caption avec ✅/❌/⚠️/📄. Lecture seule. py_compile OK. 73/73 tests OK.",
+    "commit_hash": "TBD"
   }
 ]
