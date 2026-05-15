@@ -682,5 +682,25 @@
     "human_validation_required": false,
     "completion_notes": "+3 fonctions pures ui_helpers.py (sanitize_user_id, validate_doc_title, validate_file_size). app.py : sanitize avant widget user_id, validate_doc_title remplace check titre, validate_file_size avant ingest_document. +3 tests TestUiHelpers. py_compile 3/3 OK. 76/76 tests OK.",
     "commit_hash": "9c8ffce"
+  },
+  {
+    "id": "TASK-036",
+    "title": "Authentification légère par mot de passe d'application (Phase 10)",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-035"],
+    "description": "Phase 10 — authentification. Bloc login conditionnel dans app.py déclenché si APP_PASSWORD est défini. check_app_password() dans ui_helpers.py via hmac.compare_digest. Sans APP_PASSWORD : accès libre (mode démo inchangé). Session state 'authenticated' persist entre reruns.",
+    "goal": "Phase 10 complète : l'accès à l'application peut être protégé par un mot de passe d'environnement. Mode démo préservé si APP_PASSWORD absent.",
+    "files": [
+      "ui_helpers.py",
+      "app.py",
+      "test_regression.py",
+      ".env.example"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": true,
+    "completion_notes": "ui_helpers.py : +import hmac, +check_app_password(). app.py : +bloc login 15 lignes après st.set_page_config, +import check_app_password. .env.example : +APP_PASSWORD=. test_regression.py : +test_check_app_password (4 cas). py_compile 3/3 OK. 77/77 tests OK.",
+    "commit_hash": "26ddb8f"
   }
 ]

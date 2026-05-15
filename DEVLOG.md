@@ -4,6 +4,27 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-036 : Authentification légère (Phase 10, clôture)
+
+**Milestone :** Phase 10 — dernier item manquant (authentification).
+
+**Actions :**
+- `ui_helpers.py` : `import hmac` + `check_app_password(entered, expected) -> bool` via `hmac.compare_digest` (anti-timing attack, testable sans Streamlit).
+- `app.py` : bloc login conditionnel après `st.set_page_config`. Si `APP_PASSWORD` absent ou vide → accès libre (mode démo inchangé). Si défini → écran de login `st.text_input(type="password")` + `st.stop()` jusqu'à validation. Session state `authenticated` persist entre reruns.
+- `.env.example` : variable `APP_PASSWORD=` documentée (optionnelle).
+- `test_regression.py` : `test_check_app_password` — 4 cas (match, wrong, vide vs secret, vide vs vide).
+
+**Invariants préservés :**
+- Sans `APP_PASSWORD` défini : comportement 100 % identique à avant.
+- Aucune modification de `database.py`, `ai_service.py`, `document_service.py`.
+- 77/77 tests OK, py_compile 3/3 OK. Commit `26ddb8f`.
+
+**Phase 10 — COMPLÈTE.** Tous les items ROADMAP Phase 10 livrés : Docker, logs, exports, monitoring, dashboard formateur, CI, sécurité entrées, multi-utilisateur, authentification.
+
+**Prochaine étape suggérée :** bilan Phase 10 + ouverture Phase 11 (multi-documents, profil utilisateur persistant, ou déploiement cloud).
+
+---
+
 ## 2026-05-15 — Hotfix TASK-035 : annotation str | None → Optional[str]
 
 **Cause :** `str | None` (PEP 604) provoque une incompatibilité entre Streamlit 1.57 et le système d'annotations lazy de Python 3.14 (PEP 649). Le module `ui_helpers` se chargeait partiellement, rendant les fonctions annotées invisibles à l'import Streamlit — alors que `python -c` fonctionnait (chemin d'import différent).
