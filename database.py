@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sqlite3
 import struct
@@ -6,6 +7,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = Path(os.getenv("DB_PATH", "database.db"))
 
@@ -117,6 +120,7 @@ def init_db():
             )
         except sqlite3.OperationalError:
             pass
+    logger.info("init_db: ready (%s)", DB_PATH)
 
 
 def save_attempt(
@@ -230,7 +234,9 @@ def save_document(
             """,
             (title, source_type, filename, raw_text, cleaned_text, len(cleaned_text)),
         )
-        return cur.lastrowid
+        doc_id = cur.lastrowid
+    logger.info("save_document: id=%d title=%r source=%s", doc_id, title, source_type)
+    return doc_id
 
 
 def save_chunks(document_id: int, chunks: list[dict]) -> None:

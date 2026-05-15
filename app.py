@@ -5,6 +5,10 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from logger import setup_logging
+
+setup_logging()
+
 from ai_service import correct_answer, explain_type_choice, generate_question
 from database import (
     classify_mastery,

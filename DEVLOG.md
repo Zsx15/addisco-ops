@@ -4,6 +4,28 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-030 : Logging structuré (Phase 10)
+
+**Milestone :** Phase 10 — industrialisation continue.
+
+**Actions :**
+- `logger.py` (nouveau) : `setup_logging()` — RotatingFileHandler vers `logs/app.log` (5 MB, 3 backups), StreamHandler stdout, format `timestamp | LEVEL | module | message`
+- `ai_service.py` : `+import logging`, `+logger = getLogger(__name__)`, WARNING sur fallback RAG, INFO sur type de question choisi (type/mastery/doc/user), WARNING sur JSON decode error dans `correct_answer()`
+- `database.py` : `+import logging`, `+logger = getLogger(__name__)`, INFO sur `init_db()` (chemin DB), INFO sur `save_document()` (id/title/source)
+- `app.py` : `+from logger import setup_logging`, `setup_logging()` appelé au démarrage du module
+- `.dockerignore` : `+logs/` pour exclure les logs de l'image Docker
+- `document_service.py` : déjà équipé d'un logging complet — non modifié
+
+**Invariants préservés :**
+- `document_service.py` non touché (logging déjà présent)
+- Aucune modification de la logique métier ni des prompts
+- Fallback mode inchangé
+- 72/72 tests OK, py_compile 4/4 OK
+
+**Prochaine étape suggérée :** health-check endpoint (Phase 10) ou nettoyage de la dette technique config.py.
+
+---
+
 ## 2026-05-15 — TASK-029 : Dockerisation + Configuration externalisée (Phase 10)
 
 **Milestone :** Phase 10 — début de l'industrialisation.

@@ -572,5 +572,26 @@
     "human_validation_required": false,
     "completion_notes": "Dockerfile python:3.11-slim + volume /app/data. docker-compose.yml : port 8501, env_file .env, volume synpz_data, DB_PATH=/app/data/database.db. .dockerignore : exclut .env, database.db, __pycache__, .git. config.py : référence 7 constantes (non importé). database.py : +import os, DB_PATH depuis os.getenv (fallback database.db). requirements.txt : versions freezées. README.md : section Déploiement Docker. py_compile 2/2 OK. 72/72 tests OK.",
     "commit_hash": "8f304a9"
+  },
+  {
+    "id": "TASK-030",
+    "title": "Logging structuré (Phase 10)",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-029"],
+    "description": "Phase 10 — Logging structuré via Python logging module. logger.py : RotatingFileHandler (logs/app.log, 5MB, 3 backups) + StreamHandler. Format : timestamp | LEVEL | module | message. Ajout de logger = getLogger(__name__) dans ai_service.py et database.py. document_service.py avait déjà un logging complet. app.py : setup_logging() appelé au démarrage. .dockerignore : +logs/.",
+    "goal": "Phase 10 : chaque appel LLM, fallback RAG, erreur JSON, init DB et ingestion document sont tracés dans logs/app.log avec rotation automatique. Aucun comportement fonctionnel modifié.",
+    "files": [
+      "logger.py",
+      "ai_service.py",
+      "database.py",
+      "app.py",
+      ".dockerignore"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "+logger.py (setup_logging : RotatingFileHandler 5MB/3, StreamHandler, format timestamp|LEVEL|module|msg). ai_service.py : +import logging, +logger, WARNING sur RAG fallback, INFO sur question type choisi, WARNING sur JSON decode error. database.py : +import logging, +logger, INFO sur init_db, INFO sur save_document. app.py : +from logger import setup_logging, setup_logging() au démarrage. .dockerignore : +logs/. document_service.py : logging déjà présent — non modifié. py_compile 4/4 OK. 72/72 tests OK.",
+    "commit_hash": "TBD"
   }
 ]

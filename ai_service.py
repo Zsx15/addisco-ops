@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 import random
 import struct
 
 from dotenv import load_dotenv
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 from database import (
     get_chunk_mastery,
@@ -256,7 +259,7 @@ def generate_question(
                 context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
                 chunk_ids = [c["id"] for c in chunks]
         except Exception:
-            # Fallback silencieux — context et chunk_ids restent inchangés
+            logger.warning("generate_question: RAG fallback (doc=%s)", document_id)
             pass
 
     # ── Choix du type pédagogique ─────────────────────────────────────────────
@@ -284,6 +287,10 @@ def generate_question(
     used_types    = [h["question_type"] for h in history if h.get("question_type")]
     question_type = _choose_question_type(
         used_types, mastery_class=mastery_class, profile_types=profile_types
+    )
+    logger.info(
+        "generate_question: type=%s mastery=%s doc=%s user=%s",
+        question_type, mastery_class, document_id, user_id,
     )
     type_instruction = _TYPE_PROMPTS[question_type]
 
@@ -350,6 +357,7 @@ def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
     try:
         return json.loads(response.choices[0].message.content)
     except json.JSONDecodeError:
+        logger.warning("correct_answer: JSON decode error")
         return {
             "score": 0.0,
             "expected_answer": "",
