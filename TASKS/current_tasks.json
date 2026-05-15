@@ -610,6 +610,6 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "app.py : +st.download_button entre métriques et divider, 9 colonnes, encode utf-8-sig. test_regression.py : +test_export_columns_present dans TestDatabaseAttempts. py_compile 2/2 OK. 73/73 tests OK. Aucune modification engine.",
-    "commit_hash": "TBD"
+    "commit_hash": "d8442cf"
   }
 ]
