@@ -644,6 +644,6 @@
     "rollback_safe": true,
     "human_validation_required": true,
     "completion_notes": "+tab_formateur dans st.tabs(). 4 zones : KPIs, synthèse narrative HTML, cartes efficacité par pedagogy_type, couverture par document. Cohérence visuelle dashboard actuel (mêmes patterns _kpi_card, st.container border, st.progress, st.caption). py_compile OK. 73/73 tests OK.",
-    "commit_hash": "TBD"
+    "commit_hash": "1e5fa86"
   }
 ]
