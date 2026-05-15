@@ -627,6 +627,6 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "+import os, +DB_PATH import. Sidebar : 3 st.caption avec ✅/❌/⚠️/📄. Lecture seule. py_compile OK. 73/73 tests OK.",
-    "commit_hash": "TBD"
+    "commit_hash": "3f9de2b"
   }
 ]
