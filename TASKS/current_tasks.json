@@ -592,6 +592,6 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "+logger.py (setup_logging : RotatingFileHandler 5MB/3, StreamHandler, format timestamp|LEVEL|module|msg). ai_service.py : +import logging, +logger, WARNING sur RAG fallback, INFO sur question type choisi, WARNING sur JSON decode error. database.py : +import logging, +logger, INFO sur init_db, INFO sur save_document. app.py : +from logger import setup_logging, setup_logging() au démarrage. .dockerignore : +logs/. document_service.py : logging déjà présent — non modifié. py_compile 4/4 OK. 72/72 tests OK.",
-    "commit_hash": "TBD"
+    "commit_hash": "8823ac1"
   }
 ]
