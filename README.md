@@ -94,7 +94,7 @@ cp .env.example .env
 docker compose up --build
 
 # L'application est accessible sur http://localhost:8501
-# La base SQLite est persistée dans un volume Docker nommé synpz_data
+# La base SQLite est persistée dans un volume Docker nommé addisco_data
 ```
 
 Arrêt :
@@ -103,7 +103,7 @@ Arrêt :
 docker compose down
 ```
 
-La base de données est conservée dans le volume `synpz_data` entre les redémarrages.
+La base de données est conservée dans le volume `addisco_data` entre les redémarrages.
 
 ---
 

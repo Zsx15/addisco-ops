@@ -7,8 +7,8 @@ services:
     environment:
       - DB_PATH=/app/data/database.db
     volumes:
-      - synpz_data:/app/data
+      - addisco_data:/app/data
     restart: unless-stopped
 
 volumes:
-  synpz_data:
+  addisco_data:

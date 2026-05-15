@@ -55,13 +55,13 @@ try:
 except Exception:
     pass
 
-st.set_page_config(page_title="SYNPZ OPS", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="ADDISCO OPS", page_icon="🧠", layout="wide")
 
 # ── Authentification (TASK-036) ───────────────────────────────────────────────
 _APP_PASSWORD = os.getenv("APP_PASSWORD", "")
 if _APP_PASSWORD:
     if not st.session_state.get("authenticated"):
-        st.title("🧠 SYNPZ OPS")
+        st.title("🧠 ADDISCO OPS")
         st.subheader("Accès protégé")
         _pwd_input = st.text_input("Mot de passe", type="password", key="login_password")
         if st.button("Connexion", type="primary"):
@@ -159,7 +159,7 @@ st.markdown("""
     <div style="width:4px;min-height:40px;background:#4f46e5;border-radius:3px;flex-shrink:0;margin-top:2px"></div>
     <div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px">
-        <span style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;line-height:1">SYNPZ OPS</span>
+        <span style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;line-height:1">ADDISCO OPS</span>
         <span style="font-size:10px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.1em;background:#eef2ff;padding:2px 9px;border-radius:20px;border:1px solid #c7d2fe;white-space:nowrap">Adaptive Learning Intelligence</span>
       </div>
       <div style="font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px">
@@ -550,7 +550,7 @@ with tab_history:
         st.download_button(
             label="⬇ Exporter l'historique (.csv)",
             data=_csv_bytes,
-            file_name="synpz_historique.csv",
+            file_name="addisco_historique.csv",
             mime="text/csv",
         )
 
