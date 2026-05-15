@@ -42,6 +42,9 @@ from ui_helpers import (
     explain_priority_decision,
     explain_profile_detection,
     explain_question_decision,
+    sanitize_user_id,
+    validate_doc_title,
+    validate_file_size,
 )
 
 init_db()
@@ -179,6 +182,7 @@ if "source_text_input" not in st.session_state:
     st.session_state["source_text_input"] = ""
 if "user_id" not in st.session_state:
     st.session_state["user_id"] = "default"
+st.session_state["user_id"] = sanitize_user_id(st.session_state["user_id"])
 
 with st.sidebar:
     st.markdown("**Session utilisateur**")
@@ -988,26 +992,31 @@ with tab_docs:
         submitted = st.form_submit_button("Importer")
 
     if submitted:
-        if not doc_title.strip():
-            st.error("Veuillez saisir un titre.")
+        _title_err = validate_doc_title(doc_title)
+        if _title_err:
+            st.error(_title_err)
         elif uploaded_file is None:
             st.error("Veuillez sélectionner un fichier.")
         else:
             file_bytes = uploaded_file.read()
-            source_type = uploaded_file.name.rsplit(".", 1)[-1].lower()
-            with st.spinner("Extraction et découpage en cours…"):
-                try:
-                    doc_id = ingest_document(
-                        title=doc_title.strip(),
-                        source_type=source_type,
-                        filename=uploaded_file.name,
-                        file_bytes=file_bytes,
-                    )
-                    st.success(f"Document importé avec succès (ID {doc_id}).")
-                except ValueError as exc:
-                    st.error(str(exc))
-                except Exception as exc:
-                    st.error(f"Erreur inattendue : {exc}")
+            _size_err  = validate_file_size(len(file_bytes))
+            if _size_err:
+                st.error(_size_err)
+            else:
+                source_type = uploaded_file.name.rsplit(".", 1)[-1].lower()
+                with st.spinner("Extraction et découpage en cours…"):
+                    try:
+                        doc_id = ingest_document(
+                            title=doc_title.strip(),
+                            source_type=source_type,
+                            filename=uploaded_file.name,
+                            file_bytes=file_bytes,
+                        )
+                        st.success(f"Document importé avec succès (ID {doc_id}).")
+                    except ValueError as exc:
+                        st.error(str(exc))
+                    except Exception as exc:
+                        st.error(f"Erreur inattendue : {exc}")
 
     st.divider()
     st.subheader("Bibliothèque")

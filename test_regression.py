@@ -162,6 +162,32 @@ class TestUiHelpers(unittest.TestCase):
         self.assertNotIn("memory",        self.el)   # clé morte supprimée
         self.assertNotIn("attention",     self.el)   # clé morte supprimée
 
+    # ── TASK-035 : validation des entrées ────────────────────────────────────
+    def test_sanitize_user_id(self):
+        from ui_helpers import sanitize_user_id
+        self.assertEqual(sanitize_user_id(""),           "default")
+        self.assertEqual(sanitize_user_id("   "),        "default")
+        self.assertEqual(sanitize_user_id("  alice  "),  "alice")
+        self.assertEqual(sanitize_user_id("a" * 60),     "a" * 50)
+        self.assertEqual(sanitize_user_id("bob"),        "bob")
+
+    def test_validate_doc_title(self):
+        from ui_helpers import validate_doc_title
+        self.assertIsNone(validate_doc_title("Procédure accueil"))
+        self.assertIsNotNone(validate_doc_title(""))
+        self.assertIsNotNone(validate_doc_title("   "))
+        self.assertIsNotNone(validate_doc_title("x" * 201))
+        self.assertIsNone(validate_doc_title("x" * 200))
+
+    def test_validate_file_size(self):
+        from ui_helpers import validate_file_size, _FILE_MAX_BYTES
+        self.assertIsNone(validate_file_size(0))
+        self.assertIsNone(validate_file_size(_FILE_MAX_BYTES))
+        self.assertIsNotNone(validate_file_size(_FILE_MAX_BYTES + 1))
+        err = validate_file_size(25 * 1024 * 1024)
+        self.assertIsNotNone(err)
+        self.assertIn("25", err)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tests database.py

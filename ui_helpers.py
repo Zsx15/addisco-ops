@@ -317,3 +317,35 @@ def _build_report(df_all: pd.DataFrame, df_topics: pd.DataFrame, df_chunks: pd.D
     lines.append("Rapport genere par IA Revision Metier")
     _sep()
     return "\n".join(lines)
+
+
+# ── Validation des entrées utilisateur (TASK-035) ─────────────────────────────
+
+_USER_ID_MAX_LEN  = 50
+_DOC_TITLE_MAX_LEN = 200
+_FILE_MAX_MB       = 20
+_FILE_MAX_BYTES    = _FILE_MAX_MB * 1024 * 1024
+
+
+def sanitize_user_id(raw: str) -> str:
+    """Strip et tronque user_id ; retourne 'default' si vide après nettoyage."""
+    cleaned = raw.strip()[:_USER_ID_MAX_LEN]
+    return cleaned if cleaned else "default"
+
+
+def validate_doc_title(title: str) -> str | None:
+    """Retourne un message d'erreur ou None si le titre est valide."""
+    stripped = title.strip()
+    if not stripped:
+        return "Veuillez saisir un titre."
+    if len(stripped) > _DOC_TITLE_MAX_LEN:
+        return f"Le titre est trop long ({len(stripped)} caractères, maximum {_DOC_TITLE_MAX_LEN})."
+    return None
+
+
+def validate_file_size(size_bytes: int) -> str | None:
+    """Retourne un message d'erreur ou None si la taille est acceptable."""
+    if size_bytes > _FILE_MAX_BYTES:
+        mb = size_bytes // (1024 * 1024)
+        return f"Fichier trop volumineux ({mb} Mo). Limite : {_FILE_MAX_MB} Mo."
+    return None

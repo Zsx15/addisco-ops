@@ -663,5 +663,24 @@
     "human_validation_required": false,
     "completion_notes": "+.github/workflows/ci.yml (5 etapes, cache pip, guard if [ -f ] sur py_compile). README +section CI GitHub Actions. Validation structurelle YAML OK (9 assertions). py_compile 5/5 OK. 73/73 tests OK. Aucun fichier Python modifie.",
     "commit_hash": "b71a264"
+  },
+  {
+    "id": "TASK-035",
+    "title": "Validation des entrées utilisateur (Sécurité, Phase 10)",
+    "status": "DONE",
+    "priority": "MEDIUM",
+    "depends_on": ["TASK-034"],
+    "description": "Phase 10 — securite. 3 guards defensifs : sanitize_user_id (strip+max50+fallback default), validate_doc_title (max200 car.), validate_file_size (max20Mo). Fonctions pures dans ui_helpers.py. Guards appliques dans app.py avant acces DB ou API. 3 tests unitaires.",
+    "goal": "Phase 10 : les 3 points d'entree utilisateur (user_id, titre document, upload fichier) sont valides et sanitises avant tout acces au moteur ou a l'API.",
+    "files": [
+      "ui_helpers.py",
+      "app.py",
+      "test_regression.py"
+    ],
+    "tests_required": true,
+    "rollback_safe": true,
+    "human_validation_required": false,
+    "completion_notes": "+3 fonctions pures ui_helpers.py (sanitize_user_id, validate_doc_title, validate_file_size). app.py : sanitize avant widget user_id, validate_doc_title remplace check titre, validate_file_size avant ingest_document. +3 tests TestUiHelpers. py_compile 3/3 OK. 76/76 tests OK.",
+    "commit_hash": "TBD"
   }
 ]

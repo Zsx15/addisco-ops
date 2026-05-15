@@ -4,6 +4,28 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — TASK-035 : Validation des entrées utilisateur (Sécurité, Phase 10)
+
+**Milestone :** Phase 10 — sécurité.
+
+**Actions :**
+- `ui_helpers.py` : +3 fonctions pures (`sanitize_user_id`, `validate_doc_title`, `validate_file_size`) + constantes (`_USER_ID_MAX_LEN=50`, `_DOC_TITLE_MAX_LEN=200`, `_FILE_MAX_MB=20`).
+- `app.py` :
+  - Guard 1 — `user_id` : `sanitize_user_id()` appliqué avant le rendu du widget (strip + max 50 car. + fallback `"default"`).
+  - Guard 2 — titre document : `validate_doc_title()` remplace le `if not doc_title.strip()` existant (ajoute limite 200 caractères).
+  - Guard 3 — taille fichier : `validate_file_size()` bloque les fichiers > 20 Mo avant tout appel à `ingest_document()`.
+- `test_regression.py` : +3 tests (`test_sanitize_user_id`, `test_validate_doc_title`, `test_validate_file_size`) dans `TestUiHelpers`.
+
+**Invariants préservés :**
+- Aucune modification de `database.py`, `ai_service.py`, `document_service.py`
+- Comportement inchangé pour toute entrée valide
+- Logique de validation 100 % pure (testable sans Streamlit)
+- 76/76 tests OK, py_compile 3/3 OK
+
+**Prochaine étape suggérée :** authentification simple (Phase 10) ou clôture Phase 10.
+
+---
+
 ## 2026-05-15 — TASK-034 : CI GitHub Actions (Phase 10)
 
 **Milestone :** Phase 10 — tests automatisés.
