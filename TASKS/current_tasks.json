@@ -548,6 +548,6 @@
     "rollback_safe": true,
     "human_validation_required": true,
     "completion_notes": "+4 fonctions pures ui_helpers.py (explain_question_decision, explain_interval_decision, explain_priority_decision, explain_profile_detection). +1 fonction additive ai_service.py (explain_type_choice). app.py : imports, session_state (question_type_reason, question_profile_pedagogy), expander enrichi, priority card algorithmique, section cards intervalles, profil avec explication. +28 tests (TestExplainFunctions 23 tests, TestExplainTypeChoice 5 tests). 72/72 OK. py_compile 4/4 OK. database.py non modifié. Aucune migration SQLite.",
-    "commit_hash": null
+    "commit_hash": "53a3341"
   }
 ]
