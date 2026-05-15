@@ -4,6 +4,18 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-15 — Hotfix TASK-035 : annotation str | None → Optional[str]
+
+**Cause :** `str | None` (PEP 604) provoque une incompatibilité entre Streamlit 1.57 et le système d'annotations lazy de Python 3.14 (PEP 649). Le module `ui_helpers` se chargeait partiellement, rendant les fonctions annotées invisibles à l'import Streamlit — alors que `python -c` fonctionnait (chemin d'import différent).
+
+**Correction :**
+- `ui_helpers.py` : `from typing import Optional` ajouté ; `str | None` → `Optional[str]` dans `validate_doc_title` et `validate_file_size`.
+- `__pycache__` supprimé avant revalidation.
+
+**Invariants :** zéro changement logique — 76/76 tests OK, py_compile OK. Commit `9c8ffce`.
+
+---
+
 ## 2026-05-15 — TASK-035 : Validation des entrées utilisateur (Sécurité, Phase 10)
 
 **Milestone :** Phase 10 — sécurité.
