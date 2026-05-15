@@ -662,6 +662,6 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "+.github/workflows/ci.yml (5 etapes, cache pip, guard if [ -f ] sur py_compile). README +section CI GitHub Actions. Validation structurelle YAML OK (9 assertions). py_compile 5/5 OK. 73/73 tests OK. Aucun fichier Python modifie.",
-    "commit_hash": "TBD"
+    "commit_hash": "b71a264"
   }
 ]
