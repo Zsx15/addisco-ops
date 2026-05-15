@@ -681,6 +681,6 @@
     "rollback_safe": true,
     "human_validation_required": false,
     "completion_notes": "+3 fonctions pures ui_helpers.py (sanitize_user_id, validate_doc_title, validate_file_size). app.py : sanitize avant widget user_id, validate_doc_title remplace check titre, validate_file_size avant ingest_document. +3 tests TestUiHelpers. py_compile 3/3 OK. 76/76 tests OK.",
-    "commit_hash": "TBD"
+    "commit_hash": "b2848ea"
   }
 ]
