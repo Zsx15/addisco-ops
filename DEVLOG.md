@@ -4,6 +4,33 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-040 : Modularisation app.py → tabs/ (Phase 11)
+
+**Milestone :** Phase 11 — critère de sortie atteint : `app.py` < 150 lignes, architecture documentée dans ROADMAP.
+
+**Actions :**
+- `app.py` : 1433 lignes → 96 lignes. Routeur pur : imports, init, auth, CSS/header, session state, sidebar, dispatch des 6 onglets.
+- `tabs/styles.py` : constantes `APP_CSS` et `APP_HEADER` (strings purs, 0 import Streamlit) — préserve l'invariant de `ui_helpers.py` (aucune dépendance Streamlit).
+- `tabs/tab_training.py` (323 lignes) : onglet Entraînement — génération, réponse, correction, explainability, suggestion de révision.
+- `tabs/tab_history.py` (79 lignes) : onglet Historique — liste des tentatives, export CSV.
+- `tabs/tab_dashboard.py` (428 lignes) : onglet Dashboard — KPIs, cartes section, graphiques, profil, rapport.
+- `tabs/tab_documents.py` (117 lignes) : onglet Documents — import, bibliothèque, reindexation.
+- `tabs/tab_engine.py` (117 lignes) : onglet Moteur IA — pipeline 7 étapes, 6 types de questions.
+- `tabs/tab_trainer.py` (212 lignes) : onglet Formateur — KPIs superviseur, synthèse narrative, couverture corpus.
+
+**Pattern Streamlit :** chaque `render()` est appelé à l'intérieur d'un `with tab_xxx:` — le DeltaGenerator context est propagé automatiquement. Aucun argument `tab` nécessaire.
+
+**Invariants préservés :**
+- Comportement UI identique. Session state inchangé. Fallback mode intact.
+- `_make_use_callback` définie dans `tab_training.py` et `tab_documents.py` (duplication intentionnelle — 8 lignes, pas d'abstraction prématurée).
+- py_compile 8/8 OK. 77/77 tests OK. Commit `05b299d`.
+
+**Phase 11 — COMPLÈTE.** TASK-038 ✅ TASK-039 ✅ TASK-040 ✅
+
+**Prochaine étape :** Phase 12 — authentification réelle (TASK-041 : table `users`).
+
+---
+
 ## 2026-05-16 — Audit P1/P2 — Corrections ciblées post-inspection Council
 
 **Contexte :** Inspection complète du projet par le Global Code Council avant TASK-040. Trois anomalies corrigées.
