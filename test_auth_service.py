@@ -103,6 +103,28 @@ class AuthServiceTestCase(unittest.TestCase):
         result = self.auth.verify_password("frank", "pw")
         self.assertEqual(result["user_id"], expected_id)
 
+    # ── Rôles explicites (préparation admin creation TASK-050B) ──────────────
+
+    def test_register_admin_role(self):
+        """register_user(role='admin') stocke et retourne le rôle admin via verify_password."""
+        user_id = self.auth.register_user("admin_user", "adminpass", role="admin")
+        user = self.auth.get_user_by_username("admin_user")
+        self.assertEqual(user["role"], "admin")
+        result = self.auth.verify_password("admin_user", "adminpass")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["role"], "admin")
+        self.assertEqual(result["user_id"], user_id)
+
+    def test_register_formateur_role(self):
+        """register_user(role='formateur') stocke et retourne le rôle formateur via verify_password."""
+        user_id = self.auth.register_user("form_user", "formpass", role="formateur")
+        user = self.auth.get_user_by_username("form_user")
+        self.assertEqual(user["role"], "formateur")
+        result = self.auth.verify_password("form_user", "formpass")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["role"], "formateur")
+        self.assertEqual(result["user_id"], user_id)
+
 
 if __name__ == "__main__":
     unittest.main()
