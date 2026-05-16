@@ -4,6 +4,34 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-044 : Rôles actifs — onglets conditionnels (Phase 12)
+
+**Milestone :** Phase 12 complète — authentification + rôles opérationnels.
+
+**Actions :**
+- `app.py` : bloc `st.tabs` fixe remplacé par bloc conditionnel sur `_show_privileged`.
+- `apprenant` (authentifié, role = "apprenant") : 4 onglets — Entraînement, Historique, Dashboard, Moteur IA.
+- `formateur` / `admin` : 6 onglets — + Documents, + Formateur.
+- Demo mode (non authentifié, `APP_PASSWORD` seul, `demo_active`) : 6 onglets — comportement inchangé.
+- `role = None` (session non initialisée) → `not authenticated` = True → tous les onglets → rétro-compat garantie.
+
+**Invariants préservés :**
+- Tabs inchangés — aucune modification dans tabs/*.
+- Moteur pédagogique intact.
+- 89/89 tests passés, py_compile OK.
+
+**Commit :** `31cebaa` — feat: TASK-044 rôles actifs — tabs conditionnels selon role session_state
+
+**Phase 12 complète.** Critères de sortie atteints :
+- Comptes utilisateurs avec mot de passe haché (bcrypt) ✅
+- user_id non saisissable librement (UUID) ✅
+- Mode démo préservé ✅
+- 12+ tests unitaires auth_service ✅
+
+**Prochaine phase :** Phase 13 — Base de données scalable (SQLAlchemy Core + PostgreSQL).
+
+---
+
 ## 2026-05-16 — TASK-043 fix : app_gated + bootstrap mode démo
 
 **Problème détecté :** APP_PASSWORD posait `authenticated = True`, court-circuitant le gate users. Table users vide → `_demo_mode = True` → double bypass, formulaire TASK-043 jamais affiché.
