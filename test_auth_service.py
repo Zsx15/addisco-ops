@@ -125,6 +125,50 @@ class AuthServiceTestCase(unittest.TestCase):
         self.assertEqual(result["role"], "formateur")
         self.assertEqual(result["user_id"], user_id)
 
+    # ── promote_user ─────────────────────────────────────────────────────────
+
+    def test_promote_apprenant_to_formateur(self):
+        self.auth.register_user("admin1", "pass", role="admin")
+        self.auth.register_user("user1", "pass")
+        self.auth.promote_user("admin1", "user1", "formateur")
+        self.assertEqual(self.auth.get_user_by_username("user1")["role"], "formateur")
+
+    def test_promote_apprenant_to_admin(self):
+        self.auth.register_user("admin1", "pass", role="admin")
+        self.auth.register_user("user1", "pass")
+        self.auth.promote_user("admin1", "user1", "admin")
+        self.assertEqual(self.auth.get_user_by_username("user1")["role"], "admin")
+
+    def test_promote_formateur_to_admin(self):
+        self.auth.register_user("admin1", "pass", role="admin")
+        self.auth.register_user("form1", "pass", role="formateur")
+        self.auth.promote_user("admin1", "form1", "admin")
+        self.assertEqual(self.auth.get_user_by_username("form1")["role"], "admin")
+
+    def test_promote_self_forbidden(self):
+        self.auth.register_user("admin1", "pass", role="admin")
+        with self.assertRaises(ValueError):
+            self.auth.promote_user("admin1", "admin1", "admin")
+
+    def test_promote_non_admin_raises(self):
+        """Un formateur ne peut pas promouvoir."""
+        self.auth.register_user("form1", "pass", role="formateur")
+        self.auth.register_user("user1", "pass")
+        with self.assertRaises(ValueError):
+            self.auth.promote_user("form1", "user1", "admin")
+
+    def test_promote_invalid_transition_raises(self):
+        """La rétrogradation n'est pas dans _VALID_PROMOTIONS."""
+        self.auth.register_user("admin1", "pass", role="admin")
+        self.auth.register_user("form1", "pass", role="formateur")
+        with self.assertRaises(ValueError):
+            self.auth.promote_user("admin1", "form1", "apprenant")
+
+    def test_promote_unknown_target_raises(self):
+        self.auth.register_user("admin1", "pass", role="admin")
+        with self.assertRaises(ValueError):
+            self.auth.promote_user("admin1", "nobody", "formateur")
+
 
 if __name__ == "__main__":
     unittest.main()

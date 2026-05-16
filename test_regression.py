@@ -730,6 +730,63 @@ class TestChooseQuestionType(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests Phase 15B — Fonctions admin database.py
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestDatabaseAdminFunctions(_DbTestCase):
+    """count_admins, get_all_users, set_user_role — fonctions pures DB."""
+
+    def _add_user(self, username: str, role: str = "apprenant") -> str:
+        import sqlite3, uuid
+        uid = str(uuid.uuid4())
+        with sqlite3.connect(self.db.DB_PATH) as conn:
+            conn.execute(
+                "INSERT INTO users (user_id, username, password_hash, role) VALUES (?, ?, ?, ?)",
+                (uid, username, "hash", role),
+            )
+        return uid
+
+    def test_count_admins_zero_when_none(self):
+        self._add_user("alice", "apprenant")
+        self._add_user("bob",   "formateur")
+        self.assertEqual(self.db.count_admins(), 0)
+
+    def test_count_admins_counts_correctly(self):
+        self._add_user("a1", "admin")
+        self._add_user("a2", "admin")
+        self._add_user("u1", "apprenant")
+        self.assertEqual(self.db.count_admins(), 2)
+
+    def test_get_all_users_no_password_hash(self):
+        self._add_user("alice")
+        users = self.db.get_all_users()
+        self.assertEqual(len(users), 1)
+        self.assertNotIn("password_hash", users[0])
+
+    def test_get_all_users_sort_role_priority(self):
+        """Ordre : admin → formateur → apprenant."""
+        self._add_user("z_apprenant", "apprenant")
+        self._add_user("m_formateur", "formateur")
+        self._add_user("a_admin",     "admin")
+        roles = [u["role"] for u in self.db.get_all_users()]
+        self.assertEqual(roles, ["admin", "formateur", "apprenant"])
+
+    def test_get_all_users_sort_username_within_role(self):
+        """À rôle égal, tri alphabétique username ASC."""
+        self._add_user("charlie", "apprenant")
+        self._add_user("alice",   "apprenant")
+        self._add_user("bob",     "apprenant")
+        usernames = [u["username"] for u in self.db.get_all_users()]
+        self.assertEqual(usernames, ["alice", "bob", "charlie"])
+
+    def test_set_user_role_updates_correctly(self):
+        self._add_user("alice", "apprenant")
+        self.db.set_user_role("alice", "formateur")
+        alice = next(u for u in self.db.get_all_users() if u["username"] == "alice")
+        self.assertEqual(alice["role"], "formateur")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tests Phase 15A — Tripwires cohérence REVIEW_INTERVALS
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -841,6 +898,7 @@ if __name__ == "__main__":
         TestClassifyMastery,
         TestLearningProfile,
         TestChooseQuestionType,
+        TestDatabaseAdminFunctions,
         TestReviewIntervalsCoherence,
         TestCosineSimilarity,
     ):
