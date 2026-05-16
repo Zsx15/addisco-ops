@@ -4,6 +4,30 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-042 : auth_service.py — fonctions d'authentification (Phase 12)
+
+**Milestone :** Phase 12 — couche auth pure et testable disponible.
+
+**Actions :**
+- `auth_service.py` créé : 3 fonctions pures, 0 dépendance Streamlit.
+  - `register_user(username, password, role)` → UUID str. Hash bcrypt (gensalt), INSERT avec gestion IntegrityError → ValueError.
+  - `get_user_by_username(username)` → dict complet ou None.
+  - `verify_password(username, password)` → `{user_id, username, role}` sans exposer le hash, ou None.
+- Stratégie NULL hash : `verify_password` retourne None — aucun accès sans mot de passe.
+- `import database` (non `from database import DB_PATH`) — permet au patch DB des tests d'être visible.
+- `test_auth_service.py` : 12 tests, pattern `_DbTestCase` aligné sur `test_regression.py`.
+
+**Invariants préservés :**
+- Aucune modification UX, aucun changement dans app.py ou les tabs.
+- Flow `APP_PASSWORD` existant intact.
+- 89/89 tests passés, py_compile OK.
+
+**Commit :** `be510d9` — feat: TASK-042 auth_service.py — register/verify/lookup avec bcrypt
+
+**Prochaine étape :** TASK-043 — remplacer le bloc login dans app.py par register/login réel (users table), demo mode si aucun user en DB.
+
+---
+
 ## 2026-05-16 — TASK-041 : Table users — migration douce SQLite (Phase 12)
 
 **Milestone :** Phase 12 — socle authentification : table `users` ajoutée sans casser l'existant.
