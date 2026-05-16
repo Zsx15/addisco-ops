@@ -1,7 +1,9 @@
 """
-Tests de non-régression — SYNPZ OPS
+Tests de non-régression — ADDISCO OPS
 Couvre : database.py (invariants critiques) + ui_helpers.py (fonctions pures)
-         + ai_service._choose_question_type (logique biais profil).
+         + ai_service._choose_question_type / explain_type_choice
+         + adaptive_engine.REVIEW_INTERVALS (tripwires de cohérence)
+         + rag_service._cosine_similarity (comportement post-numpy)
 
 Exécution : python test_regression.py
 Chaque test database utilise une base SQLite temporaire isolée (tempfile).
@@ -728,6 +730,103 @@ class TestChooseQuestionType(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests Phase 15A — Tripwires cohérence REVIEW_INTERVALS
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestReviewIntervalsCoherence(unittest.TestCase):
+    """
+    Tripwires : vérifient que REVIEW_INTERVALS reste cohérent avec les valeurs
+    hardcodées dans database.get_revision_suggestion (SQL) et dans
+    ui_helpers.explain_interval_decision.
+
+    Si REVIEW_INTERVALS change dans adaptive_engine, ces tests tombent et
+    signalent explicitement les deux endroits à mettre à jour manuellement :
+    - database.py  get_revision_suggestion  lignes '+1 day' / '+3 days'
+    - ui_helpers.py explain_interval_decision  dict _special / _default
+    """
+
+    def setUp(self):
+        from adaptive_engine import REVIEW_INTERVALS, _adaptive_interval
+        self.rv = REVIEW_INTERVALS
+        self.ai = _adaptive_interval
+
+    # ── Valeurs de base — miroir des constantes SQL ───────────────────────────
+
+    def test_fragile_base_equals_1(self):
+        """SQL get_revision_suggestion : '+1 day' correspond à REVIEW_INTERVALS['Fragile']."""
+        self.assertEqual(self.rv["Fragile"], 1,
+            "Mettre à jour la chaîne SQL '+1 day' dans database.get_revision_suggestion")
+
+    def test_consolidation_base_equals_3(self):
+        """SQL get_revision_suggestion : '+3 days' correspond à REVIEW_INTERVALS['En consolidation']."""
+        self.assertEqual(self.rv["En consolidation"], 3,
+            "Mettre à jour la chaîne SQL '+3 days' dans database.get_revision_suggestion")
+
+    def test_maitrise_base_equals_7(self):
+        """ui_helpers._default : (7, ...) correspond à REVIEW_INTERVALS['Maîtrisé']."""
+        self.assertEqual(self.rv["Maîtrisé"], 7,
+            "Mettre à jour _default['Maîtrisé'] dans ui_helpers.explain_interval_decision")
+
+    # ── Valeurs modulées — miroir de ui_helpers.explain_interval_decision ─────
+
+    def test_fragile_amelioration_equals_2(self):
+        """ui_helpers._special : ('Fragile', 'Amélioration') → 2."""
+        self.assertEqual(self.ai("Fragile", "Amélioration"), 2,
+            "Mettre à jour _special[('Fragile','Amélioration')] dans ui_helpers.explain_interval_decision")
+
+    def test_consolidation_amelioration_equals_5(self):
+        """ui_helpers._special : ('En consolidation', 'Amélioration') → 5."""
+        self.assertEqual(self.ai("En consolidation", "Amélioration"), 5,
+            "Mettre à jour _special[('En consolidation','Amélioration')] dans ui_helpers")
+
+    def test_consolidation_degradation_equals_2(self):
+        """ui_helpers._special : ('En consolidation', 'Dégradation') → 2."""
+        self.assertEqual(self.ai("En consolidation", "Dégradation"), 2,
+            "Mettre à jour _special[('En consolidation','Dégradation')] dans ui_helpers")
+
+    def test_fragile_stable_equals_base(self):
+        """Fragile+Stable = REVIEW_INTERVALS['Fragile'] sans modulation."""
+        self.assertEqual(self.ai("Fragile", "Stable"), self.rv["Fragile"])
+
+    def test_consolidation_stable_equals_base(self):
+        """En consolidation+Stable = REVIEW_INTERVALS['En consolidation'] sans modulation."""
+        self.assertEqual(self.ai("En consolidation", "Stable"), self.rv["En consolidation"])
+
+    def test_maitrise_never_modulated(self):
+        """Maîtrisé retourne toujours REVIEW_INTERVALS['Maîtrisé'] quelle que soit la tendance."""
+        for trend in ("Amélioration", "Stable", "Dégradation", "N/A"):
+            with self.subTest(trend=trend):
+                self.assertEqual(self.ai("Maîtrisé", trend), self.rv["Maîtrisé"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests Phase 15A — Cosine similarity post-numpy
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCosineSimilarity(unittest.TestCase):
+    """Tests minimaux pour rag_service._cosine_similarity (implémentation numpy)."""
+
+    def setUp(self):
+        from rag_service import _cosine_similarity
+        self.fn = _cosine_similarity
+
+    def test_identical_vectors_approx_1(self):
+        v = [1.0, 0.5, 0.3]
+        self.assertAlmostEqual(self.fn(v, v), 1.0, places=5)
+
+    def test_orthogonal_vectors_approx_0(self):
+        a = [1.0, 0.0, 0.0]
+        b = [0.0, 1.0, 0.0]
+        self.assertAlmostEqual(self.fn(a, b), 0.0, places=5)
+
+    def test_null_vector_a_returns_0(self):
+        self.assertEqual(self.fn([0.0, 0.0, 0.0], [1.0, 0.5, 0.3]), 0.0)
+
+    def test_null_vector_b_returns_0(self):
+        self.assertEqual(self.fn([1.0, 0.5, 0.3], [0.0, 0.0, 0.0]), 0.0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -742,6 +841,8 @@ if __name__ == "__main__":
         TestClassifyMastery,
         TestLearningProfile,
         TestChooseQuestionType,
+        TestReviewIntervalsCoherence,
+        TestCosineSimilarity,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
