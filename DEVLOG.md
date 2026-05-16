@@ -4,6 +4,21 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-043 fix : app_gated + bootstrap mode démo
+
+**Problème détecté :** APP_PASSWORD posait `authenticated = True`, court-circuitant le gate users. Table users vide → `_demo_mode = True` → double bypass, formulaire TASK-043 jamais affiché.
+
+**Corrections :**
+- `app_gated` : clé dédiée au gate APP_PASSWORD. `authenticated` réservé au login users table.
+- Bootstrap : bloc auth affiché même en mode démo — onglet "Créer un compte" + onglet "Mode démo" (bouton "Continuer en mode démo" → `demo_active = True`).
+- Logout réinitialise aussi `demo_active`.
+
+**Validé en prod :** APP_PASSWORD → formulaire TASK-043 → inscription → sidebar username/logout → déconnexion → retour login. ✅
+
+**Commit :** `c57d6ae` — fix: TASK-043 séparer app_gated/authenticated + bootstrap mode démo
+
+---
+
 ## 2026-05-16 — TASK-043 : Login/Register users table dans app.py (Phase 12)
 
 **Milestone :** Phase 12 — authentification réelle opérationnelle via table users.
