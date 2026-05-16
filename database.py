@@ -7,19 +7,11 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+from adaptive_engine import REVIEW_INTERVALS, _PEDAGOGY_GROUPS
 
 logger = logging.getLogger(__name__)
 
 DB_PATH = Path(os.getenv("DB_PATH", "database.db"))
-
-# Intervalles de base de répétition espacée par classe de maîtrise (en jours).
-# Utilisés par _adaptive_interval() comme point de départ avant modulation par trend.
-# Les valeurs brutes (1j/3j) sont dupliquées dans get_revision_suggestion() ORDER BY.
-REVIEW_INTERVALS = {
-    "Fragile":          1,
-    "En consolidation": 3,
-    "Maîtrisé":         7,
-}
 
 
 def _adaptive_interval(mastery_class: str, trend: str) -> int:
@@ -564,14 +556,6 @@ def get_document_by_id(doc_id: int) -> Optional[dict]:
 
 
 # ── Profil d'apprentissage utilisateur ───────────────────────────────────────
-
-# Groupes pédagogiques : mappage question_type → dimension du profil.
-_PEDAGOGY_GROUPS: dict[str, list[str]] = {
-    "logical":    ["question_directe"],
-    "procedural": ["cas_pratique", "consequence"],
-    "narrative":  ["reformulation"],
-    "analogy":    ["vrai_faux", "question_piege"],
-}
 
 
 def get_learning_profile(user_id: str = "default") -> Optional[dict]:

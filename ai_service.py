@@ -11,12 +11,12 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 from database import (
-    _PEDAGOGY_GROUPS as _PROFILE_TYPES,
     get_chunk_mastery,
     get_chunk_question_history,
     get_learning_profile,
 )
 from rag_service import search_similar_chunks
+from adaptive_engine import _MASTERY_BIAS, _PEDAGOGY_GROUPS as _PROFILE_TYPES, QUESTION_TYPES
 
 load_dotenv()
 
@@ -31,22 +31,6 @@ EMBEDDING_MAX_CHARS = 24_000  # ~8 000 tokens × 3 chars/token, marge de sécuri
 # Nombre de chunks récupérés lors du retrieval RAG
 RAG_TOP_K = 3
 
-QUESTION_TYPES = [
-    "question_directe",
-    "cas_pratique",
-    "vrai_faux",
-    "question_piege",
-    "reformulation",
-    "consequence",
-]
-
-# Types favorisés par classe de maîtrise.
-# Fragile  → compréhension et reformulation avant tout.
-# Maîtrisé → challenge et application en situation complexe.
-_MASTERY_BIAS: dict[str, list[str]] = {
-    "Fragile":  ["reformulation", "consequence", "cas_pratique"],
-    "Maîtrisé": ["question_piege", "cas_pratique", "consequence"],
-}
 
 _TYPE_PROMPTS = {
     "question_directe": (
