@@ -4,6 +4,27 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-041 : Table users — migration douce SQLite (Phase 12)
+
+**Milestone :** Phase 12 — socle authentification : table `users` ajoutée sans casser l'existant.
+
+**Actions :**
+- `database.py` / `init_db()` : ajout `CREATE TABLE IF NOT EXISTS users` (user_id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, password_hash TEXT, role TEXT DEFAULT 'apprenant', created_at TIMESTAMP).
+- Migration idempotente : `IF NOT EXISTS` + bloc `ALTER TABLE ... ADD COLUMN` wrappé en try/except — aucun impact sur une DB déjà initialisée.
+- `user_id TEXT PRIMARY KEY` : conserve la compatibilité avec `attempts.user_id` et `user_learning_profile.user_id` (valeurs TEXT existantes : "default", "alice", etc.).
+- Pas de FK `attempts → users` intentionnellement : évite de bloquer les inserts legacy.
+
+**Invariants préservés :**
+- Aucune modification UX, aucune modification des tabs.
+- Fallback mode intact (table ignorée si non utilisée).
+- 77/77 tests passés, py_compile OK.
+
+**Commit :** `4464fcf` — feat: TASK-041 add users table to init_db (Phase 12)
+
+**Prochaine étape :** TASK-042 — `auth_service.py` : register_user(), verify_password(), get_user_by_username() avec bcrypt.
+
+---
+
 ## 2026-05-16 — TASK-040 : Modularisation app.py → tabs/ (Phase 11)
 
 **Milestone :** Phase 11 — critère de sortie atteint : `app.py` < 150 lignes, architecture documentée dans ROADMAP.
