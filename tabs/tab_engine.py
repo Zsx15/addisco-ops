@@ -1,0 +1,117 @@
+"""Onglet Moteur IA — explication du pipeline pédagogique."""
+import streamlit as st
+
+
+def render() -> None:
+    st.markdown(
+        "<h3 style='margin:0 0 2px;color:#1e293b;font-size:18px'>Comment fonctionne ce moteur ?</h3>"
+        "<p style='color:#64748b;font-size:13px;margin:0 0 10px'>"
+        "Un pipeline en 7 étapes transforme vos documents métier en révision adaptative et personnalisée."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    # ── Pipeline 7 étapes — grille 2 colonnes ────────────────────────────
+    st.markdown(
+        "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 6px;text-transform:uppercase;"
+        "letter-spacing:.05em'>Pipeline pédagogique</p>",
+        unsafe_allow_html=True,
+    )
+    _pipe_data = [
+        ("📄", "Document",             "Importez un PDF ou TXT. Extraction, nettoyage et découpage en sections logiques."),
+        ("🔍", "RAG",                  "Embeddings sémantiques par section. Retrieval par similarité cosinus lors de chaque session."),
+        ("❓", "Question",             "Générée depuis la section pertinente, avec un type adapté à votre maîtrise actuelle."),
+        ("✍️", "Réponse libre",        "Réponse en langage naturel. Temps de réponse mesuré, historique complet conservé."),
+        ("✅", "Correction IA",        "Score, diagnostic d'erreur et explication ancrés dans le contenu source du document."),
+        ("🧠", "Mémoire",              "Résultats enregistrés : score, notion, type d'erreur, section source, date."),
+        ("🔄", "Révision prioritaire", "Prochaine révision calculée selon la maîtrise et l'algorithme de répétition espacée."),
+    ]
+    _pipe_html = "".join(
+        f'<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px;background:#fafbfc">'
+        f'<div style="font-size:17px;margin-bottom:3px">{ic}</div>'
+        f'<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:2px">{ti}</div>'
+        f'<div style="font-size:11.5px;color:#64748b;line-height:1.4">{de}</div>'
+        f'</div>'
+        for ic, ti, de in _pipe_data
+    )
+    st.markdown(
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px">'
+        f'{_pipe_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+
+    # ── 6 types de questions — grille 3 colonnes ─────────────────────────
+    st.markdown(
+        "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 2px;text-transform:uppercase;"
+        "letter-spacing:.05em'>6 types de questions adaptatives</p>"
+        "<p style='font-size:12px;color:#64748b;margin:0 0 7px'>"
+        "Le type est sélectionné automatiquement selon la maîtrise détectée pour chaque section.</p>",
+        unsafe_allow_html=True,
+    )
+    _qt_data = [
+        ("❶", "Question directe",  "Restitution directe d'une information clé.",                             "#f0f9ff", "#0369a1"),
+        ("❷", "Reformulation",     "Expliquer avec ses mots — prioritaire pour les sections fragiles.",      "#fdf4ff", "#7e22ce"),
+        ("❸", "Conséquence",       "Enchaînements logiques et conditions d'application.",                    "#fff7ed", "#c2410c"),
+        ("❹", "Cas pratique",      "Application des règles en situation concrète.",                          "#f0fdf4", "#15803d"),
+        ("❺", "Vrai / Faux",       "Distinguer vrai et faux — précision des connaissances.",                 "#f8fafc", "#475569"),
+        ("❻", "Question piège",    "Formulations trompeuses — réservé aux sections maîtrisées.",             "#fef2f2", "#991b1b"),
+    ]
+    _qt_html = "".join(
+        f'<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:{bg}">'
+        f'<div style="font-size:11px;font-weight:700;color:{ac};text-transform:uppercase;'
+        f'letter-spacing:.04em;margin-bottom:3px">{num} {lbl}</div>'
+        f'<div style="font-size:11.5px;color:#475569;line-height:1.35">{dsc}</div>'
+        f'</div>'
+        for num, lbl, dsc, bg, ac in _qt_data
+    )
+    st.markdown(
+        f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px">'
+        f'{_qt_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+
+    # ── Répétition espacée + Adaptation cognitive — 2 colonnes ───────────
+    _col_rep, _col_adp = st.columns(2)
+
+    with _col_rep:
+        st.markdown(
+            "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 7px;"
+            "text-transform:uppercase;letter-spacing:.05em'>Répétition espacée</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">'
+            '<div style="border:1px solid #fca5a5;border-radius:8px;padding:10px 8px;'
+            'background:#fef2f2;text-align:center">'
+            '<div style="font-size:18px">🔴</div>'
+            '<div style="font-size:12px;font-weight:700;color:#991b1b;margin:3px 0">Fragile</div>'
+            '<div style="font-size:11px;color:#b91c1c">Rappel · 1 j</div></div>'
+            '<div style="border:1px solid #fde68a;border-radius:8px;padding:10px 8px;'
+            'background:#fffbeb;text-align:center">'
+            '<div style="font-size:18px">🟡</div>'
+            '<div style="font-size:12px;font-weight:700;color:#92400e;margin:3px 0">Consolidation</div>'
+            '<div style="font-size:11px;color:#b45309">Rappel · 3 j</div></div>'
+            '<div style="border:1px solid #86efac;border-radius:8px;padding:10px 8px;'
+            'background:#f0fdf4;text-align:center">'
+            '<div style="font-size:18px">🟢</div>'
+            '<div style="font-size:12px;font-weight:700;color:#166534;margin:3px 0">Maîtrisé</div>'
+            '<div style="font-size:11px;color:#15803d">Rappel · 7 j</div></div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    with _col_adp:
+        st.markdown(
+            "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 7px;"
+            "text-transform:uppercase;letter-spacing:.05em'>Adaptation cognitive</p>",
+            unsafe_allow_html=True,
+        )
+        st.info(
+            "🔴 **Fragile** → reformulation, conséquence  \n"
+            "🟡 **En consolidation** → types variés  \n"
+            "🟢 **Maîtrisé** → questions pièges, cas pratiques"
+        )
