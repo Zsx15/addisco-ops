@@ -4,6 +4,37 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-043 : Login/Register users table dans app.py (Phase 12)
+
+**Milestone :** Phase 12 — authentification réelle opérationnelle via table users.
+
+**Actions :**
+- `app.py` uniquement modifié.
+- Bloc `APP_PASSWORD` (TASK-036) restauré en premier gate — protège l'app si env var définie, `authenticated = True` après validation.
+- Nouveau bloc users-based auth : `_count_users() == 0` → mode démo (accès direct) ; sinon formulaire login/register à deux onglets.
+- Login : `verify_password(username, password)` → `session_state["user_id"] = UUID`, `["username"]`, `["role"]`.
+- Register : `register_user(username, password)` avec validations locales (username non vide, password ≥ 6 chars, confirm == password).
+- Logout : bouton sidebar → `user_id = "default"`, `authenticated = False`, `username/role = None`.
+- Sidebar : affiche nom + rôle + bouton logout si connecté via users table ; affiche champ "Identifiant" en mode démo.
+- `check_app_password` ré-importé depuis `ui_helpers` (retiré par erreur en première version).
+
+**Invariants préservés :**
+- Tabs inchangés — lisent uniquement `session_state["user_id"]`.
+- Moteur pédagogique et database.py non modifiés.
+- Anciens user_id ("default", "alice"…) compatibles.
+- 89/89 tests passés, py_compile OK.
+
+**Coexistence des deux gates :**
+- `APP_PASSWORD` set + users vide → password gate (mode démo protégé).
+- `APP_PASSWORD` absent + users existants → login/register users table.
+- `APP_PASSWORD` set + users existants → password gate prime, users auth bypassé.
+
+**Commit :** `0e2528a` — feat: TASK-043 login/register users table + restauration gate APP_PASSWORD
+
+**Prochaine étape :** TASK-044 — activation des rôles (formateur/admin/apprenant) sur les tabs.
+
+---
+
 ## 2026-05-16 — TASK-042 : auth_service.py — fonctions d'authentification (Phase 12)
 
 **Milestone :** Phase 12 — couche auth pure et testable disponible.
