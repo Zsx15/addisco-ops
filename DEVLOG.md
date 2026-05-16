@@ -4,6 +4,23 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Audit P1/P2 — Corrections ciblées post-inspection Council
+
+**Contexte :** Inspection complète du projet par le Global Code Council avant TASK-040. Trois anomalies corrigées.
+
+**Corrections :**
+- `ui_helpers.py` : `_FILE_MAX_MB` 20 → 10. La limite UI était incohérente avec l'enforcement réel de `document_service.py` (10 Mo). Un fichier de 15 Mo passait la validation UI mais était rejeté en backend — bug UX silencieux.
+- `seed_demo_attempts.py` : suppression de `DB_PATH = Path("database.db")` local hardcodé. Remplacement par `from database import DB_PATH`. Si `DB_PATH` est surchargé via env var, le seed utilisait désormais le même chemin que l'application.
+- `database.py` `save_attempt` : 6 paramètres `float/str/int = None` → `Optional[float/str/int] = None`. Cohérence complète avec la politique TASK-038.
+
+**Invariants préservés :**
+- Aucun changement de comportement métier. Aucune migration SQLite.
+- py_compile 4/4 OK. 77/77 tests OK. Commit `b82fb4c`.
+
+**Prochaine étape :** TASK-040 — modularisation `app.py` → `tabs/`.
+
+---
+
 ## 2026-05-16 — TASK-039 : Extraction rag_service.py (Phase 11)
 
 **Milestone :** Phase 11 — séparation retrieval vectoriel / persistance SQLite.
