@@ -193,9 +193,20 @@ with st.sidebar:
     _n_docs = len(get_documents())
     st.caption(f"📄 {_n_docs} document{'s' if _n_docs > 1 else ''} chargé{'s' if _n_docs > 1 else ''}")
 
-tab_train, tab_history, tab_dashboard, tab_docs, tab_engine, tab_formateur = st.tabs(
-    ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur"]
+_show_privileged = (
+    not st.session_state.get("authenticated")
+    or st.session_state.get("role") in ("formateur", "admin")
 )
+
+if _show_privileged:
+    (tab_train, tab_history, tab_dashboard,
+     tab_docs, tab_engine, tab_formateur) = st.tabs(
+        ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur"]
+    )
+else:
+    tab_train, tab_history, tab_dashboard, tab_engine = st.tabs(
+        ["Entraînement", "Historique", "Dashboard", "Moteur IA"]
+    )
 
 with tab_train:
     render_training()
@@ -206,11 +217,11 @@ with tab_history:
 with tab_dashboard:
     render_dashboard()
 
-with tab_docs:
-    render_documents()
-
 with tab_engine:
     render_engine()
 
-with tab_formateur:
-    render_trainer()
+if _show_privileged:
+    with tab_docs:
+        render_documents()
+    with tab_formateur:
+        render_trainer()
