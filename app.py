@@ -7,7 +7,7 @@ from logger import setup_logging
 
 setup_logging()
 
-from database import DB_PATH, get_documents, init_db
+from database import DB_PATH, count_admins, get_documents, init_db
 from document_service import seed_demo_document
 from seed_demo_attempts import seed as _seed_demo_attempts
 from auth_service import register_user, verify_password
@@ -54,7 +54,38 @@ def _count_users() -> int:
         return 0
 
 
+def _render_admin_bootstrap() -> None:
+    """Formulaire création premier admin — onglet one-shot, disparaît dès qu'un admin existe."""
+    st.info(
+        "Aucun administrateur n'existe encore.  \n"
+        "Créez le compte administrateur initial pour activer la gestion des rôles."
+    )
+    with st.form("form_admin_bootstrap"):
+        _a_user    = st.text_input("Nom d'utilisateur")
+        _a_pass    = st.text_input("Mot de passe", type="password")
+        _a_confirm = st.text_input("Confirmer le mot de passe", type="password")
+        _a_submit  = st.form_submit_button("Créer l'administrateur", type="primary")
+    if _a_submit:
+        if not _a_user.strip():
+            st.error("Le nom d'utilisateur ne peut pas être vide.")
+        elif len(_a_pass) < 6:
+            st.error("Le mot de passe doit contenir au moins 6 caractères.")
+        elif _a_pass != _a_confirm:
+            st.error("Les mots de passe ne correspondent pas.")
+        else:
+            try:
+                _new_id = register_user(_a_user.strip(), _a_pass, role="admin")
+                st.session_state["authenticated"] = True
+                st.session_state["user_id"]       = _new_id
+                st.session_state["username"]      = _a_user.strip()
+                st.session_state["role"]          = "admin"
+                st.rerun()
+            except ValueError as _e:
+                st.error(str(_e))
+
+
 _demo_mode = _count_users() == 0
+_no_admin  = count_admins() == 0
 _is_authed = (
     st.session_state.get("authenticated")
     or st.session_state.get("demo_active")
@@ -65,7 +96,13 @@ if not _is_authed:
 
     if _demo_mode:
         # ── Bootstrap : aucun user en base ────────────────────────────────
-        _tb_reg, _tb_demo = st.tabs(["Créer un compte", "Mode démo"])
+        if _no_admin:
+            _tb_reg, _tb_admin, _tb_demo = st.tabs(
+                ["Créer un compte", "Premier administrateur", "Mode démo"]
+            )
+        else:
+            _tb_reg, _tb_demo = st.tabs(["Créer un compte", "Mode démo"])
+            _tb_admin = None
 
         with _tb_reg:
             with st.form("form_register_boot"):
@@ -91,6 +128,10 @@ if not _is_authed:
                     except ValueError as _e:
                         st.error(str(_e))
 
+        if _tb_admin is not None:
+            with _tb_admin:
+                _render_admin_bootstrap()
+
         with _tb_demo:
             st.info(
                 "Aucun utilisateur enregistré.  \n"
@@ -104,7 +145,13 @@ if not _is_authed:
 
     else:
         # ── Users présents : login ou inscription ─────────────────────────
-        _tb_login, _tb_reg = st.tabs(["Connexion", "Créer un compte"])
+        if _no_admin:
+            _tb_login, _tb_reg, _tb_admin = st.tabs(
+                ["Connexion", "Créer un compte", "Premier administrateur"]
+            )
+        else:
+            _tb_login, _tb_reg = st.tabs(["Connexion", "Créer un compte"])
+            _tb_admin = None
 
         with _tb_login:
             with st.form("form_login"):
@@ -145,6 +192,10 @@ if not _is_authed:
                         st.rerun()
                     except ValueError as _e:
                         st.error(str(_e))
+
+        if _tb_admin is not None:
+            with _tb_admin:
+                _render_admin_bootstrap()
 
     st.stop()
 

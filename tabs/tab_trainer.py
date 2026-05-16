@@ -2,7 +2,8 @@
 import pandas as pd
 import streamlit as st
 
-from database import classify_mastery, get_attempts, get_chunk_stats, get_documents
+from database import classify_mastery, get_attempts, get_all_users, get_chunk_stats, get_documents
+from auth_service import promote_user
 from ui_helpers import _kpi_card, _truncate_label
 
 _TYPE_FR_FORM = {
@@ -33,6 +34,55 @@ _TYPE_LABELS_F = {
 }
 
 
+_ROLE_LABELS_ADM = {"admin": "Administrateur", "formateur": "Formateur", "apprenant": "Apprenant"}
+_PROMO_OPTS      = {"apprenant": ["formateur", "admin"], "formateur": ["admin"], "admin": []}
+
+
+def _render_admin_section() -> None:
+    if st.session_state.get("role") != "admin":
+        return
+    st.divider()
+    st.markdown(
+        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 8px;"
+        "text-transform:uppercase;letter-spacing:.07em'>Administration — Gestion des rôles</p>",
+        unsafe_allow_html=True,
+    )
+    try:
+        _users = get_all_users()
+    except Exception:
+        st.warning("Impossible de charger la liste des utilisateurs.")
+        return
+    _me = st.session_state.get("username", "")
+    for _u in _users:
+        _uname = _u["username"]
+        _urole = _u["role"]
+        _opts  = _PROMO_OPTS.get(_urole, [])
+        with st.container(border=True):
+            _col1, _col2, _col3 = st.columns([2, 1, 2])
+            _col1.markdown(f"**{_uname}**")
+            _col2.caption(_ROLE_LABELS_ADM.get(_urole, _urole))
+            with _col3:
+                if _uname == _me:
+                    st.caption("*(vous)*")
+                elif not _opts:
+                    st.caption("—")
+                else:
+                    _sel = st.selectbox(
+                        "Rôle cible",
+                        options=_opts,
+                        key=f"promo_sel_{_uname}",
+                        label_visibility="collapsed",
+                        format_func=lambda r: _ROLE_LABELS_ADM.get(r, r),
+                    )
+                    if st.button("Promouvoir", key=f"promo_btn_{_uname}", type="primary"):
+                        try:
+                            promote_user(_me, _uname, _sel)
+                            st.success(f"{_uname} promu {_ROLE_LABELS_ADM.get(_sel, _sel)}.")
+                            st.rerun()
+                        except ValueError as _ve:
+                            st.error(str(_ve))
+
+
 def render() -> None:
     st.markdown(
         "<h4 style='margin:0 0 4px;color:#0f172a;font-size:15px;font-weight:700;"
@@ -46,6 +96,7 @@ def render() -> None:
 
     if len(_f_all) < 2:
         st.info("Effectuez au moins 2 tentatives pour afficher la vue formateur.")
+        _render_admin_section()
         return
 
     _f_chunks = classify_mastery(get_chunk_stats(user_id=st.session_state["user_id"]))
@@ -210,3 +261,5 @@ def render() -> None:
                             st.caption(f"🟡 {_cons_n} en consolidation")
                         if _mait_n:
                             st.caption(f"🟢 {_mait_n} maîtrisée{'s' if _mait_n > 1 else ''}")
+
+    _render_admin_section()
