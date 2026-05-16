@@ -12,17 +12,20 @@ vers pgvector (Phase 13) ou une base vectorielle dédiée (Phase 15+).
 import sqlite3
 import struct
 
-from database import DB_PATH
+import numpy as np
+
+import database
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Similarité cosinus entre deux vecteurs — calcul pur Python, sans numpy."""
-    dot    = sum(x * y for x, y in zip(a, b))
-    norm_a = sum(x * x for x in a) ** 0.5
-    norm_b = sum(x * x for x in b) ** 0.5
-    if norm_a == 0 or norm_b == 0:
+    """Similarité cosinus entre deux vecteurs via numpy (float32, ~100x plus rapide)."""
+    va = np.array(a, dtype=np.float32)
+    vb = np.array(b, dtype=np.float32)
+    norm_a = float(np.linalg.norm(va))
+    norm_b = float(np.linalg.norm(vb))
+    if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
-    return dot / (norm_a * norm_b)
+    return float(np.dot(va, vb) / (norm_a * norm_b))
 
 
 def _blob_to_vector(blob: bytes) -> list[float]:
@@ -41,7 +44,7 @@ def search_similar_chunks(
     Ne renvoie que les chunks qui ont un embedding stocké.
     Résultats triés par similarité décroissante.
     """
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(database.DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             """
