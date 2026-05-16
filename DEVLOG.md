@@ -4,6 +4,26 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Phase 13 : Décision de report — SQLAlchemy / PostgreSQL
+
+**Décision :** Phase 13 (TASK-045/046/047 — SQLAlchemy Core + PostgreSQL + pgvector) reportée jusqu'à ce que PostgreSQL soit réellement nécessaire.
+
+**Avis du Conseil :**
+- 25+ sites de requêtes à convertir dans database.py (fichier moteur critique) → risque élevé pour zéro bénéfice fonctionnel immédiat.
+- `pd.read_sql_query` + SQLAlchemy text() : comportement pandas version-dépendant.
+- `engine.begin()` vs `engine.connect()` : risque de perte de données silencieuse sur écriture.
+- `ALTER TABLE` try/except : exception change de classe → init_db non idempotent si mal converti.
+- Pooling SQLAlchemy sur SQLite : risque `database is locked` sous Streamlit multi-thread.
+- Tests actuels insuffisants pour valider la migration (BLOB roundtrip, transactions, rows mapping).
+
+**Stratégie retenue :** combiner TASK-045 + TASK-046 en une seule migration propre lorsque `DATABASE_URL` PostgreSQL sera configurée — évite deux refactors successifs du fichier le plus critique.
+
+**Philosophie CLAUDE.md :** "clarity over sophistication, robustness over complexity."
+
+**Prochaine phase disponible :** Phase 14 — `adaptive_engine.py`.
+
+---
+
 ## 2026-05-16 — TASK-044 : Rôles actifs — onglets conditionnels (Phase 12)
 
 **Milestone :** Phase 12 complète — authentification + rôles opérationnels.
