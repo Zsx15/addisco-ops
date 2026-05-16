@@ -4,6 +4,25 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Backup demo stable
+
+**Milestone :** Point de sauvegarde définitif avant ouverture Phase 11.
+
+**Actions :**
+- Création du dossier `BACKUP_DEMO_STABLE_ai-v2_2026-05-16_17-24` sur le Bureau.
+- Copie complète du projet (51 fichiers, 0,5 Mo) — exclusions : `.venv`, `__pycache__`, `.pytest_cache`, `.git`, `node_modules`.
+- `database.db` incluse (base SQLite de démonstration avec historique des tentatives).
+- `LISEZ_MOI_LANCEMENT_DEMO.md` créé : installation, configuration `.env`, commande Streamlit, description de l'architecture, option Docker.
+
+**État du snapshot :**
+- Phase 10 complète — commit `8b9354a`.
+- 77/77 tests OK.
+- Moteur adaptatif, pipeline RAG, répétition espacée, profil pédagogique, dashboard formateur, auth, CI, Docker — tous opérationnels.
+
+**Usage :** relancer depuis ce backup à tout moment via `pip install -r requirements.txt` + `streamlit run app.py`, indépendamment des évolutions du projet principal.
+
+---
+
 ## 2026-05-16 — Hotfix : annotation str | None → Optional[str] (database.py, document_service.py)
 
 **Cause :** Le hotfix TASK-035 avait corrigé `ui_helpers.py` mais laissé deux occurrences résiduelles de `str | None` (PEP 604) dans les modules engine. Même risque d'incompatibilité Streamlit 1.57 + Python 3.14 (PEP 649) que le bug initial.
