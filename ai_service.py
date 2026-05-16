@@ -15,8 +15,8 @@ from database import (
     get_chunk_mastery,
     get_chunk_question_history,
     get_learning_profile,
-    search_similar_chunks,
 )
+from rag_service import search_similar_chunks
 
 load_dotenv()
 
