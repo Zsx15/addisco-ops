@@ -7,6 +7,13 @@ import bcrypt
 
 import database
 
+# Transitions de rôle autorisées — pas de rétrogradation possible.
+_VALID_PROMOTIONS: frozenset[tuple[str, str]] = frozenset({
+    ("apprenant", "formateur"),
+    ("apprenant", "admin"),
+    ("formateur", "admin"),
+})
+
 
 def register_user(
     username: str,
@@ -44,6 +51,38 @@ def get_user_by_username(username: str) -> Optional[dict]:
         "role":          row[3],
         "created_at":    row[4],
     }
+
+
+def promote_user(admin_username: str, target_username: str, new_role: str) -> None:
+    """
+    Promeut target_username vers new_role.
+
+    Valide (dans l'ordre) :
+    - auto-promotion interdite ;
+    - admin_username a role='admin' en base (re-vérification DB, pas session_state) ;
+    - target_username existe ;
+    - la transition (role_actuel → new_role) est dans _VALID_PROMOTIONS.
+
+    Lève ValueError avec message utilisateur si une validation échoue.
+    """
+    if admin_username == target_username:
+        raise ValueError("Auto-promotion interdite.")
+
+    admin = get_user_by_username(admin_username)
+    if not admin or admin["role"] != "admin":
+        raise ValueError("Droits insuffisants — seul un administrateur peut promouvoir.")
+
+    target = get_user_by_username(target_username)
+    if not target:
+        raise ValueError(f"Utilisateur introuvable : {target_username}")
+
+    current_role = target["role"]
+    if (current_role, new_role) not in _VALID_PROMOTIONS:
+        raise ValueError(
+            f"Transition {current_role} → {new_role} non autorisée."
+        )
+
+    database.set_user_role(target_username, new_role)
 
 
 def verify_password(username: str, password: str) -> Optional[dict]:

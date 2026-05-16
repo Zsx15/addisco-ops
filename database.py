@@ -585,3 +585,49 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
         )
 
     return profile
+
+
+# ── Gestion des utilisateurs (admin) ─────────────────────────────────────────
+
+def count_admins() -> int:
+    """Retourne le nombre d'utilisateurs avec role='admin'."""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            return conn.execute(
+                "SELECT COUNT(*) FROM users WHERE role = 'admin'"
+            ).fetchone()[0]
+    except Exception:
+        return 0
+
+
+def get_all_users() -> list[dict]:
+    """
+    Retourne tous les utilisateurs sans password_hash.
+    Tri : admin → formateur → apprenant, puis username ASC dans chaque groupe.
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT user_id, username, role, created_at
+            FROM users
+            ORDER BY
+                CASE role
+                    WHEN 'admin'     THEN 0
+                    WHEN 'formateur' THEN 1
+                    WHEN 'apprenant' THEN 2
+                    ELSE 3
+                END ASC,
+                username ASC
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_user_role(username: str, new_role: str) -> None:
+    """Modifie le rôle d'un utilisateur existant (UPDATE ciblé, jamais DELETE+INSERT)."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE users SET role = ? WHERE username = ?",
+            (new_role, username),
+        )
