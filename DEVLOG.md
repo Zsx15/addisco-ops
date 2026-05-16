@@ -4,6 +4,18 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Hotfix : annotation str | None → Optional[str] (database.py, document_service.py)
+
+**Cause :** Le hotfix TASK-035 avait corrigé `ui_helpers.py` mais laissé deux occurrences résiduelles de `str | None` (PEP 604) dans les modules engine. Même risque d'incompatibilité Streamlit 1.57 + Python 3.14 (PEP 649) que le bug initial.
+
+**Correction :**
+- `database.py` : `from typing import Optional` ajouté ; `str | None` → `Optional[str]` dans `_normalize_topic()` et `get_chunk_mastery()`.
+- `document_service.py` : `from typing import Optional` ajouté ; `str | None` → `Optional[str]` dans `_detect_section_title()` et la variable locale `current_section`.
+
+**Invariants :** zéro changement logique — py_compile 2/2 OK, 77/77 tests OK. Commit `297fa56`.
+
+---
+
 ## 2026-05-15 — TASK-036 : Authentification légère (Phase 10, clôture)
 
 **Milestone :** Phase 10 — dernier item manquant (authentification).
