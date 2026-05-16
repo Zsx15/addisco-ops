@@ -109,6 +109,15 @@ def init_db():
                 updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id       TEXT PRIMARY KEY,
+                username      TEXT NOT NULL UNIQUE,
+                password_hash TEXT,
+                role          TEXT NOT NULL DEFAULT 'apprenant',
+                created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # Migrations douces : ALTER TABLE ADD COLUMN échoue si la colonne existe → ignoré
         try:
             conn.execute("ALTER TABLE chunks ADD COLUMN embedding BLOB")
