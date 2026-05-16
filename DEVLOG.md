@@ -4,6 +4,24 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-039 : Extraction rag_service.py (Phase 11)
+
+**Milestone :** Phase 11 — séparation retrieval vectoriel / persistance SQLite.
+
+**Actions :**
+- Création de `rag_service.py` : contient `_cosine_similarity`, `_blob_to_vector`, `search_similar_chunks`. Importe uniquement `DB_PATH` depuis `database.py`. Aucun import circulaire.
+- `database.py` : suppression de `import struct` et des 3 fonctions RAG (59 lignes retirées).
+- `ai_service.py` : `search_similar_chunks` déplacé de l'import `database` vers `from rag_service import search_similar_chunks`.
+
+**Invariants préservés :**
+- Comportement RAG identique — même logique cosinus, même seuil `char_count >= 150`, même tri décroissant.
+- Aucune modification de signature publique. Fallback mode inchangé.
+- py_compile 5/5 OK. 77/77 tests OK. Commit `94083a5`.
+
+**Prochaine étape :** TASK-040 — modularisation `app.py` → `tabs/`.
+
+---
+
 ## 2026-05-16 — TASK-038 : Dettes résiduelles soldées (Phase 11)
 
 **Milestone :** Phase 11 — socle architectural sain, première tâche complète.
