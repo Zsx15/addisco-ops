@@ -4,6 +4,36 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-048 Phase 14 : Extraction adaptive_engine.py (Commits A–C)
+
+**Objectif :** Isoler toute la logique pédagogique pure dans `adaptive_engine.py`, sans import projet, pour éliminer les risques de circular dependency et centraliser les constantes et algorithmes adaptatifs.
+
+**Commit A — Constantes et imports :**
+- `adaptive_engine.py` créé avec : `REVIEW_INTERVALS`, `_PEDAGOGY_GROUPS`, `QUESTION_TYPES`, `_MASTERY_BIAS`.
+- `database.py` et `ai_service.py` : suppression des définitions locales, import depuis `adaptive_engine`.
+- 89/89 tests. Commit `bb51be5`.
+
+**Commit B — `_adaptive_interval` + `classify_mastery` depuis database.py :**
+- Deux fonctions déplacées verbatim vers `adaptive_engine.py`.
+- Re-export depuis `database.py` via `from adaptive_engine import ...` (backward compat tests inclus).
+- Leçon : même les fonctions privées (`_adaptive_interval`) doivent être re-exportées si les tests les importent directement.
+- 89/89 tests. Commit `8f4ee98`.
+
+**Commit C — `_choose_question_type` + `explain_type_choice` depuis ai_service.py :**
+- Deux fonctions déplacées verbatim vers `adaptive_engine.py`.
+- `import random` ajouté à `adaptive_engine.py`.
+- Dans `explain_type_choice` : `_PROFILE_TYPES` remplacé par `_PEDAGOGY_GROUPS` (alias local inutile dans le nouveau contexte).
+- Re-export depuis `ai_service.py` via import élargi. `_PROFILE_TYPES` alias conservé dans `ai_service` pour `generate_question`.
+- `adaptive_engine.py` : zéro import projet maintenu — invariant respecté.
+- 89/89 tests. Commit `edf88dd`.
+
+**Résultat final :**
+`adaptive_engine.py` contient : 4 constantes + `_adaptive_interval` + `classify_mastery` + `_choose_question_type` + `explain_type_choice`. Aucun import projet. `database.py` et `ai_service.py` importent depuis lui, jamais l'inverse.
+
+**Phase 14 complète.**
+
+---
+
 ## 2026-05-16 — Phase 13 : Décision de report — SQLAlchemy / PostgreSQL
 
 **Décision :** Phase 13 (TASK-045/046/047 — SQLAlchemy Core + PostgreSQL + pgvector) reportée jusqu'à ce que PostgreSQL soit réellement nécessaire.
