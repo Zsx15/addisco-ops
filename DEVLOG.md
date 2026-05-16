@@ -25,6 +25,20 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Fix LANCER_ADDISCO_OPS.bat — syntaxe batch pure
+
+**Cause :** La première version du lanceur utilisait `chcp 65001` et des accents dans les `echo`, provoquant des risques d'affichage corrompu sur certaines configurations Windows CMD.
+
+**Correction :**
+- Remplacement complet du fichier par une version batch classique sans accents ni caractères spéciaux.
+- `python -m streamlit` à la place de `streamlit` direct (plus robuste selon l'environnement).
+- Suppression de `chcp 65001` et `--server.headless false`.
+- Backup et ZIP régénérés avec le lanceur corrigé.
+
+**Invariants :** aucun fichier Python modifié — py_compile non requis. Commit `fe98d59`.
+
+---
+
 ## 2026-05-16 — Hotfix : annotation str | None → Optional[str] (database.py, document_service.py)
 
 **Cause :** Le hotfix TASK-035 avait corrigé `ui_helpers.py` mais laissé deux occurrences résiduelles de `str | None` (PEP 604) dans les modules engine. Même risque d'incompatibilité Streamlit 1.57 + Python 3.14 (PEP 649) que le bug initial.
