@@ -39,6 +39,37 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Phase 15B : Gouvernance admin minimale (TASK-050B, Commits A–D)
+
+**Objectif :** débloquer la création du premier administrateur et la promotion des utilisateurs — bloqueur opérationnel identifié lors du checkpoint Phase 14.
+
+**Commit A — Backend database + auth_service (Commit `3d5dfaa`) :**
+- `database.py` : ajout de `count_admins()`, `get_all_users()` (tri stable admin→formateur→apprenant, puis username ASC via CASE WHEN), `set_user_role()` (UPDATE ciblé, jamais DELETE+INSERT — IDs stables préservés).
+- `auth_service.py` : ajout de `_VALID_PROMOTIONS` (frozenset, transitions uniquement montantes), `promote_user()` (re-vérifie rôle admin depuis DB, auto-promotion interdite, transition validée avant UPDATE).
+- Sécurité : re-vérification DB (pas session_state) protège contre élévation de privilèges côté client.
+
+**Commit B — Tests (Commit `f7af50f`) :**
+- `test_regression.py` : `TestDatabaseAdminFunctions` (6 tests) — count_admins, get_all_users (absence hash, tri admin→formateur→apprenant→username).
+- `test_auth_service.py` : 7 tests promote_user — 3 succès (apprenant→formateur, →admin ; formateur→admin), 4 ValueError (auto-promotion, non-admin, transition invalide, cible inconnue).
+- Total : 117 tests + 4 subtests. 0 régression.
+
+**Commit C — UI (Commit `d22ebf4`) :**
+- `app.py` : `_render_admin_bootstrap()` helper — formulaire création premier admin (6 chars min, confirmation). Détecté via `count_admins()==0`, tab "Premier administrateur" affiché dans les deux flux (demo_mode et login normal) ; disparaît automatiquement dès qu'un admin existe.
+- `tabs/tab_trainer.py` : `_render_admin_section()` helper — liste tous les utilisateurs avec selectbox de promotion et bouton "Promouvoir". Visible uniquement si `role == 'admin'`. Appelée avant le return anticipé (admin avec <2 tentatives) et en fin de `render()`.
+- 108 insertions, 4 suppressions. 2 fichiers. 0 régression.
+
+**Invariants préservés :**
+- Aucun changement `adaptive_engine.py`, `ai_service.py`, `rag_service.py`.
+- Aucun changement UX hors périmètre auth/admin.
+- `set_user_role` : UPDATE ciblé — IDs stables garantis.
+- Pas de suppression utilisateur, pas de rétrogradation, pas de gestion permissions granulaires.
+
+**Résultat final :** Bootstrap admin opérationnel. Promotion admin→formateur et admin→admin disponibles dans l'onglet Formateur. 117 tests passants.
+
+**Phase 15B complète.**
+
+---
+
 ## 2026-05-16 — TASK-048 Phase 14 : Extraction adaptive_engine.py (Commits A–C)
 
 **Objectif :** Isoler toute la logique pédagogique pure dans `adaptive_engine.py`, sans import projet, pour éliminer les risques de circular dependency et centraliser les constantes et algorithmes adaptatifs.
