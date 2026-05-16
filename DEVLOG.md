@@ -4,6 +4,35 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Roadmap industrielle Phase 11-17
+
+**Milestone :** Ouverture de la trajectoire vers un produit SaaS B2B complet.
+
+**Actions :**
+- `ROADMAP.md` : ajout des Phases 11 à 17 et de la section "Vision produit cible".
+- Historique Phase 0-10 préservé intégralement. Phase 10 marquée complète (commit `8b9354a`).
+- TASK-038 à TASK-063 définis avec objectifs, critères de sortie, dépendances et risques.
+
+**Phases ajoutées :**
+- Phase 11 — Socle architectural sain (TASK-038/039/040)
+- Phase 12 — Authentification réelle (TASK-041/042/043/044)
+- Phase 13 — Base de données scalable / PostgreSQL (TASK-045/046/047)
+- Phase 14 — Moteur pédagogique complet / adaptive_engine.py (TASK-048/049/050/051)
+- Phase 15 — Multi-documents et corpus (TASK-052/053/054/055)
+- Phase 16 — UX professionnelle finale (TASK-056/057/058/059)
+- Phase 17 — Production industrielle / CI/CD (TASK-060/061/062/063)
+
+**Vision produit cible :** SaaS pédagogique B2B — auth réelle multi-rôles,
+PostgreSQL + pgvector, moteur adaptatif complet, corpus multi-documents,
+dashboard formateur + admin, monitoring, déploiement Docker automatisé.
+
+**Philosophie :** étapes petites et validables, stabilité prioritaire, aucun refactor massif,
+tests après chaque tâche, backup démo stable préservé. Commit `1d0c46f`.
+
+**Prochaine étape :** TASK-038 — solder les dettes résiduelles (Phase 11).
+
+---
+
 ## 2026-05-16 — Backup demo stable
 
 **Milestone :** Point de sauvegarde définitif avant ouverture Phase 11.
