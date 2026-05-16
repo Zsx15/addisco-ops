@@ -13,6 +13,7 @@ Usage : python seed_demo_attempts.py
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 DB_PATH = Path("database.db")
 TODAY   = datetime(2026, 5, 12)
@@ -21,7 +22,7 @@ def _days_ago(n: int) -> str:
     return (TODAY - timedelta(days=n)).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _get_chunk_id(conn, title_fragment: str) -> int | None:
+def _get_chunk_id(conn, title_fragment: str) -> Optional[int]:
     row = conn.execute(
         "SELECT id FROM chunks WHERE section_title LIKE ?",
         (f"%{title_fragment}%",),

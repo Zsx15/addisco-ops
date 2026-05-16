@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import struct
+from typing import Optional
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -10,6 +11,7 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 from database import (
+    _PEDAGOGY_GROUPS as _PROFILE_TYPES,
     get_chunk_mastery,
     get_chunk_question_history,
     get_learning_profile,
@@ -18,7 +20,7 @@ from database import (
 
 load_dotenv()
 
-_client: OpenAI | None = None
+_client: Optional[OpenAI] = None
 
 TEXT_MAX_CHARS = 6000
 
@@ -44,15 +46,6 @@ QUESTION_TYPES = [
 _MASTERY_BIAS: dict[str, list[str]] = {
     "Fragile":  ["reformulation", "consequence", "cas_pratique"],
     "Maîtrisé": ["question_piege", "cas_pratique", "consequence"],
-}
-
-# Mapping profil pédagogique utilisateur → types de questions associés.
-# Utilisé comme tie-breaker secondaire (après rotation et biais mastery).
-_PROFILE_TYPES: dict[str, list[str]] = {
-    "logical":    ["question_directe"],
-    "procedural": ["cas_pratique", "consequence"],
-    "narrative":  ["reformulation"],
-    "analogy":    ["vrai_faux", "question_piege"],
 }
 
 _TYPE_PROMPTS = {
@@ -84,8 +77,8 @@ _TYPE_PROMPTS = {
 
 def _choose_question_type(
     used_types: list[str],
-    mastery_class: str | None = None,
-    profile_types: list[str] | None = None,
+    mastery_class: Optional[str] = None,
+    profile_types: Optional[list[str]] = None,
 ) -> str:
     """
     Choisit le type de question le moins utilisé pour ce chunk.
@@ -122,8 +115,8 @@ def _choose_question_type(
 
 def explain_type_choice(
     used_types: list[str],
-    mastery_class: str | None,
-    profile_pedagogy: str | None,
+    mastery_class: Optional[str],
+    profile_pedagogy: Optional[str],
     chosen_type: str,
 ) -> str:
     """
@@ -225,7 +218,7 @@ def generate_embedding(text: str) -> bytes:
 
 def generate_question(
     source_text: str,
-    document_id: int | None = None,
+    document_id: Optional[int] = None,
     user_id: str = "default",
 ) -> tuple[str, list[int], str]:
     """
@@ -264,7 +257,7 @@ def generate_question(
 
     # ── Choix du type pédagogique ─────────────────────────────────────────────
     history: list[dict] = []
-    mastery_class: str | None = None
+    mastery_class: Optional[str] = None
     if chunk_ids:
         try:
             history = get_chunk_question_history(chunk_ids[0], limit=5, user_id=user_id)
@@ -276,7 +269,7 @@ def generate_question(
             pass
 
     # Biais profil : preferred_pedagogy → types associés (tie-breaker secondaire)
-    profile_types: list[str] | None = None
+    profile_types: Optional[list[str]] = None
     try:
         profile = get_learning_profile(user_id)
         if profile and profile.get("preferred_pedagogy"):

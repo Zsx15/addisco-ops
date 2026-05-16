@@ -120,11 +120,11 @@ _PROFILE_LABELS_FR: dict[str, tuple[str, str]] = {
 
 def explain_question_decision(
     question_type: str,
-    mastery_class: str | None,
+    mastery_class: Optional[str],
     trend: str,
     review_status: str,
-    dominant_error: str | None,
-    profile_pedagogy: str | None,
+    dominant_error: Optional[str],
+    profile_pedagogy: Optional[str],
 ) -> list[tuple[str, str]]:
     """
     Produit une liste de signaux cognitifs expliquant la sélection de la question.
@@ -228,7 +228,7 @@ def explain_priority_decision(row: dict) -> list[str]:
     return reasons
 
 
-def explain_profile_detection(profile: dict | None) -> str:
+def explain_profile_detection(profile: Optional[dict]) -> str:
     """
     Retourne une phrase expliquant pourquoi le profil pédagogique dominant a été détecté.
     Retourne une phrase d'attente si le profil est None ou insuffisant.

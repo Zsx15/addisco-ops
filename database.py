@@ -490,7 +490,7 @@ def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> Optional[str]:
     return "En consolidation"
 
 
-def get_revision_suggestion(user_id: str = "default") -> dict | None:
+def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
     """
     Retourne le chunk le plus prioritaire à réviser, ou None si aucun chunk éligible.
 
@@ -546,7 +546,7 @@ def get_revision_suggestion(user_id: str = "default") -> dict | None:
     return dict(row) if row else None
 
 
-def get_document_by_id(doc_id: int) -> dict | None:
+def get_document_by_id(doc_id: int) -> Optional[dict]:
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
@@ -623,7 +623,7 @@ _PEDAGOGY_GROUPS: dict[str, list[str]] = {
 }
 
 
-def get_learning_profile(user_id: str = "default") -> dict | None:
+def get_learning_profile(user_id: str = "default") -> Optional[dict]:
     """Retourne le profil d'apprentissage d'un utilisateur, ou None s'il n'existe pas."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row

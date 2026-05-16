@@ -1,9 +1,11 @@
 """
-config.py — Référence centralisée des constantes SYNPZ OPS.
+config.py — Référence documentaire des constantes ADDISCO OPS.
 
-Documente les valeurs de configuration dispersées dans les modules.
-Non importé pour l'instant — les modules conservent leurs propres définitions.
-Refactoring d'import prévu Phase 10+.
+DOCUMENTATION UNIQUEMENT — CE FICHIER N'EST PAS IMPORTÉ.
+Les modules conservent leurs propres définitions.
+
+Consolidation prévue en Phase 13 (SQLAlchemy) : les constantes seront
+centralisées ici et importées depuis chaque module.
 
 Pour modifier une constante : chercher sa définition dans le module source.
 """
