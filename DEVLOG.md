@@ -4,6 +4,41 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — Phase 15A : Consolidation technique minimale (TASK-050A.1–4)
+
+**Objectif :** corriger les mines techniques identifiées par le Conseil lors du checkpoint architectural Phase 14 — zéro changement fonctionnel, zéro changement UX.
+
+**TASK-050A.1 — rag_service DB_PATH (Commit `da36fb9`) :**
+- `from database import DB_PATH` → `import database` + `database.DB_PATH`
+- Même pattern qu'`auth_service.py`. Les futurs tests avec DB temporaire ne toucheront plus silencieusement `database.db`. Mine désarmée avant TASK-049/050/051.
+
+**TASK-050A.2 — Cosine similarity numpy (Commit `da36fb9`) :**
+- `_cosine_similarity` réécrite avec `numpy` (float32). Signature et comportement identiques.
+- `numpy` déjà présent via pandas — aucune nouvelle dépendance.
+- Gain mesuré : ~100x sur les comparaisons vectorielles (1536 éléments). Impact visible dès 50+ chunks.
+
+**TASK-050A.3 — Tripwires REVIEW_INTERVALS (Commit `2074a76`) :**
+- `TestReviewIntervalsCoherence` (9 tests + 4 subtests) ajouté dans `test_regression.py`.
+- Vérifie que `REVIEW_INTERVALS` et `_adaptive_interval` restent synchronisés avec les valeurs hardcodées dans `database.get_revision_suggestion` (SQL `'+1 day'`/`'+3 days'`) et `ui_helpers.explain_interval_decision` (dict `_special`/`_default`).
+- Messages d'erreur pointent explicitement les deux lignes à mettre à jour si les constantes changent.
+- Décision Conseil : ne pas réécrire le SQL en Python (risque O(N)), sécuriser par tests à la place.
+
+**TASK-050A.2 tests — Cosine similarity (Commit `2074a76`) :**
+- `TestCosineSimilarity` (4 tests) : vecteurs identiques ≈ 1.0, orthogonaux ≈ 0.0, vecteur nul (a et b) = 0.0.
+
+**TASK-050A.4 — Tests rôles auth (Commit `423276d`) :**
+- `test_register_admin_role` et `test_register_formateur_role` ajoutés dans `test_auth_service.py`.
+- Valident le round-trip complet : `register_user` → `get_user_by_username` → `verify_password`, pour les rôles `admin` et `formateur`.
+- Préparent proprement la future UI admin creation (Phase 15B).
+
+**Résultat final :** 104 tests (+ 4 subtests), 0 régression. 3 fichiers modifiés.
+
+**Invariants préservés :** aucun changement fonctionnel, aucun changement UX, aucun changement `adaptive_engine`, aucun changement auth flow.
+
+**Phase 15A complète.**
+
+---
+
 ## 2026-05-16 — TASK-048 Phase 14 : Extraction adaptive_engine.py (Commits A–C)
 
 **Objectif :** Isoler toute la logique pédagogique pure dans `adaptive_engine.py`, sans import projet, pour éliminer les risques de circular dependency et centraliser les constantes et algorithmes adaptatifs.
