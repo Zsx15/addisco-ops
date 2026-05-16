@@ -325,7 +325,7 @@ def _build_report(df_all: pd.DataFrame, df_topics: pd.DataFrame, df_chunks: pd.D
 
 _USER_ID_MAX_LEN  = 50
 _DOC_TITLE_MAX_LEN = 200
-_FILE_MAX_MB       = 20
+_FILE_MAX_MB       = 10
 _FILE_MAX_BYTES    = _FILE_MAX_MB * 1024 * 1024
 
 

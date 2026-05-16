@@ -129,12 +129,12 @@ def save_attempt(
     expected_answer: str,
     correction: str,
     score: float,
-    response_time_seconds: float = None,
-    error_type: str = None,
-    topic: str = None,
-    pedagogy_type: str = None,
-    document_id: int = None,
-    chunk_id: int = None,
+    response_time_seconds: Optional[float] = None,
+    error_type: Optional[str] = None,
+    topic: Optional[str] = None,
+    pedagogy_type: Optional[str] = None,
+    document_id: Optional[int] = None,
+    chunk_id: Optional[int] = None,
     user_id: str = "default",
 ):
     topic = _normalize_topic(topic)

@@ -12,10 +12,9 @@ Usage : python seed_demo_attempts.py
 """
 import sqlite3
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
-DB_PATH = Path("database.db")
+from database import DB_PATH
 TODAY   = datetime(2026, 5, 12)
 
 def _days_ago(n: int) -> str:
