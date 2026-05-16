@@ -4,6 +4,26 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-16 — TASK-038 : Dettes résiduelles soldées (Phase 11)
+
+**Milestone :** Phase 11 — socle architectural sain, première tâche complète.
+
+**Actions :**
+- `ai_service.py` : `from typing import Optional` ajouté ; toutes les annotations `X | None` → `Optional[X]` (7 occurrences : `_client`, `_choose_question_type`, `explain_type_choice`, `generate_question` ×2) ; `_PROFILE_TYPES` supprimé — remplacé par `from database import _PEDAGOGY_GROUPS as _PROFILE_TYPES`.
+- `ui_helpers.py` : `str | None` et `dict | None` → `Optional[str]` / `Optional[dict]` dans `explain_question_decision` et `explain_profile_detection` (4 occurrences).
+- `database.py` : `dict | None` → `Optional[dict]` dans `get_revision_suggestion`, `get_document_by_id`, `get_learning_profile` (3 occurrences).
+- `seed_demo_attempts.py` : `from typing import Optional` ajouté ; `int | None` → `Optional[int]` dans `_get_chunk_id`.
+- `config.py` : docstring mis à jour — statut `DOCUMENTATION ONLY — CE FICHIER N'EST PAS IMPORTÉ` explicite, référence consolidation Phase 13 (SQLAlchemy).
+
+**Invariants préservés :**
+- Aucun changement logique. Aucune migration SQLite. Aucune modification de signature visible.
+- `_PROFILE_TYPES` reste disponible dans `ai_service.py` — même contenu, source unique dans `database.py`.
+- py_compile 5/5 OK. 77/77 tests OK. Commit `7f2b525`.
+
+**Prochaine étape :** TASK-039 — extraire `rag_service.py` depuis `database.py`.
+
+---
+
 ## 2026-05-16 — Roadmap industrielle Phase 11-17
 
 **Milestone :** Ouverture de la trajectoire vers un produit SaaS B2B complet.
