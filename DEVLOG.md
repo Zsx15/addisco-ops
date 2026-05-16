@@ -21,7 +21,7 @@ Journal de développement chronologique du projet.
 
 **Usage :** relancer depuis ce backup à tout moment via `pip install -r requirements.txt` + `streamlit run app.py`, indépendamment des évolutions du projet principal.
 
-**Archive ZIP :** `BACKUP_DEMO_STABLE_ai-v2_2026-05-16_17-24.zip` — 0,15 Mo — Bureau.
+**Archive ZIP :** `BACKUP_DEMO_STABLE_ai-v2_2026-05-16_17-24.zip` — 0,15 Mo — Bureau (inclut `LANCER_ADDISCO_OPS.bat`).
 
 ---
 
