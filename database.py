@@ -5,6 +5,7 @@ import sqlite3
 import struct
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -45,7 +46,7 @@ def _adaptive_interval(mastery_class: str, trend: str) -> int:
     return base
 
 
-def _normalize_topic(topic: str | None) -> str | None:
+def _normalize_topic(topic: Optional[str]) -> Optional[str]:
     if not topic or not topic.strip():
         return topic
     return topic.strip().capitalize()
@@ -465,7 +466,7 @@ def get_chunk_question_history(
     return [dict(r) for r in rows]
 
 
-def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> str | None:
+def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> Optional[str]:
     """
     Retourne la classe de maîtrise d'un chunk (Fragile / En consolidation / Maîtrisé)
     ou None si pas assez de données. Même règles que classify_mastery().

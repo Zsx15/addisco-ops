@@ -1,6 +1,7 @@
 import logging
 import re
 import unicodedata
+from typing import Optional
 
 from ai_service import generate_embedding
 from database import get_chunks_for_reindex, has_documents, save_chunks, save_document, update_chunk_embedding
@@ -222,7 +223,7 @@ def _clean_text(text: str) -> str:
 _SECTION_RE = re.compile(r"^(\d+[\.\)]\s+\S|#{1,4}\s+\S)")
 
 
-def _detect_section_title(para: str) -> str | None:
+def _detect_section_title(para: str) -> Optional[str]:
     if len(para) > 120:
         return None
     return para if _SECTION_RE.match(para) else None
@@ -243,7 +244,7 @@ def _create_chunks(
     buffer:          list[str]  = []
     buffer_len:      int        = 0
     overlap_prefix:  str        = ""
-    current_section: str | None = None
+    current_section: Optional[str] = None
 
     def flush() -> None:
         if not buffer:
