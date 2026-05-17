@@ -24,6 +24,9 @@ def _normalize_topic(topic: Optional[str]) -> Optional[str]:
     return topic.strip().capitalize()
 
 
+# ── Infrastructure & initialisation ──────────────────────────────────────────
+
+
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
@@ -110,6 +113,9 @@ def init_db():
             except sqlite3.OperationalError:
                 pass
     logger.info("init_db: ready (%s)", DB_PATH)
+
+
+# ── Tentatives & Analytics ───────────────────────────────────────────────────
 
 
 def save_attempt(
@@ -207,6 +213,9 @@ def get_topic_stats(user_id: str = "default") -> pd.DataFrame:
             params=(user_id,),
         )
     return df
+
+
+# ── Documents & Chunks ───────────────────────────────────────────────────────
 
 
 def save_document(
