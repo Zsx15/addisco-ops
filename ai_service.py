@@ -194,58 +194,90 @@ def generate_question(
         f"{avoid_block}"
     )
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": f"Texte source :\n\n{context}"},
-        ],
-        max_tokens=200,
-        temperature=0.7,
-    )
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": f"Texte source :\n\n{context}"},
+            ],
+            max_tokens=200,
+            temperature=0.7,
+            timeout=30,
+        )
+    except Exception as exc:
+        logger.error("generate_question: API error (%s)", type(exc).__name__)
+        raise RuntimeError(
+            "La génération de question a échoué. Vérifiez votre connexion ou réessayez."
+        ) from None
+
+    if not response.choices or not response.choices[0].message.content:
+        raise RuntimeError("Réponse vide reçue du modèle. Réessayez.")
+
     return response.choices[0].message.content.strip(), chunk_ids, question_type
+
+
+_CORRECT_FALLBACK = {
+    "score": 0.0,
+    "expected_answer": "",
+    "correction": "La correction est temporairement indisponible. Réessayez.",
+    "error_type": "hors_sujet",
+    "topic": "",
+}
 
 
 def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
     client = _get_client()
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Tu es un formateur expert qui corrige des réponses. "
-                    "Réponds en JSON avec exactement ces champs :\n"
-                    "- score : décimal entre 0.0 et 1.0\n"
-                    "- expected_answer : réponse idéale concise\n"
-                    "- correction : explication pédagogique en 2 à 4 phrases\n"
-                    "- error_type : un de ces types si score < 0.8 : "
-                    "oubli_etape | confusion_notion | reponse_vague | erreur_ordre | hors_sujet | correct\n"
-                    "- topic : notion principale testée (3 à 5 mots)\n"
-                    "Réponds uniquement avec le JSON brut, sans markdown."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Texte source :\n{_truncate(source_text)}\n\n"
-                    f"Question : {question}\n\n"
-                    f"Réponse de l'apprenant : {user_answer}"
-                ),
-            },
-        ],
-        max_tokens=400,
-        temperature=0.3,
-        response_format={"type": "json_object"},
-    )
     try:
-        return json.loads(response.choices[0].message.content)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Tu es un formateur expert qui corrige des réponses. "
+                        "Réponds en JSON avec exactement ces champs :\n"
+                        "- score : décimal entre 0.0 et 1.0\n"
+                        "- expected_answer : réponse idéale concise\n"
+                        "- correction : explication pédagogique en 2 à 4 phrases\n"
+                        "- error_type : un de ces types si score < 0.8 : "
+                        "oubli_etape | confusion_notion | reponse_vague | erreur_ordre | hors_sujet | correct\n"
+                        "- topic : notion principale testée (3 à 5 mots)\n"
+                        "Réponds uniquement avec le JSON brut, sans markdown."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Texte source :\n{_truncate(source_text)}\n\n"
+                        f"Question : {question}\n\n"
+                        f"Réponse de l'apprenant : {user_answer}"
+                    ),
+                },
+            ],
+            max_tokens=400,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+            timeout=30,
+        )
+    except Exception as exc:
+        logger.error("correct_answer: API error (%s)", type(exc).__name__)
+        return dict(_CORRECT_FALLBACK)
+
+    if not response.choices or not response.choices[0].message.content:
+        logger.warning("correct_answer: empty response")
+        return dict(_CORRECT_FALLBACK)
+
+    try:
+        data = json.loads(response.choices[0].message.content)
     except json.JSONDecodeError:
         logger.warning("correct_answer: JSON decode error")
-        return {
-            "score": 0.0,
-            "expected_answer": "",
-            "correction": "Erreur lors de l'analyse de la correction. Réessayez.",
-            "error_type": "hors_sujet",
-            "topic": "",
-        }
+        return dict(_CORRECT_FALLBACK)
+
+    return {
+        "score":           float(data.get("score", 0.0)),
+        "expected_answer": str(data.get("expected_answer", "")),
+        "correction":      str(data.get("correction", "—")),
+        "error_type":      str(data.get("error_type", "hors_sujet")),
+        "topic":           str(data.get("topic", "")),
+    }

@@ -9,12 +9,14 @@ Exécution : python test_regression.py
 Chaque test database utilise une base SQLite temporaire isolée (tempfile).
 Aucun accès à database.db ni à l'API OpenAI.
 """
+import json
 import os
 import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
@@ -1665,6 +1667,236 @@ class TestAntiRegressionPhase15(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests mockés ai_service — generate_question / correct_answer
+# Aucun appel OpenAI réel — _get_client() et get_learning_profile() sont mockés.
+# ─────────────────────────────────────────────────────────────────────────────
+
+from ai_service import correct_answer, generate_question
+from adaptive_engine import QUESTION_TYPES
+
+
+class TestGenerateQuestionMocked(unittest.TestCase):
+    """generate_question — robustesse sans appel API réel."""
+
+    def _mock_client(self, content: str):
+        mc = MagicMock()
+        mc.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content=content))]
+        )
+        return mc
+
+    # ── 1. Chemin nominal ────────────────────────────────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_happy_path_no_rag(self, mock_gc, mock_prof):
+        """Retourne (str non vide, [], question_type valide) en mode texte brut."""
+        mock_gc.return_value = self._mock_client("Quelle est la règle principale ?")
+        q, ids, qtype = generate_question("Texte source suffisamment long.", document_id=None)
+        self.assertEqual(q, "Quelle est la règle principale ?")
+        self.assertEqual(ids, [])
+        self.assertIn(qtype, QUESTION_TYPES)
+
+    # ── 2. Exception API → RuntimeError propre ───────────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_api_exception_raises_runtime_error(self, mock_gc, mock_prof):
+        """Exception OpenAI (timeout, réseau…) → RuntimeError, pas de détail technique."""
+        mc = MagicMock()
+        mc.chat.completions.create.side_effect = Exception("Connection refused")
+        mock_gc.return_value = mc
+        with self.assertRaises(RuntimeError) as ctx:
+            generate_question("Texte.", document_id=None)
+        self.assertNotIn("Connection refused", str(ctx.exception))
+
+    # ── 3. Rate limit → même comportement ────────────────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_rate_limit_raises_runtime_error(self, mock_gc, mock_prof):
+        """Rate limit (429) → RuntimeError avec message utilisateur."""
+        mc = MagicMock()
+        mc.chat.completions.create.side_effect = Exception("Rate limit exceeded")
+        mock_gc.return_value = mc
+        with self.assertRaises(RuntimeError):
+            generate_question("Texte.", document_id=None)
+
+    # ── 4. Réponse vide (choices=[]) → RuntimeError ──────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_empty_choices_raises_runtime_error(self, mock_gc, mock_prof):
+        """choices=[] → RuntimeError (pas de crash IndexError)."""
+        mc = MagicMock()
+        mc.chat.completions.create.return_value = MagicMock(choices=[])
+        mock_gc.return_value = mc
+        with self.assertRaises(RuntimeError):
+            generate_question("Texte.", document_id=None)
+
+    # ── 5. Contenu vide → RuntimeError ───────────────────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_empty_content_raises_runtime_error(self, mock_gc, mock_prof):
+        """content="" → RuntimeError (pas de question vide silencieuse)."""
+        mock_gc.return_value = self._mock_client("")
+        with self.assertRaises(RuntimeError):
+            generate_question("Texte.", document_id=None)
+
+    # ── 6. Texte très court → pas de crash ───────────────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_short_text_no_crash(self, mock_gc, mock_prof):
+        """Texte très court (< 10 chars) → ne plante pas, retourne la question."""
+        mock_gc.return_value = self._mock_client("Question courte ?")
+        q, _, _ = generate_question("Oui.", document_id=None)
+        self.assertEqual(q, "Question courte ?")
+
+    # ── 7. Clé API absente → ValueError sans exposer la clé ─────────────────
+
+    def test_no_api_key_raises_value_error(self):
+        """OPENAI_API_KEY absente → ValueError avec message propre."""
+        import ai_service
+        original_client = ai_service._client
+        ai_service._client = None
+        original_key = os.environ.pop("OPENAI_API_KEY", None)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                ai_service._get_client()
+            msg = str(ctx.exception)
+            self.assertIn("OPENAI_API_KEY", msg)
+            self.assertNotIn("sk-", msg)
+        finally:
+            ai_service._client = original_client
+            if original_key is not None:
+                os.environ["OPENAI_API_KEY"] = original_key
+
+    # ── 8. Timeout explicite passé à l'API ───────────────────────────────────
+
+    @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service._get_client")
+    def test_timeout_passed_to_api(self, mock_gc, mock_prof):
+        """timeout=30 est bien transmis à client.chat.completions.create()."""
+        mock_gc.return_value = self._mock_client("Question ?")
+        generate_question("Texte source.", document_id=None)
+        _, kwargs = mock_gc.return_value.chat.completions.create.call_args
+        self.assertEqual(kwargs.get("timeout"), 30)
+
+
+class TestCorrectAnswerMocked(unittest.TestCase):
+    """correct_answer — robustesse sans appel API réel."""
+
+    def _mock_client_with(self, content: str):
+        mc = MagicMock()
+        mc.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content=content))]
+        )
+        return mc
+
+    def _valid_json(self, score=0.8, error_type="correct"):
+        return json.dumps({
+            "score":           score,
+            "expected_answer": "La réponse correcte.",
+            "correction":      "Bonne réponse, bien justifiée.",
+            "error_type":      error_type,
+            "topic":           "Gestion des stocks",
+        })
+
+    # ── 1. Chemin nominal ────────────────────────────────────────────────────
+
+    @patch("ai_service._get_client")
+    def test_happy_path_valid_json(self, mock_gc):
+        """JSON valide → dict complet avec tous les champs."""
+        mock_gc.return_value = self._mock_client_with(self._valid_json())
+        result = correct_answer("Question ?", "Ma réponse.", "Texte source.")
+        self.assertAlmostEqual(result["score"], 0.8)
+        self.assertEqual(result["error_type"], "correct")
+        self.assertIn("correction", result)
+        self.assertIn("topic", result)
+        self.assertIn("expected_answer", result)
+
+    # ── 2. JSON invalide → fallback propre ───────────────────────────────────
+
+    @patch("ai_service._get_client")
+    def test_invalid_json_returns_fallback(self, mock_gc):
+        """JSON malformé → fallback avec score 0.0, message utilisateur propre."""
+        mock_gc.return_value = self._mock_client_with("pas du JSON {invalide}")
+        result = correct_answer("Q ?", "R.", "T.")
+        self.assertEqual(result["score"], 0.0)
+        self.assertEqual(result["error_type"], "hors_sujet")
+        self.assertIn("correction", result)
+
+    # ── 3. Exception API → fallback, pas de fuite technique ──────────────────
+
+    @patch("ai_service._get_client")
+    def test_api_exception_returns_fallback_no_leak(self, mock_gc):
+        """Exception API → fallback dict, message sans détail technique."""
+        mc = MagicMock()
+        mc.chat.completions.create.side_effect = Exception("sk-secret timeout")
+        mock_gc.return_value = mc
+        result = correct_answer("Q ?", "R.", "T.")
+        self.assertEqual(result["score"], 0.0)
+        self.assertNotIn("sk-", result.get("correction", ""))
+        self.assertNotIn("sk-", result.get("expected_answer", ""))
+
+    # ── 4. choices=[] → fallback ──────────────────────────────────────────────
+
+    @patch("ai_service._get_client")
+    def test_empty_choices_returns_fallback(self, mock_gc):
+        """choices=[] → fallback, pas d'IndexError."""
+        mc = MagicMock()
+        mc.chat.completions.create.return_value = MagicMock(choices=[])
+        mock_gc.return_value = mc
+        result = correct_answer("Q ?", "R.", "T.")
+        self.assertEqual(result["score"], 0.0)
+
+    # ── 5. JSON partiel → champs manquants remplacés par défaut ──────────────
+
+    @patch("ai_service._get_client")
+    def test_partial_json_gets_defaults(self, mock_gc):
+        """JSON avec seulement 'score' → autres champs avec valeurs par défaut."""
+        mock_gc.return_value = self._mock_client_with(json.dumps({"score": 0.5}))
+        result = correct_answer("Q ?", "R.", "T.")
+        self.assertAlmostEqual(result["score"], 0.5)
+        self.assertIn("correction", result)
+        self.assertIn("error_type", result)
+        self.assertIn("topic", result)
+
+    # ── 6. score toujours float ───────────────────────────────────────────────
+
+    @patch("ai_service._get_client")
+    def test_score_always_float(self, mock_gc):
+        """API retourne score entier → converti en float."""
+        mock_gc.return_value = self._mock_client_with(
+            json.dumps({"score": 1, "correction": "OK",
+                        "error_type": "correct", "topic": "x", "expected_answer": "y"})
+        )
+        result = correct_answer("Q ?", "R.", "T.")
+        self.assertIsInstance(result["score"], float)
+
+    # ── 7. Réponse vide → fallback ────────────────────────────────────────────
+
+    @patch("ai_service._get_client")
+    def test_empty_content_returns_fallback(self, mock_gc):
+        """content='' → fallback, pas de JSONDecodeError non gérée."""
+        mock_gc.return_value = self._mock_client_with("")
+        result = correct_answer("Q ?", "R.", "T.")
+        self.assertEqual(result["score"], 0.0)
+
+    # ── 8. Inputs vides → pas de crash ───────────────────────────────────────
+
+    @patch("ai_service._get_client")
+    def test_empty_inputs_no_crash(self, mock_gc):
+        """Question, réponse et texte vides → retourne dict valide."""
+        mock_gc.return_value = self._mock_client_with(self._valid_json(score=0.0))
+        result = correct_answer("", "", "")
+        self.assertIsInstance(result, dict)
+        self.assertIn("score", result)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -1689,6 +1921,8 @@ if __name__ == "__main__":
         TestComputeRetentionPure,
         TestGetRetentionMetricsDb,
         TestAntiRegressionPhase15,
+        TestGenerateQuestionMocked,
+        TestCorrectAnswerMocked,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
