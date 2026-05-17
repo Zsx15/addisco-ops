@@ -4,6 +4,130 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-17 — Bilan structurel — Conseil des 5 agents — Note 79/100
+
+**Objectif :** évaluation complète de la structure du projet avant ouverture de Phase 15 — architecture, qualité code, tests, sécurité, robustesse.
+
+**Résultat global : 79/100**
+
+| Dimension | Score | Observations |
+|-----------|------:|--------------|
+| Architecture | 82 | Modularité exemplaire, ROADMAP Phase 0→17 complète. `database.py` trop gros (710 lignes), ARCHITECTURE.md partiellement obsolète. |
+| Qualité code | 81 | Fonctions pures, guards défensifs, corrections minimales, annotations cohérentes. `config.py` orphelin. |
+| Revue critique | 74 | Anti-régressions solides. Couverture UI = 0 %, `ai_service.py` non mocké. |
+| Tests | 76 | 168 tests, isolation DB parfaite, 0 régression. Monofichier 1697 lignes, pas de tests perf. |
+| Sécurité | 83 | bcrypt, hmac, no SQLi, UX-01 corrigé. Rate limiting absent, erreurs brutes exposées. |
+
+**Points forts identifiés :**
+- `adaptive_engine.py` = module pur, zéro import projet — contrainte tenue pendant 4 phases.
+- Vision industrielle réelle : architecture cible documentée, Phases 11→17 planifiées avec critères de sortie et risques.
+- 120 commits — progression incrémentale sans régression.
+
+**Points à adresser pour dépasser 90 :**
+- Tests d'intégration `ai_service` avec mock OpenAI.
+- Segmenter `database.py` en sous-modules (analytics, profile, chunks).
+- Rate limiting LLM par utilisateur.
+- Synchroniser ARCHITECTURE.md avec l'état réel du code.
+
+---
+
+## 2026-05-17 — Audit UX pré-Phase 15 — 4 corrections (Commit `36306ca`)
+
+**Objectif :** identifier les erreurs UX, incohérences et flux fragiles non détectés par les tests backend.
+
+**Résultat : 10 problèmes identifiés — 4 corrections — 6 observations documentées.**
+
+**UX-01 (CRITIQUE) — Fuite de données inter-utilisateurs — `app.py` :**
+- Cause : logout nettoyait `user_id/username/role` mais pas les clés pédagogiques. L'utilisateur B voyait la question/réponse de l'utilisateur A après login sur le même navigateur.
+- Correction : le handler logout efface explicitement toutes les clés pédagogiques (`question`, `source_text_input`, `answer_input`, `result`, `chunk_ids`, `active_document_id`, etc.).
+
+**UX-02 (SÉRIEUX) — `answer_input` non effacé à la génération — `tab_training.py` :**
+- Cause : "Générer une question" ne vidait pas `answer_input`. L'ancienne réponse persistait dans la zone texte d'une nouvelle question.
+- Correction : `st.session_state["answer_input"] = ""` ajouté dans le bloc génération.
+
+**UX-03 (MODÉRÉ) — État vide manquant — graphe "Évolution des scores" — `tab_dashboard.py` :**
+- Cause : `if not df_evol.empty:` sans `else` → titre de section orphelin au-dessus d'un espace vide.
+- Correction : `else: st.caption("Pas encore de données d'évolution.")`.
+
+**UX-04 (MODÉRÉ) — Pas de spinner — "Calculer le profil" — `tab_dashboard.py` :**
+- Cause : `compute_and_save_learning_profile()` appelé sans feedback visuel — interface figée silencieusement.
+- Correction : `with st.spinner("Calcul du profil…"):`.
+
+**Observations documentées (pas de code) :**
+- UX-05 : Demo mode voit tous les onglets — intentionnel.
+- UX-06 : Mini-timeline newest→oldest (L→R) — cosmétique.
+- UX-07 : Erreurs API brutes exposées — acceptable MVP.
+- UX-09 : Tab "Formateur" = vue self, pas superviseur multi-apprenants — design documenté.
+- UX-10 : Isolation multi-user complète en mode auth confirmée.
+
+**Résultat :** 168 tests. 0 régression. 3 fichiers modifiés.
+
+---
+
+## 2026-05-17 — Snapshot final pré-Phase 15 (Commit `18f83df`)
+
+**Objectif :** photographie stable et restaurable du projet avant ouverture de Phase 15 multi-documents.
+
+**Contenu :** 34 fichiers source — tous modules Python, `tabs/`, `TASKS/`, docs projet (ROADMAP, ARCHITECTURE, PRD, TASK_MASTER), App Factory, `database.db` + `revision.db` (copiés via `sqlite3.backup()` — API safe), `BACKUP_INFO.md` complet.
+
+**Localisation :**
+- Dossier : `backups/snapshot_pre_phase15_final_20260517_1928/`
+- ZIP : `backups/snapshot_pre_phase15_final_20260517_1928.zip` (174 KB)
+- Commit de référence : `36306ca`
+
+**État au snapshot :** Phase 14 complète (TASK-048 → TASK-051) + audit UX intégré. 168 tests. 0 régression.
+
+**Points de vigilance Phase 15 documentés dans BACKUP_INFO.md :**
+1. `adaptive_engine.py` = module pur — contrainte à préserver.
+2. `attempts.chunk_id` et `chunks.id` — IDs stables, jamais DELETE+INSERT.
+3. Guard `if df.empty: return df` dans `classify_mastery()` — ne pas retirer.
+4. `pd.isna()` obligatoire pour les valeurs nulles datetime (pandas 2.x).
+5. Tout nouveau state pédagogique ajouté en Phase 15 doit figurer dans la liste de nettoyage logout (`app.py`).
+
+---
+
+## 2026-05-17 — Audit anti-régression Phase 15 — 2 bugs corrigés + 11 tests (Commit `0169d9c`)
+
+**Objectif :** inspection complète du code avant Phase 15 — détecter les bugs silencieux non couverts par les 155 tests existants.
+
+**BUG-1 — `get_topic_stats` : avg_score NaN → crash `astype(int)` — `database.py` :**
+- Cause : `AVG(NULL)` = NULL en SQLite → pandas NaN → `.astype(int)` lève `IntCastingNaNError`.
+- Correction : `AND score IS NOT NULL` ajouté dans le WHERE.
+
+**BUG-2 — `classify_mastery` crash sur DataFrame vide — `adaptive_engine.py` :**
+- Cause : `df.apply(func, axis=1)` sur un DataFrame sans colonnes retourne un DataFrame (pas une Series) → `df["col"] = DataFrame` lève `ValueError`.
+- Correction : `if df.empty: return df` ajouté en tête de fonction.
+
+**`TestAntiRegressionPhase15` — 11 tests de régression :**
+- `test_pipeline_user_without_history`
+- `test_chunk_without_attempts_excluded_from_stats`
+- `test_attempt_null_score_excluded_from_chunk_stats`
+- `test_topic_stats_no_nan_with_null_score` (BUG-1)
+- `test_classify_mastery_empty_df_no_crash` (BUG-2)
+- `test_classify_mastery_heterogeneous_chunks_all_scalars`
+- `test_build_session_plan_priority_score_always_float`
+- `test_user_metrics_bounded_0_1`
+- `test_user_isolation_full_pipeline`
+- `test_classify_mastery_invalid_date_no_crash`
+- `test_retention_no_chunk_id_returns_all_none`
+
+**Résultat :** 168 tests. 0 régression.
+
+---
+
+## 2026-05-17 — Fix runtime : classify_mastery crash pandas 2.x NaT (Commit `eaf6e07`)
+
+**Cause :** `_next_review` retournant `None`, pandas 2.x infère le dtype `datetime64[us]` sur la colonne et convertit `None` → `pd.NaT`. `pd.NaT is None` = `False` — le guard original était inopérant. `pd.NaT.date()` retourne `NaT`, qui ne peut pas être soustrait à `datetime.date` → `ValueError` en cascade.
+
+**Corrections dans `adaptive_engine.py` :**
+- `_days_until` : remplacement de `if nxt is None` par `if nxt is None or pd.isna(nxt)`, ajout d'un `try/except` global et cast `int()` explicite.
+- `_review_status` : guard défensif `if d is None or pd.isna(d)`.
+
+**Test ajouté :**
+- `test_days_until_review_scalar_with_null_date` dans `TestClassifyMastery` — reproduit exactement le crash avec un DataFrame mixant dates valides et `None`.
+
+---
+
 ## 2026-05-17 — TASK-051 : Métriques de rétention pédagogique J+1 / J+7 / J+30
 
 **Objectif :** mesurer la rétention observable sur 3 fenêtres temporelles — révision lendemain (j1), hebdomadaire (j7), mensuelle (j30).
