@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from adaptive_engine import REVIEW_INTERVALS, _PEDAGOGY_GROUPS, _adaptive_interval, classify_mastery
+from adaptive_engine import (
+    REVIEW_INTERVALS, _PEDAGOGY_GROUPS, _adaptive_interval, classify_mastery,
+    compute_momentum, compute_learning_velocity, compute_consistency_score,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +101,13 @@ def init_db():
             )
         except sqlite3.OperationalError:
             pass
+        for _col in ("momentum", "learning_velocity", "consistency_score"):
+            try:
+                conn.execute(
+                    f"ALTER TABLE user_learning_profile ADD COLUMN {_col} REAL DEFAULT 0"
+                )
+            except sqlite3.OperationalError:
+                pass
     logger.info("init_db: ready (%s)", DB_PATH)
 
 
@@ -504,12 +514,18 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(
             """
-            SELECT pedagogy_type, topic, score
+            SELECT pedagogy_type, topic, score, created_at
             FROM attempts
             WHERE user_id = ? AND score IS NOT NULL
+            ORDER BY created_at ASC
             """,
             (user_id,),
         ).fetchall()
+
+    score_time_rows       = [(r[3], r[2]) for r in rows]
+    momentum_val          = compute_momentum(score_time_rows)
+    learning_velocity_val = compute_learning_velocity(score_time_rows)
+    consistency_val       = compute_consistency_score(score_time_rows)
 
     if not rows:
         profile = {
@@ -521,6 +537,9 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
             "analogy_score": 0.0,
             "average_score": 0.0,
             "fragile_topics": [],
+            "momentum":          momentum_val,
+            "learning_velocity": learning_velocity_val,
+            "consistency_score": consistency_val,
         }
     else:
         all_scores = [r[2] for r in rows]
@@ -529,7 +548,7 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
         group_scores: dict[str, list[float]] = {g: [] for g in _PEDAGOGY_GROUPS}
         topic_scores: dict[str, list[float]] = {}
 
-        for ptype, topic, score in rows:
+        for ptype, topic, score, _created_at in rows:
             for group, types in _PEDAGOGY_GROUPS.items():
                 if ptype in types:
                     group_scores[group].append(score)
@@ -562,6 +581,9 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
             "analogy_score": analogy_score,
             "average_score": average_score,
             "fragile_topics": fragile_topics,
+            "momentum":          momentum_val,
+            "learning_velocity": learning_velocity_val,
+            "consistency_score": consistency_val,
         }
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -569,8 +591,9 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
             """
             INSERT OR REPLACE INTO user_learning_profile
                 (user_id, preferred_pedagogy, logical_score, procedural_score,
-                 narrative_score, analogy_score, average_score, fragile_topics, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                 narrative_score, analogy_score, average_score, fragile_topics,
+                 momentum, learning_velocity, consistency_score, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 profile["user_id"],
@@ -581,6 +604,9 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
                 profile["analogy_score"],
                 profile["average_score"],
                 json.dumps(profile["fragile_topics"], ensure_ascii=False),
+                profile["momentum"],
+                profile["learning_velocity"],
+                profile["consistency_score"],
             ),
         )
 

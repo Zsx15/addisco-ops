@@ -4,6 +4,38 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-17 — TASK-049 : Enrichissement du profil adaptatif utilisateur
+
+**Objectif :** ajouter trois métriques pures et robustes au moteur adaptatif : momentum, learning_velocity, consistency_score.
+
+**adaptive_engine.py — 3 nouvelles fonctions pures :**
+- `compute_momentum(rows, window_days=7)` — avg_score(J-7→J) − avg_score(J-14→J-7). Mesure l'accélération récente. Borné [-1.0, 1.0]. Fallback 0.0 si fenêtre précédente vide.
+- `compute_learning_velocity(rows)` — moyenne des deltas avg_score entre jours d'activité consécutifs. Mesure la régularité session à session. Borné [-1.0, 1.0]. Fallback 0.0 si < 2 sessions.
+- `compute_consistency_score(rows, window_days=30)` — jours actifs / 30 sur les 30 derniers jours. Mesure la constance de la pratique. Borné [0.0, 1.0]. Fallback 0.0 si fenêtre vide.
+- Les trois fonctions acceptent `list[tuple[created_at_str, score]]` — sans dépendance projet, pleinement testables.
+
+**database.py — migration douce + intégration :**
+- Import des 3 nouvelles fonctions depuis `adaptive_engine`.
+- `init_db()` : 3 migrations `ALTER TABLE user_learning_profile ADD COLUMN ... REAL DEFAULT 0` avec try/except ignorant les colonnes déjà existantes.
+- `compute_and_save_learning_profile()` : SELECT étendu à `created_at`, calcul des 3 métriques, ajout dans le dict profil et dans l'INSERT OR REPLACE (11 paramètres → 12).
+- `get_learning_profile()` : inchangée — `SELECT *` + `sqlite3.Row` retourne les nouvelles colonnes automatiquement.
+
+**test_regression.py — 20 nouveaux tests :**
+- `TestAdaptiveMetricsPure` (15 tests) : momentum (vide, fenêtre unique, positif, négatif, borné), velocity (vide, 1 jour, 2 jours positif/négatif, borné), consistency (vide, 30/30 jours, 15/30, borné, vieilles données ignorées).
+- `TestProfileWithNewMetrics` (5 tests) : colonnes DB présentes, 0.0 sans historique, clés dans le dict, persistance via get_learning_profile, consistency > 0 après une tentative.
+
+**Résultat :** 137 tests + 4 subtests. 0 régression. py_compile 3/3 OK.
+
+**Invariants préservés :**
+- Aucun changement UX, aucun changement RAG, aucun changement auth.
+- `get_learning_profile()` non modifiée — rétrocompatibilité totale.
+- Migration douce : base existante mise à jour sans reset ni perte de données.
+- Fallback 0.0 systématique si données insuffisantes.
+
+**Phase 14 restante :** TASK-050 (get_next_session_plan) et TASK-051 (métriques rétention J+1/J+7/J+30).
+
+---
+
 ## 2026-05-16 — Phase 15A : Consolidation technique minimale (TASK-050A.1–4)
 
 **Objectif :** corriger les mines techniques identifiées par le Conseil lors du checkpoint architectural Phase 14 — zéro changement fonctionnel, zéro changement UX.

@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -884,6 +885,173 @@ class TestCosineSimilarity(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests TASK-049 — Métriques dynamiques adaptive_engine
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestAdaptiveMetricsPure(unittest.TestCase):
+    """
+    Teste compute_momentum, compute_learning_velocity, compute_consistency_score.
+    Fonctions pures — aucune base de données, aucun appel API.
+    """
+
+    def setUp(self):
+        from adaptive_engine import (
+            compute_momentum,
+            compute_learning_velocity,
+            compute_consistency_score,
+        )
+        self.mom = compute_momentum
+        self.vel = compute_learning_velocity
+        self.con = compute_consistency_score
+
+    def _rows(self, days_scores: list[tuple[int, float]]) -> list[tuple[str, float]]:
+        """Helper : (days_ago, score) → (created_at_str, score)."""
+        now = datetime.now()
+        return [
+            ((now - timedelta(days=d)).strftime("%Y-%m-%d %H:%M:%S"), s)
+            for d, s in days_scores
+        ]
+
+    # ── compute_momentum ─────────────────────────────────────────────────────
+
+    def test_momentum_no_data(self):
+        self.assertEqual(self.mom([]), 0.0)
+
+    def test_momentum_only_recent_window(self):
+        """Aucune donnée dans la fenêtre précédente → 0.0."""
+        rows = self._rows([(1, 0.8), (2, 0.7)])
+        self.assertEqual(self.mom(rows), 0.0)
+
+    def test_momentum_positive(self):
+        """Scores récents (0–7j) > scores précédents (8–14j) → momentum > 0."""
+        rows = self._rows([(10, 0.3), (12, 0.4), (2, 0.8), (3, 0.9)])
+        result = self.mom(rows)
+        self.assertGreater(result, 0)
+        self.assertAlmostEqual(result, 0.5, places=2)
+
+    def test_momentum_negative(self):
+        """Scores récents < scores précédents → momentum < 0."""
+        rows = self._rows([(10, 0.9), (12, 0.8), (2, 0.3), (3, 0.4)])
+        result = self.mom(rows)
+        self.assertLess(result, 0)
+        self.assertAlmostEqual(result, -0.5, places=2)
+
+    def test_momentum_bounded(self):
+        """Momentum toujours dans [−1.0, 1.0]."""
+        rows = self._rows([(10, 0.0), (11, 0.0), (2, 1.0), (3, 1.0)])
+        result = self.mom(rows)
+        self.assertGreaterEqual(result, -1.0)
+        self.assertLessEqual(result, 1.0)
+
+    # ── compute_learning_velocity ────────────────────────────────────────────
+
+    def test_velocity_no_data(self):
+        self.assertEqual(self.vel([]), 0.0)
+
+    def test_velocity_single_day(self):
+        """Deux tentatives le même jour → 1 session → 0.0."""
+        rows = self._rows([(1, 0.5), (1, 0.7)])
+        self.assertEqual(self.vel(rows), 0.0)
+
+    def test_velocity_two_days_positive(self):
+        """Session J−5 : 0.4 → Session J−1 : 0.8 → delta = +0.4."""
+        rows = self._rows([(5, 0.4), (1, 0.8)])
+        result = self.vel(rows)
+        self.assertGreater(result, 0)
+        self.assertAlmostEqual(result, 0.4, places=2)
+
+    def test_velocity_two_days_negative(self):
+        """Session J−5 : 0.9 → Session J−1 : 0.3 → delta = −0.6."""
+        rows = self._rows([(5, 0.9), (1, 0.3)])
+        result = self.vel(rows)
+        self.assertLess(result, 0)
+        self.assertAlmostEqual(result, -0.6, places=2)
+
+    def test_velocity_bounded(self):
+        """Vélocité toujours dans [−1.0, 1.0]."""
+        rows = self._rows([(5, 0.0), (1, 1.0)])
+        result = self.vel(rows)
+        self.assertGreaterEqual(result, -1.0)
+        self.assertLessEqual(result, 1.0)
+
+    # ── compute_consistency_score ─────────────────────────────────────────────
+
+    def test_consistency_no_data(self):
+        self.assertEqual(self.con([]), 0.0)
+
+    def test_consistency_all_30_days(self):
+        """Une tentative par jour pendant 30 jours → 1.0."""
+        rows = self._rows([(d, 0.5) for d in range(30)])
+        result = self.con(rows)
+        self.assertAlmostEqual(result, 1.0, places=2)
+
+    def test_consistency_half_active(self):
+        """15 jours actifs sur 30 → 0.5."""
+        rows = self._rows([(d, 0.5) for d in range(0, 30, 2)])
+        result = self.con(rows)
+        self.assertAlmostEqual(result, 0.5, places=2)
+
+    def test_consistency_bounded_above(self):
+        """Plusieurs tentatives le même jour → borné à ≤ 1.0."""
+        rows = self._rows([(1, 0.5), (1, 0.7), (1, 0.9)])
+        result = self.con(rows)
+        self.assertLessEqual(result, 1.0)
+
+    def test_consistency_old_data_ignored(self):
+        """Données vieilles de > 30 jours ignorées → 0.0."""
+        rows = self._rows([(35, 0.8), (40, 0.9)])
+        self.assertEqual(self.con(rows), 0.0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests TASK-049 — Intégration profil DB
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestProfileWithNewMetrics(_DbTestCase):
+    """Vérifie que les 3 nouvelles métriques sont stockées dans user_learning_profile."""
+
+    def test_new_columns_in_db_after_init(self):
+        """init_db() crée les 3 nouvelles colonnes via migration douce."""
+        import sqlite3
+        with sqlite3.connect(self.db.DB_PATH) as conn:
+            cols = {row[1] for row in conn.execute(
+                "PRAGMA table_info(user_learning_profile)"
+            ).fetchall()}
+        for col in ("momentum", "learning_velocity", "consistency_score"):
+            self.assertIn(col, cols, f"Colonne manquante : {col}")
+
+    def test_profile_no_history_metrics_are_zero(self):
+        """Utilisateur sans historique → 0.0 pour les 3 métriques."""
+        profile = self.db.compute_and_save_learning_profile("empty_user")
+        self.assertEqual(profile["momentum"],          0.0)
+        self.assertEqual(profile["learning_velocity"], 0.0)
+        self.assertEqual(profile["consistency_score"], 0.0)
+
+    def test_profile_dict_includes_new_keys(self):
+        """compute_and_save_learning_profile retourne les 3 nouvelles clés."""
+        self._add_attempt(score=0.7)
+        profile = self.db.compute_and_save_learning_profile("default")
+        for key in ("momentum", "learning_velocity", "consistency_score"):
+            self.assertIn(key, profile)
+            self.assertIsInstance(profile[key], float)
+
+    def test_profile_persisted_to_db(self):
+        """Les métriques sont bien sauvegardées et relisibles via get_learning_profile."""
+        self._add_attempt(score=0.8)
+        self.db.compute_and_save_learning_profile("default")
+        loaded = self.db.get_learning_profile("default")
+        self.assertIsNotNone(loaded)
+        for key in ("momentum", "learning_velocity", "consistency_score"):
+            self.assertIn(key, loaded)
+
+    def test_consistency_score_nonzero_with_recent_attempt(self):
+        """Un apprenant ayant tenté aujourd'hui a consistency_score > 0."""
+        self._add_attempt(score=0.7)
+        profile = self.db.compute_and_save_learning_profile("default")
+        self.assertGreater(profile["consistency_score"], 0.0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -901,6 +1069,8 @@ if __name__ == "__main__":
         TestDatabaseAdminFunctions,
         TestReviewIntervalsCoherence,
         TestCosineSimilarity,
+        TestAdaptiveMetricsPure,
+        TestProfileWithNewMetrics,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
