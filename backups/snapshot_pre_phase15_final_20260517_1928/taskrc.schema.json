@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "App Factory taskrc",
+  "description": "Configuration pour task.mjs v2.1 (workflow App Factory). Ce fichier valide ton .taskrc.json et active l'autocomplétion dans VSCode.",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Référence au schéma de validation. Toujours './taskrc.schema.json'."
+    },
+    "version": {
+      "type": "string",
+      "description": "Version du schéma. Actuellement '1.0'.",
+      "enum": ["1.0"]
+    },
+    "docs": {
+      "type": "object",
+      "description": "Chemins des fichiers de documentation que task.mjs lit automatiquement.",
+      "additionalProperties": false,
+      "properties": {
+        "prd": {
+          "type": "string",
+          "description": "Chemin vers le PRD (Product Requirements Document). Par défaut 'prd.md'.",
+          "default": "prd.md",
+          "minLength": 1
+        },
+        "context": {
+          "type": "string",
+          "description": "Chemin vers le fichier de contexte IA pour Claude Code. Par défaut 'CLAUDE.md'.",
+          "default": "CLAUDE.md",
+          "minLength": 1
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "description": "Configuration Git utilisée par claim, ship, done.",
+      "additionalProperties": false,
+      "properties": {
+        "mainBranch": {
+          "type": "string",
+          "description": "Nom de la branche principale (ex: main, master, develop). Sans espaces.",
+          "default": "main",
+          "pattern": "^[a-zA-Z0-9._/-]+$",
+          "minLength": 1
+        },
+        "commitTemplate": {
+          "type": "string",
+          "description": "Template du sujet de commit. Variables disponibles : {taskId}, {description}.",
+          "default": "feat(task-{taskId}): {description}",
+          "minLength": 1
+        },
+        "coAuthor": {
+          "type": ["string", "null"],
+          "description": "Co-auteur ajouté au commit (format 'Name <email>'). null = désactivé.",
+          "default": "Claude <noreply@anthropic.com>"
+        }
+      }
+    },
+    "review": {
+      "description": "Configuration de 'npm run task review'. Deux formats supportés : flat (single target) ou targets[] (multi-cibles pour monorepo).",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/reviewSteps"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["targets"],
+          "properties": {
+            "targets": {
+              "type": "array",
+              "description": "Liste des cibles de review (pour monorepo).",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "cwd"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Nom de la cible (ex: backend, app, web).",
+                    "minLength": 1
+                  },
+                  "cwd": {
+                    "type": "string",
+                    "description": "Sous-dossier où exécuter les commandes (relatif à la racine du projet).",
+                    "minLength": 1
+                  },
+                  "steps": {
+                    "$ref": "#/definitions/reviewSteps"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "prompt": {
+      "type": "object",
+      "description": "Configuration des prompts injectés dans Claude Code.",
+      "additionalProperties": false,
+      "properties": {
+        "extraInstructions": {
+          "type": "array",
+          "description": "Instructions additionnelles injectées dans le prompt 'npm run task prompt'. Utile pour rappeler des règles non-négociables propres au projet.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "reviewSteps": {
+      "type": "object",
+      "description": "Commandes shell exécutées par 'npm run task review'. Chaîne vide ou champ absent = étape ignorée.",
+      "additionalProperties": false,
+      "properties": {
+        "typecheck": {
+          "type": "string",
+          "description": "Commande de vérification de types (ex: 'npx tsc --noEmit', 'mypy .', 'go vet ./...')."
+        },
+        "lint": {
+          "type": "string",
+          "description": "Commande de linting (ex: 'npm run lint', 'ruff check .', 'cargo clippy')."
+        },
+        "format": {
+          "type": "string",
+          "description": "Commande de vérification du format (ex: 'npm run format -- --check', 'ruff format --check .')."
+        },
+        "test": {
+          "type": "string",
+          "description": "Commande de tests (ex: 'npm run test', 'pytest', 'go test ./...')."
+        },
+        "build": {
+          "type": "string",
+          "description": "Commande de build (ex: 'npm run build', 'go build ./...', 'cargo build')."
+        }
+      }
+    }
+  }
+}
