@@ -303,10 +303,10 @@ def compute_consistency_score(rows: list[tuple[str, float]], window_days: int = 
     """
     Régularité = jours actifs dans les window_days derniers jours / window_days.
     Mesure la constance de la pratique.
-    Retourne 0.0 si aucune session dans la fenêtre.
+    Retourne 0.0 si aucune session dans la fenêtre ou si window_days <= 0.
     Borné à [0.0, 1.0].
     """
-    if not rows:
+    if not rows or window_days <= 0:
         return 0.0
     cutoff      = datetime.now() - timedelta(days=window_days)
     active_days: set[str] = set()
@@ -314,6 +314,8 @@ def compute_consistency_score(rows: list[tuple[str, float]], window_days: int = 
         try:
             dt = datetime.fromisoformat(str(created_at))
         except (ValueError, TypeError):
+            continue
+        if score is None:
             continue
         if dt >= cutoff:
             active_days.add(dt.strftime("%Y-%m-%d"))

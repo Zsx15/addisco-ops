@@ -510,6 +510,12 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
 
     preferred_pedagogy : groupe avec le score moyen le plus élevé (min 1 tentative).
     fragile_topics     : notions avec avg_score < 0.6 (JSON array).
+
+    Métriques adaptatives (TASK-049) :
+    - momentum          : avg_score(7 derniers jours) − avg_score(7 jours précédents) ∈ [-1, 1]
+    - learning_velocity : moyenne des deltas avg_score inter-sessions ∈ [-1, 1]
+    - consistency_score : jours actifs / 30 sur les 30 derniers jours ∈ [0, 1]
+    Toutes retournent 0.0 si les données sont insuffisantes.
     """
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(

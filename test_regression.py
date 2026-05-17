@@ -1002,6 +1002,11 @@ class TestAdaptiveMetricsPure(unittest.TestCase):
         rows = self._rows([(35, 0.8), (40, 0.9)])
         self.assertEqual(self.con(rows), 0.0)
 
+    def test_consistency_window_zero_returns_0(self):
+        """window_days=0 ne provoque pas de ZeroDivisionError."""
+        rows = self._rows([(1, 0.5)])
+        self.assertEqual(self.con(rows, window_days=0), 0.0)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tests TASK-049 — Intégration profil DB
@@ -1036,13 +1041,16 @@ class TestProfileWithNewMetrics(_DbTestCase):
             self.assertIsInstance(profile[key], float)
 
     def test_profile_persisted_to_db(self):
-        """Les métriques sont bien sauvegardées et relisibles via get_learning_profile."""
+        """Les valeurs des 3 métriques sont identiques entre dict retourné et DB relue."""
         self._add_attempt(score=0.8)
-        self.db.compute_and_save_learning_profile("default")
+        saved  = self.db.compute_and_save_learning_profile("default")
         loaded = self.db.get_learning_profile("default")
         self.assertIsNotNone(loaded)
         for key in ("momentum", "learning_velocity", "consistency_score"):
-            self.assertIn(key, loaded)
+            self.assertAlmostEqual(
+                float(loaded[key]), float(saved[key]), places=4,
+                msg=f"Valeur en DB différente du dict pour '{key}'"
+            )
 
     def test_consistency_score_nonzero_with_recent_attempt(self):
         """Un apprenant ayant tenté aujourd'hui a consistency_score > 0."""
