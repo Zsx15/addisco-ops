@@ -10,6 +10,7 @@ import pandas as pd
 from adaptive_engine import (
     REVIEW_INTERVALS, _PEDAGOGY_GROUPS, _adaptive_interval, classify_mastery,
     compute_momentum, compute_learning_velocity, compute_consistency_score,
+    build_session_plan,
 )
 
 logger = logging.getLogger(__name__)
@@ -617,6 +618,25 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
         )
 
     return profile
+
+
+# ── Plan de session adaptatif ─────────────────────────────────────────────────
+
+
+def get_next_session_plan(user_id: str = "default", max_items: int = 5) -> list[dict]:
+    """
+    Retourne le plan de session personnalisé pour user_id :
+    liste de max_items chunks ordonnés par priorité adaptative,
+    avec durée estimée et objectif pédagogique par item.
+
+    Retourne [] si aucun chunk n'a d'historique pour cet utilisateur.
+    Délègue le scoring et le tri à adaptive_engine.build_session_plan().
+    """
+    df_stats = get_chunk_stats(user_id)
+    if df_stats.empty:
+        return []
+    df_enriched = classify_mastery(df_stats)
+    return build_session_plan(df_enriched, max_items=max_items)
 
 
 # ── Gestion des utilisateurs (admin) ─────────────────────────────────────────

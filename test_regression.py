@@ -888,6 +888,208 @@ class TestCosineSimilarity(unittest.TestCase):
 # Tests TASK-049 — Métriques dynamiques adaptive_engine
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests TASK-050 — build_session_plan (pure) + get_next_session_plan (DB)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestBuildSessionPlanPure(unittest.TestCase):
+    """
+    Teste build_session_plan — fonction pure, sans base de données.
+    Construit des DataFrames minimaux qui couvrent tous les cas de tri et de
+    construction des items.
+    """
+
+    def setUp(self):
+        from adaptive_engine import build_session_plan
+        self.fn = build_session_plan
+
+    def _make_df(self, overrides_list: list[dict]) -> pd.DataFrame:
+        """Construit un DataFrame de test avec des valeurs par défaut raisonnables."""
+        defaults = {
+            "chunk_id":          1,
+            "section_label":     "Section Test",
+            "document_title":    "Doc Test",
+            "mastery_class":     "Fragile",
+            "trend":             "N/A",
+            "review_status":     "En retard",
+            "days_until_review": -1,
+            "avg_score":         0.4,
+            "attempts_count":    2,
+        }
+        rows = []
+        for i, overrides in enumerate(overrides_list):
+            row = {**defaults, "chunk_id": i + 1}
+            row.update(overrides)
+            rows.append(row)
+        return pd.DataFrame(rows)
+
+    # ── Cas limites ───────────────────────────────────────────────────────────
+
+    def test_none_returns_empty(self):
+        self.assertEqual(self.fn(None), [])
+
+    def test_empty_df_returns_empty(self):
+        self.assertEqual(self.fn(pd.DataFrame()), [])
+
+    def test_missing_required_columns_returns_empty(self):
+        df = pd.DataFrame([{"chunk_id": 1, "avg_score": 0.5}])
+        self.assertEqual(self.fn(df), [])
+
+    # ── Structure de l'item retourné ──────────────────────────────────────────
+
+    def test_returns_list(self):
+        result = self.fn(self._make_df([{}]))
+        self.assertIsInstance(result, list)
+
+    def test_item_has_all_required_fields(self):
+        result = self.fn(self._make_df([{}]))
+        self.assertEqual(len(result), 1)
+        required = {
+            "chunk_id", "section_label", "document_title",
+            "mastery_class", "trend", "review_status", "days_until_review",
+            "avg_score", "attempts_count",
+            "priority_score", "estimated_minutes", "objective", "question_bias",
+        }
+        self.assertTrue(required.issubset(result[0].keys()))
+
+    def test_objective_is_non_empty_string(self):
+        result = self.fn(self._make_df([{}]))
+        self.assertIsInstance(result[0]["objective"], str)
+        self.assertGreater(len(result[0]["objective"]), 5)
+
+    def test_question_bias_is_non_empty_list(self):
+        result = self.fn(self._make_df([{"mastery_class": "Fragile"}]))
+        self.assertIsInstance(result[0]["question_bias"], list)
+        self.assertGreater(len(result[0]["question_bias"]), 0)
+
+    # ── Durée estimée ─────────────────────────────────────────────────────────
+
+    def test_estimated_minutes_fragile(self):
+        result = self.fn(self._make_df([{"mastery_class": "Fragile"}]))
+        self.assertEqual(result[0]["estimated_minutes"], 8)
+
+    def test_estimated_minutes_consolidation(self):
+        result = self.fn(self._make_df([{
+            "mastery_class": "En consolidation", "review_status": "—", "days_until_review": 3,
+        }]))
+        self.assertEqual(result[0]["estimated_minutes"], 6)
+
+    def test_estimated_minutes_maitrise(self):
+        result = self.fn(self._make_df([{
+            "mastery_class": "Maîtrisé", "review_status": "—", "days_until_review": 5,
+        }]))
+        self.assertEqual(result[0]["estimated_minutes"], 3)
+
+    # ── max_items ─────────────────────────────────────────────────────────────
+
+    def test_max_items_respected(self):
+        result = self.fn(self._make_df([{} for _ in range(10)]), max_items=3)
+        self.assertLessEqual(len(result), 3)
+
+    def test_max_items_zero_returns_empty(self):
+        result = self.fn(self._make_df([{}]), max_items=0)
+        self.assertEqual(result, [])
+
+    # ── Tri par priorité ──────────────────────────────────────────────────────
+
+    def test_sorted_by_priority_descending(self):
+        """Les items retournés sont dans l'ordre décroissant de priority_score."""
+        df = self._make_df([
+            {"mastery_class": "Maîtrisé",         "trend": "Stable",
+             "review_status": "—",         "days_until_review": 5,  "avg_score": 0.9},
+            {"mastery_class": "Fragile",           "trend": "Dégradation",
+             "review_status": "En retard", "days_until_review": -3, "avg_score": 0.3},
+            {"mastery_class": "En consolidation",  "trend": "Stable",
+             "review_status": "—",         "days_until_review": 2,  "avg_score": 0.65},
+        ])
+        result = self.fn(df, max_items=5)
+        scores = [r["priority_score"] for r in result]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+
+    def test_fragile_overdue_before_maitrise_ok(self):
+        """Fragile en retard doit précéder Maîtrisé à jour."""
+        df = self._make_df([
+            {"chunk_id": 1, "mastery_class": "Maîtrisé",
+             "trend": "Stable", "review_status": "—", "days_until_review": 5, "avg_score": 0.9},
+            {"chunk_id": 2, "mastery_class": "Fragile",
+             "trend": "Dégradation", "review_status": "En retard",
+             "days_until_review": -2, "avg_score": 0.3},
+        ])
+        result = self.fn(df, max_items=5)
+        self.assertEqual(result[0]["chunk_id"], 2)
+
+    def test_overdue_annotation_in_objective(self):
+        """'En retard' dans review_status ajoute l'annotation dans l'objectif."""
+        result = self.fn(self._make_df([{
+            "review_status": "En retard", "days_until_review": -3,
+        }]))
+        self.assertIn("retard", result[0]["objective"].lower())
+
+    def test_days_until_review_none_handled(self):
+        """days_until_review NaN (pandas) ne provoque pas d'erreur."""
+        result = self.fn(self._make_df([{"days_until_review": float("nan")}]))
+        self.assertEqual(len(result), 1)
+        self.assertIsNone(result[0]["days_until_review"])
+
+    def test_fragile_bias_excludes_question_piege(self):
+        """Invariant métier : question_piège est réservé au biais Maîtrisé, pas Fragile."""
+        from adaptive_engine import _MASTERY_BIAS
+        result = self.fn(self._make_df([{"mastery_class": "Fragile"}]))
+        fragile_bias = result[0]["question_bias"]
+        maitrise_bias = _MASTERY_BIAS.get("Maîtrisé", [])
+        self.assertNotIn("question_piege", fragile_bias)
+        self.assertIn("question_piege", maitrise_bias)
+
+    def test_maitrise_bias_excludes_reformulation(self):
+        """Invariant métier : reformulation est dans le biais Fragile, pas Maîtrisé."""
+        result = self.fn(self._make_df([{
+            "mastery_class": "Maîtrisé", "review_status": "—", "days_until_review": 5,
+        }]))
+        self.assertNotIn("reformulation", result[0]["question_bias"])
+
+
+class TestGetNextSessionPlanDb(_DbTestCase):
+    """Intégration : get_next_session_plan lit la DB et retourne un plan cohérent."""
+
+    def test_no_history_returns_empty(self):
+        plan = self.db.get_next_session_plan("no_data_user")
+        self.assertEqual(plan, [])
+
+    def test_returns_list_with_chunk_history(self):
+        _, chunk_id = self._add_doc_and_chunk()
+        for _ in range(3):
+            self._add_attempt(score=0.5, chunk_id=chunk_id)
+        plan = self.db.get_next_session_plan("default")
+        self.assertIsInstance(plan, list)
+        self.assertEqual(len(plan), 1)
+        self.assertIn("objective",         plan[0])
+        self.assertIn("estimated_minutes", plan[0])
+        self.assertIn("question_bias",     plan[0])
+
+    def test_max_items_respected_in_db(self):
+        """get_next_session_plan(max_items=1) retourne au plus 1 item."""
+        import sqlite3
+        with sqlite3.connect(self.db.DB_PATH) as conn:
+            cur = conn.execute(
+                "INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text, char_count) "
+                "VALUES ('Doc', 'txt', 'f.txt', 'r', 'c', 5)"
+            )
+            doc_id = cur.lastrowid
+            chunk_ids = []
+            for i in range(4):
+                c2 = conn.execute(
+                    "INSERT INTO chunks (document_id, chunk_index, section_title, chunk_text, char_count) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (doc_id, i, f"Sec {i}", f"Texte {i}", 10),
+                )
+                chunk_ids.append(c2.lastrowid)
+        for cid in chunk_ids:
+            for _ in range(2):
+                self._add_attempt(score=0.4, chunk_id=cid)
+        plan = self.db.get_next_session_plan("default", max_items=1)
+        self.assertLessEqual(len(plan), 1)
+
+
 class TestAdaptiveMetricsPure(unittest.TestCase):
     """
     Teste compute_momentum, compute_learning_velocity, compute_consistency_score.
@@ -1077,6 +1279,8 @@ if __name__ == "__main__":
         TestDatabaseAdminFunctions,
         TestReviewIntervalsCoherence,
         TestCosineSimilarity,
+        TestBuildSessionPlanPure,
+        TestGetNextSessionPlanDb,
         TestAdaptiveMetricsPure,
         TestProfileWithNewMetrics,
     ):

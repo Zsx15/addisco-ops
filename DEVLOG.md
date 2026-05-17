@@ -4,6 +4,38 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-17 — TASK-050 : Plan de session adaptatif — get_next_session_plan
+
+**Objectif :** liste ordonnée de chunks à réviser avec durée estimée et objectif pédagogique par item.
+
+**adaptive_engine.py — 4 ajouts :**
+- `_OBJECTIVES` (dict 12 entrées, 3 mastery × 4 trends) — texte de l'objectif pédagogique par combinaison.
+- `_DURATION_BY_MASTERY` — durée estimée : Fragile=8min, En consolidation=6min, Maîtrisé=3min.
+- `_compute_priority_score(row)` — score de tri interne (4 composantes : urgence révision, fragilité, tendance, faible historique). Gestion NaN sûre via `pd.isna`.
+- `build_session_plan(chunks_df, max_items=5)` — fonction pure recevant un DataFrame enrichi par `classify_mastery()`. Retourne `list[dict]` triée par `priority_score` décroissant, capped à `max_items`.
+
+**database.py — 1 ajout :**
+- `get_next_session_plan(user_id, max_items=5)` — wrapper DB minimal : `get_chunk_stats → classify_mastery → build_session_plan`. 4 lignes actives.
+
+**Corrections Conseil (post-implémentation) :**
+- `profile` supprimé de `build_session_plan` (dead parameter — YAGNI) et de `get_next_session_plan`.
+- 2 tests d'invariants métier ajoutés : `question_piege` absent du biais Fragile, `reformulation` absent du biais Maîtrisé.
+
+**test_regression.py — 21 nouveaux tests :**
+- `TestBuildSessionPlanPure` (18 tests) : cas limites (None/empty/colonnes manquantes), structure des items, durée, max_items, tri, invariants biais, NaN pandas, annotations objectif.
+- `TestGetNextSessionPlanDb` (3 tests) : sans historique → [], structure avec historique, max_items DB.
+
+**Résultat :** 159 tests + 4 subtests. 0 régression. py_compile 3/3 OK.
+
+**Invariants préservés :**
+- Aucun changement UX, RAG, auth, ai_service.
+- `build_session_plan` : zéro import projet — testable indépendamment.
+- `get_next_session_plan` : wrapper pur, pas de logique de scoring dans database.py.
+
+**Phase 14 restante :** TASK-051 — métriques de rétention J+1/J+7/J+30.
+
+---
+
 ## 2026-05-17 — TASK-049 : Enrichissement du profil adaptatif utilisateur
 
 **Objectif :** ajouter trois métriques pures et robustes au moteur adaptatif : momentum, learning_velocity, consistency_score.
