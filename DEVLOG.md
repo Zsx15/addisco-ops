@@ -4,6 +4,34 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-17 — TASK-051 : Métriques de rétention pédagogique J+1 / J+7 / J+30
+
+**Objectif :** mesurer la rétention observable sur 3 fenêtres temporelles — révision lendemain (j1), hebdomadaire (j7), mensuelle (j30).
+
+**adaptive_engine.py — 2 ajouts :**
+- `_RETENTION_WINDOWS` (dict 3 entrées) — fenêtres en jours : j1=(0.5, 2.5), j7=(4.0, 10.0), j30=(21.0, 45.0).
+- `compute_retention_metrics(rows)` — fonction pure. Reçoit `list[tuple[chunk_id, created_at_iso, score]]`. Groupe par chunk_id, trie par date, analyse les paires consécutives. Si l'écart tombe dans une fenêtre, le score de la révision est collecté. Retourne la moyenne par fenêtre, ou None si aucune paire trouvée. Borné [0.0, 1.0]. Guards : score=None ignoré, date invalide ignorée.
+
+**database.py — 2 changements :**
+- Import étendu : `compute_retention_metrics` ajouté.
+- `get_retention_metrics(user_id)` — wrapper DB minimal : SELECT (chunk_id, created_at, score) WHERE score IS NOT NULL AND chunk_id IS NOT NULL, puis délègue à `compute_retention_metrics`. Calculé à la volée, non stocké en base.
+
+**test_regression.py — 16 nouveaux tests :**
+- `TestComputeRetentionPure` (13 tests) : liste vide, clés toujours présentes, une seule tentative par chunk, j1/j7/j30 détectés, écart hors fenêtre ignoré, moyenne sur plusieurs chunks, deux fenêtres sur une même chaîne de 3 tentatives, bornage, date invalide ignorée, score None ignoré, chunks différents non croisés.
+- `TestGetRetentionMetricsDb` (3 tests) : sans historique → tout None, j1 détecté en DB, isolation utilisateur.
+
+**Résultat :** 155 tests. 0 régression. py_compile 3/3 OK.
+
+**Invariants préservés :**
+- Aucun changement UX, RAG, auth, ai_service.
+- `compute_retention_metrics` : zéro import projet — logique pure, déterministe, explicable.
+- Données non stockées : calculées à la volée, pas de colonne supplémentaire en DB.
+- Fenêtres non chevauchantes — un même gap ne peut appartenir qu'à une seule fenêtre.
+
+**Phase 14 :** TASK-048 + TASK-049 + TASK-050 + TASK-051 — complètes. Phase 14 terminée.
+
+---
+
 ## 2026-05-17 — TASK-050 : Plan de session adaptatif — get_next_session_plan
 
 **Objectif :** liste ordonnée de chunks à réviser avec durée estimée et objectif pédagogique par item.

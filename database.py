@@ -10,7 +10,7 @@ import pandas as pd
 from adaptive_engine import (
     REVIEW_INTERVALS, _PEDAGOGY_GROUPS, _adaptive_interval, classify_mastery,
     compute_momentum, compute_learning_velocity, compute_consistency_score,
-    build_session_plan,
+    build_session_plan, compute_retention_metrics,
 )
 
 logger = logging.getLogger(__name__)
@@ -637,6 +637,30 @@ def get_next_session_plan(user_id: str = "default", max_items: int = 5) -> list[
         return []
     df_enriched = classify_mastery(df_stats)
     return build_session_plan(df_enriched, max_items=max_items)
+
+
+# ── Métriques de rétention pédagogique ───────────────────────────────────────
+
+
+def get_retention_metrics(user_id: str = "default") -> dict[str, Optional[float]]:
+    """
+    Retourne les métriques de rétention J+1/J+7/J+30 pour user_id.
+    Calculées à la volée — non stockées en base.
+    Délègue à adaptive_engine.compute_retention_metrics().
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        rows_raw = conn.execute(
+            """
+            SELECT chunk_id, created_at, score
+            FROM attempts
+            WHERE user_id = ?
+              AND score IS NOT NULL
+              AND chunk_id IS NOT NULL
+            ORDER BY chunk_id, created_at ASC
+            """,
+            (user_id,),
+        ).fetchall()
+    return compute_retention_metrics([(r[0], r[1], r[2]) for r in rows_raw])
 
 
 # ── Gestion des utilisateurs (admin) ─────────────────────────────────────────

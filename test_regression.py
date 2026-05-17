@@ -1262,6 +1262,195 @@ class TestProfileWithNewMetrics(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests TASK-051 — compute_retention_metrics (pur) + get_retention_metrics (DB)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestComputeRetentionPure(unittest.TestCase):
+    """
+    Teste compute_retention_metrics — fonction pure, aucune base de données.
+    rows = list[tuple[int, str, float]] — (chunk_id, created_at_iso, score).
+    """
+
+    def setUp(self):
+        from adaptive_engine import compute_retention_metrics
+        self.fn = compute_retention_metrics
+
+    def _rows_at_gaps(
+        self, chunk_id: int, gaps_days: list[float], scores: list[float]
+    ) -> list[tuple]:
+        """Construit n+1 tentatives avec des écarts prédéfinis, ancrées 100j dans le passé."""
+        base = datetime.now() - timedelta(days=100)
+        result = [(chunk_id, base.strftime("%Y-%m-%d %H:%M:%S"), scores[0])]
+        t = base
+        for i, gap in enumerate(gaps_days):
+            t = t + timedelta(days=gap)
+            result.append((chunk_id, t.strftime("%Y-%m-%d %H:%M:%S"), scores[i + 1]))
+        return result
+
+    def test_no_data_all_none(self):
+        """Liste vide → les 3 métriques sont None."""
+        result = self.fn([])
+        self.assertIsNone(result["retention_j1"])
+        self.assertIsNone(result["retention_j7"])
+        self.assertIsNone(result["retention_j30"])
+
+    def test_keys_always_present(self):
+        """Le dict retourné contient toujours retention_j1, retention_j7, retention_j30."""
+        for rows in ([], [(1, "bad-date", None)]):
+            result = self.fn(rows)
+            self.assertIn("retention_j1",  result)
+            self.assertIn("retention_j7",  result)
+            self.assertIn("retention_j30", result)
+
+    def test_single_attempt_per_chunk_all_none(self):
+        """Une seule tentative par chunk → aucune paire → tout None."""
+        rows = [(1, (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S"), 0.8)]
+        result = self.fn(rows)
+        self.assertIsNone(result["retention_j1"])
+        self.assertIsNone(result["retention_j7"])
+        self.assertIsNone(result["retention_j30"])
+
+    def test_j1_detected(self):
+        """Écart de 1 jour → détecté dans retention_j1 uniquement."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[1.0], scores=[0.5, 0.8])
+        result = self.fn(rows)
+        self.assertAlmostEqual(result["retention_j1"], 0.8, places=2)
+        self.assertIsNone(result["retention_j7"])
+        self.assertIsNone(result["retention_j30"])
+
+    def test_j7_detected(self):
+        """Écart de 7 jours → détecté dans retention_j7 uniquement."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[7.0], scores=[0.5, 0.7])
+        result = self.fn(rows)
+        self.assertIsNone(result["retention_j1"])
+        self.assertAlmostEqual(result["retention_j7"], 0.7, places=2)
+        self.assertIsNone(result["retention_j30"])
+
+    def test_j30_detected(self):
+        """Écart de 30 jours → détecté dans retention_j30 uniquement."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[30.0], scores=[0.5, 0.6])
+        result = self.fn(rows)
+        self.assertIsNone(result["retention_j1"])
+        self.assertIsNone(result["retention_j7"])
+        self.assertAlmostEqual(result["retention_j30"], 0.6, places=2)
+
+    def test_gap_between_windows_not_counted(self):
+        """Écart de 3j (hors fenêtres j1=[0.5,2.5] et j7=[4,10]) → tout None."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[3.0], scores=[0.5, 0.9])
+        result = self.fn(rows)
+        self.assertIsNone(result["retention_j1"])
+        self.assertIsNone(result["retention_j7"])
+        self.assertIsNone(result["retention_j30"])
+
+    def test_multiple_chunks_averaged_in_j1(self):
+        """2 chunks en j1 → retention_j1 = moyenne des deux scores."""
+        rows  = self._rows_at_gaps(chunk_id=1, gaps_days=[1.0], scores=[0.0, 0.6])
+        rows += self._rows_at_gaps(chunk_id=2, gaps_days=[1.0], scores=[0.0, 1.0])
+        result = self.fn(rows)
+        self.assertAlmostEqual(result["retention_j1"], 0.8, places=2)
+
+    def test_different_windows_same_chunk(self):
+        """3 tentatives : paire 1 → j1, paire 2 → j7 → deux fenêtres renseignées."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[1.0, 7.0], scores=[0.4, 0.7, 0.9])
+        result = self.fn(rows)
+        self.assertAlmostEqual(result["retention_j1"], 0.7, places=2)
+        self.assertAlmostEqual(result["retention_j7"], 0.9, places=2)
+        self.assertIsNone(result["retention_j30"])
+
+    def test_score_bounded_above(self):
+        """Score > 1.0 est ramené à 1.0."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[1.0], scores=[0.5, 1.5])
+        result = self.fn(rows)
+        self.assertLessEqual(result["retention_j1"], 1.0)
+
+    def test_score_bounded_below(self):
+        """Score < 0.0 est ramené à 0.0."""
+        rows = self._rows_at_gaps(chunk_id=1, gaps_days=[1.0], scores=[0.5, -0.5])
+        result = self.fn(rows)
+        self.assertGreaterEqual(result["retention_j1"], 0.0)
+
+    def test_invalid_date_ignored(self):
+        """Une date invalide est ignorée sans lever d'exception."""
+        result = self.fn([(1, "not-a-date", 0.8)])
+        self.assertIsNone(result["retention_j1"])
+
+    def test_score_none_ignored(self):
+        """Une tentative avec score=None est ignorée sans lever d'exception."""
+        ts = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S")
+        result = self.fn([(1, ts, None)])
+        self.assertIsNone(result["retention_j1"])
+
+    def test_different_chunks_not_mixed(self):
+        """Les tentatives de chunks différents ne forment jamais de paire entre elles."""
+        base = datetime.now() - timedelta(days=10)
+        rows = [
+            (1, base.strftime("%Y-%m-%d %H:%M:%S"),                          0.5),
+            (2, (base + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"),    0.9),
+        ]
+        result = self.fn(rows)
+        self.assertIsNone(result["retention_j1"])
+
+
+class TestGetRetentionMetricsDb(_DbTestCase):
+    """Intégration : get_retention_metrics lit la DB et délègue à compute_retention_metrics."""
+
+    def _insert_attempt_at(
+        self,
+        chunk_id: int,
+        score: float,
+        ts_iso: str,
+        user_id: str = "default",
+    ):
+        """Insère une tentative avec un timestamp explicite (contourne CURRENT_TIMESTAMP)."""
+        import sqlite3
+        with sqlite3.connect(self.db.DB_PATH) as conn:
+            conn.execute(
+                """
+                INSERT INTO attempts
+                    (user_id, question, user_answer, expected_answer, correction,
+                     score, chunk_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, "Q?", "A", "EA", "C", score, chunk_id, ts_iso),
+            )
+
+    def test_no_history_all_none(self):
+        """Aucun historique → les 3 métriques sont None."""
+        result = self.db.get_retention_metrics("no_data_user")
+        self.assertIsNone(result["retention_j1"])
+        self.assertIsNone(result["retention_j7"])
+        self.assertIsNone(result["retention_j30"])
+
+    def test_j1_detected_in_db(self):
+        """Deux tentatives sur le même chunk à 1 jour d'écart → retention_j1 détectée."""
+        _, chunk_id = self._add_doc_and_chunk()
+        base = datetime.now() - timedelta(days=5)
+        self._insert_attempt_at(chunk_id, 0.5, base.strftime("%Y-%m-%d %H:%M:%S"))
+        self._insert_attempt_at(
+            chunk_id, 0.8, (base + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+        )
+        result = self.db.get_retention_metrics("default")
+        self.assertIsNotNone(result["retention_j1"])
+        self.assertAlmostEqual(result["retention_j1"], 0.8, places=2)
+
+    def test_user_isolation(self):
+        """alice a une rétention j1 ; bob sans historique → résultats indépendants."""
+        _, chunk_id = self._add_doc_and_chunk()
+        base = datetime.now() - timedelta(days=5)
+        self._insert_attempt_at(chunk_id, 0.5, base.strftime("%Y-%m-%d %H:%M:%S"),
+                                 user_id="alice")
+        self._insert_attempt_at(
+            chunk_id, 0.9, (base + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"),
+            user_id="alice"
+        )
+        alice_result = self.db.get_retention_metrics("alice")
+        bob_result   = self.db.get_retention_metrics("bob")
+        self.assertIsNotNone(alice_result["retention_j1"])
+        self.assertIsNone(   bob_result["retention_j1"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -1283,6 +1472,8 @@ if __name__ == "__main__":
         TestGetNextSessionPlanDb,
         TestAdaptiveMetricsPure,
         TestProfileWithNewMetrics,
+        TestComputeRetentionPure,
+        TestGetRetentionMetricsDb,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
