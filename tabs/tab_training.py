@@ -146,6 +146,7 @@ def render() -> None:
                 st.session_state["source_text"]   = source_text
                 st.session_state["start_time"]    = time.time()
                 st.session_state["result"]        = None
+                st.session_state["answer_input"]  = ""
                 if chunk_ids:
                     try:
                         st.session_state["question_mastery"] = get_chunk_mastery(

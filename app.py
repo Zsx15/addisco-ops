@@ -230,6 +230,16 @@ with st.sidebar:
             st.session_state["user_id"]       = "default"
             st.session_state["username"]      = None
             st.session_state["role"]          = None
+            for _k in (
+                "question", "source_text", "start_time", "result", "response_time",
+                "active_document_id", "active_document_title", "chunk_ids",
+                "question_type", "question_mastery", "question_chunk_trend",
+                "question_chunk_days", "question_chunk_error", "question_chunk_status",
+                "question_type_reason", "question_profile_pedagogy",
+                "answer_input", "source_text_input",
+            ):
+                st.session_state[_k] = None
+            st.session_state["source_text_input"] = ""
             st.rerun()
     else:
         st.markdown("**Session utilisateur**")

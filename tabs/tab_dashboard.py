@@ -212,6 +212,8 @@ def render() -> None:
         df_line["Tentative"] = range(1, len(df_line) + 1)
         st.line_chart(df_line, x="Tentative", y="Score (%)", height=210)
         st.caption(f"{len(df_evol)} dernières tentatives — ordre chronologique")
+    else:
+        st.caption("Pas encore de données d'évolution.")
 
     st.divider()
 
@@ -412,7 +414,8 @@ def render() -> None:
         "Recalculer le profil" if _profile is not None else "Calculer le profil",
         key="btn_recompute_profile",
     ):
-        compute_and_save_learning_profile(st.session_state["user_id"])
+        with st.spinner("Calcul du profil…"):
+            compute_and_save_learning_profile(st.session_state["user_id"])
         st.rerun()
 
     st.divider()
