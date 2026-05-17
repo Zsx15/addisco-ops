@@ -1391,6 +1391,12 @@ class TestComputeRetentionPure(unittest.TestCase):
         result = self.fn(rows)
         self.assertIsNone(result["retention_j1"])
 
+    def test_invalid_chunk_id_ignored(self):
+        """Un chunk_id non convertible en int est ignoré sans lever d'exception."""
+        ts = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S")
+        result = self.fn([("not-an-int", ts, 0.8)])
+        self.assertIsNone(result["retention_j1"])
+
 
 class TestGetRetentionMetricsDb(_DbTestCase):
     """Intégration : get_retention_metrics lit la DB et délègue à compute_retention_metrics."""

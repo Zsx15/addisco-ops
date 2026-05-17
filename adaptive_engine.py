@@ -499,10 +499,11 @@ def compute_retention_metrics(
         if score is None:
             continue
         try:
-            dt = datetime.fromisoformat(str(created_at_iso))
+            dt  = datetime.fromisoformat(str(created_at_iso))
+            cid = int(chunk_id)
         except (ValueError, TypeError):
             continue
-        by_chunk.setdefault(int(chunk_id), []).append((dt, float(score)))
+        by_chunk.setdefault(cid, []).append((dt, float(score)))
 
     buckets: dict[str, list[float]] = {"j1": [], "j7": [], "j30": []}
 
