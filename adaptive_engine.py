@@ -106,13 +106,20 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
             return None
 
     def _days_until(row):
-        if row["next_review"] is None:
+        # pd.isna() requis : pandas 2.x peut convertir None → NaT (datetime64[us])
+        # dans la colonne next_review ; `is None` ne capture pas NaT.
+        nxt = row["next_review"]
+        try:
+            if nxt is None or pd.isna(nxt):
+                return None
+            return int((nxt.date() - datetime.now().date()).days)
+        except Exception:
             return None
-        return (row["next_review"].date() - datetime.now().date()).days
 
     def _review_status(row):
         d = row["days_until_review"]
-        if d is None:
+        # Même guard : days_until_review peut être None ou NaN selon le chemin
+        if d is None or pd.isna(d):
             return "—"
         if d < 0:
             return "En retard"

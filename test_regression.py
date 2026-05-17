@@ -419,6 +419,27 @@ class TestClassifyMastery(unittest.TestCase):
         r_stable = self.fn(df_stable).iloc[0]
         self.assertGreater(r_amelio["next_review"], r_stable["next_review"])
 
+    def test_days_until_review_scalar_with_null_date(self):
+        """
+        Régression : last_attempt_date=None → _next_review retourne None → pandas 2.x
+        peut stocker NaT dans next_review (inférence datetime64[us]) → _days_until
+        levait ValueError 'Cannot set a DataFrame with multiple columns to the single
+        column days_until_review'. Correction : pd.isna() + try/except.
+        """
+        df = pd.DataFrame([
+            self._row(avg_score=0.5, attempts_count=2,
+                      last_attempt_date="2026-01-01 10:00:00"),
+            self._row(avg_score=0.7, attempts_count=3,
+                      last_attempt_date=None),
+        ])
+        result = self.fn(df)
+        self.assertIn("days_until_review", result.columns)
+        for val in result["days_until_review"]:
+            self.assertTrue(
+                val is None or isinstance(val, (int, float)),
+                f"days_until_review : valeur non scalaire {type(val)}"
+            )
+
 
 class TestLearningProfile(_DbTestCase):
 
