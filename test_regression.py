@@ -1478,6 +1478,193 @@ class TestGetRetentionMetricsDb(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests anti-régression Phase 15 — barrière avant multi-documents
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestAntiRegressionPhase15(_DbTestCase):
+    """
+    Barrière anti-régression avant ouverture de la Phase 15 multi-documents.
+    Couvre le flux réel complet :
+    SQLite → get_chunk_stats → classify_mastery → build_session_plan → retention.
+    """
+
+    # ── helpers locaux ───────────────────────────────────────────────────────
+
+    def _make_chunk_stats_row(self, chunk_id, avg_score, attempts_count,
+                               last_score=None, last_date="2026-01-01 10:00:00"):
+        return {
+            "chunk_id": chunk_id, "section_label": f"Sec {chunk_id}",
+            "document_title": "Doc", "avg_score": avg_score,
+            "attempts_count": attempts_count,
+            "last_score": last_score if last_score is not None else avg_score,
+            "dominant_error_type": None, "last_attempt_date": last_date,
+        }
+
+    # ── 1. Utilisateur sans historique ───────────────────────────────────────
+
+    def test_pipeline_user_without_history(self):
+        """Utilisateur fantôme : toute la pipeline retourne des valeurs propres."""
+        from adaptive_engine import classify_mastery, build_session_plan
+        df_stats = self.db.get_chunk_stats("ghost_user")
+        self.assertTrue(df_stats.empty)
+        df_classified = classify_mastery(df_stats)
+        self.assertTrue(df_classified.empty)
+        plan = build_session_plan(df_classified)
+        self.assertEqual(plan, [])
+        retention = self.db.get_retention_metrics("ghost_user")
+        self.assertIsNone(retention["retention_j1"])
+        self.assertIsNone(retention["retention_j7"])
+        self.assertIsNone(retention["retention_j30"])
+
+    # ── 2. Chunk sans tentative ──────────────────────────────────────────────
+
+    def test_chunk_without_attempts_excluded_from_stats(self):
+        """Chunk existant sans tentative → absent de get_chunk_stats (LEFT JOIN non satisfait)."""
+        _, chunk_id = self._add_doc_and_chunk()
+        df = self.db.get_chunk_stats("default")
+        self.assertTrue(df.empty or chunk_id not in df["chunk_id"].values)
+
+    # ── 3. Tentative avec score NULL ─────────────────────────────────────────
+
+    def test_attempt_null_score_excluded_from_chunk_stats(self):
+        """Tentative score=None : exclue de get_chunk_stats (score IS NOT NULL)."""
+        _, chunk_id = self._add_doc_and_chunk()
+        self._add_attempt(score=None, chunk_id=chunk_id)
+        df = self.db.get_chunk_stats("default")
+        self.assertTrue(df.empty or chunk_id not in df["chunk_id"].values)
+
+    # ── 4. RÉGRESSION BUG-1 : get_topic_stats + score NULL ──────────────────
+
+    def test_topic_stats_no_nan_with_null_score(self):
+        """
+        Régression BUG-1 : get_topic_stats levait IntCastingNaNError si toutes
+        les tentatives d'un topic avaient score=NULL.
+        Correction : AND score IS NOT NULL dans la requête.
+        """
+        self.db.save_attempt(
+            question="Q?", user_answer="A", expected_answer="EA",
+            correction="C", score=None, topic="TopicNullScore",
+        )
+        df = self.db.get_topic_stats("default")
+        # Le topic à score NULL ne doit pas apparaître (score IS NOT NULL filtré)
+        if not df.empty:
+            self.assertFalse(
+                df["avg_score"].isna().any(),
+                "get_topic_stats contient NaN avg_score — BUG-1 non corrigé"
+            )
+
+    # ── 5. RÉGRESSION BUG-2 : classify_mastery sur DF vide ──────────────────
+
+    def test_classify_mastery_empty_df_no_crash(self):
+        """
+        Régression BUG-2 : classify_mastery sur pd.DataFrame() (0 colonnes)
+        levait ValueError 'Cannot set a DataFrame with multiple columns'.
+        Correction : guard if df.empty return df.
+        """
+        from adaptive_engine import classify_mastery
+        result = classify_mastery(pd.DataFrame())
+        self.assertTrue(result.empty)
+
+    # ── 6. Chunks hétérogènes — scalaires garantis ──────────────────────────
+
+    def test_classify_mastery_heterogeneous_chunks_all_scalars(self):
+        """Fragile/Consolidation/Maîtrisé avec et sans date → days_until_review scalaire."""
+        from adaptive_engine import classify_mastery
+        rows = [
+            self._make_chunk_stats_row(1, 0.3, 2, last_date="2026-01-01 10:00:00"),
+            self._make_chunk_stats_row(2, 0.7, 3, last_date="2026-04-01 10:00:00"),
+            self._make_chunk_stats_row(3, 0.9, 5, last_date=None),
+        ]
+        result = classify_mastery(pd.DataFrame(rows))
+        for val in result["days_until_review"]:
+            self.assertTrue(
+                val is None or isinstance(val, (int, float)),
+                f"days_until_review non scalaire : {type(val)}"
+            )
+        for val in result["review_status"]:
+            self.assertIsInstance(val, str)
+
+    # ── 7. priority_score toujours numérique ─────────────────────────────────
+
+    def test_build_session_plan_priority_score_always_float(self):
+        """priority_score dans chaque item du plan est un float non-NaN."""
+        from adaptive_engine import classify_mastery, build_session_plan
+        rows = [
+            self._make_chunk_stats_row(1, 0.3, 1, last_score=None, last_date=None),
+            self._make_chunk_stats_row(2, 0.8, 3, last_date="2026-01-01 10:00:00"),
+        ]
+        df   = classify_mastery(pd.DataFrame(rows))
+        plan = build_session_plan(df)
+        for item in plan:
+            ps = item["priority_score"]
+            self.assertIsInstance(ps, float)
+            self.assertFalse(ps != ps, f"priority_score est NaN : {ps}")
+
+    # ── 8. Métriques [0,1] bornées ───────────────────────────────────────────
+
+    def test_user_metrics_bounded_0_1(self):
+        """consistency_score ∈ [0,1] et retention ∈ [0,1] ou None."""
+        from adaptive_engine import compute_consistency_score, compute_retention_metrics
+        rows_c = [
+            ((datetime.now() - timedelta(days=d)).strftime("%Y-%m-%d %H:%M:%S"), 1.0)
+            for d in range(30)
+        ]
+        c = compute_consistency_score(rows_c)
+        self.assertGreaterEqual(c, 0.0)
+        self.assertLessEqual(c,    1.0)
+
+        base   = datetime.now() - timedelta(days=5)
+        rows_r = [
+            (1, base.strftime("%Y-%m-%d %H:%M:%S"), 1.0),
+            (1, (base + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"), 1.0),
+        ]
+        r = compute_retention_metrics(rows_r)
+        if r["retention_j1"] is not None:
+            self.assertGreaterEqual(r["retention_j1"], 0.0)
+            self.assertLessEqual(   r["retention_j1"], 1.0)
+
+    # ── 9. Isolation utilisateur — pipeline complète ─────────────────────────
+
+    def test_user_isolation_full_pipeline(self):
+        """alice et bob : stats, profil et rétention strictement isolés."""
+        _, chunk_id = self._add_doc_and_chunk()
+        for _ in range(3):
+            self._add_attempt(score=0.9, user_id="alice", chunk_id=chunk_id)
+
+        alice_stats = self.db.get_chunk_stats("alice")
+        bob_stats   = self.db.get_chunk_stats("bob")
+        self.assertFalse(alice_stats.empty)
+        self.assertTrue(bob_stats.empty)
+
+        alice_prof = self.db.compute_and_save_learning_profile("alice")
+        bob_prof   = self.db.compute_and_save_learning_profile("bob")
+        self.assertGreater(alice_prof["average_score"], 0.0)
+        self.assertEqual(bob_prof["average_score"], 0.0)
+
+    # ── 10. Date invalide — pas de crash ─────────────────────────────────────
+
+    def test_classify_mastery_invalid_date_no_crash(self):
+        """Date invalide dans last_attempt_date → classify_mastery retourne sans exception."""
+        from adaptive_engine import classify_mastery
+        df = pd.DataFrame([self._make_chunk_stats_row(1, 0.5, 2, last_date="NOT-A-DATE")])
+        result = classify_mastery(df)
+        self.assertEqual(len(result), 1)
+        val = result.iloc[0]["days_until_review"]
+        self.assertTrue(val is None or isinstance(val, (int, float)))
+
+    # ── 11. Rétention sans chunk_id → fallback propre ────────────────────────
+
+    def test_retention_no_chunk_id_returns_all_none(self):
+        """Tentatives sans chunk_id (mode texte libre) → get_retention_metrics all None."""
+        self.db.save_attempt("Q?", "A", "EA", "C", 0.8, topic="T1")
+        result = self.db.get_retention_metrics("default")
+        self.assertIsNone(result["retention_j1"])
+        self.assertIsNone(result["retention_j7"])
+        self.assertIsNone(result["retention_j30"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -1501,6 +1688,7 @@ if __name__ == "__main__":
         TestProfileWithNewMetrics,
         TestComputeRetentionPure,
         TestGetRetentionMetricsDb,
+        TestAntiRegressionPhase15,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

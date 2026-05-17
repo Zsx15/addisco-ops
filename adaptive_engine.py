@@ -128,6 +128,10 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
         return f"Dans {d} jour{'s' if d > 1 else ''}"
 
     df = df.copy()
+    # Guard : df.apply(axis=1) sur un DF sans colonnes retourne un DataFrame,
+    # pas une Series — df["col"] = DataFrame lève ValueError.
+    if df.empty:
+        return df
     df["mastery_class"]     = df.apply(_class, axis=1)
     df["trend"]             = df.apply(_trend, axis=1)
     df["next_review"]       = df.apply(_next_review, axis=1)

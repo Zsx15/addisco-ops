@@ -198,6 +198,7 @@ def get_topic_stats(user_id: str = "default") -> pd.DataFrame:
                 COUNT(*)             AS attempts
             FROM attempts
             WHERE topic IS NOT NULL AND topic != ''
+              AND score IS NOT NULL
               AND user_id = ?
             GROUP BY LOWER(TRIM(topic))
             ORDER BY avg_score ASC
