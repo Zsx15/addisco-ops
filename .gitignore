@@ -53,6 +53,10 @@ desktop.ini
 _test_*.py
 _check_*.py
 
+# ── Backups et archives ───────────────────────────────────────────────────────
+backups/
+*.zip
+
 # ── Docker (future stack cible) ───────────────────────────────────────────────
 *.env.docker
 sl_err.txt
