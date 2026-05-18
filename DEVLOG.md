@@ -4,6 +4,53 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — Phase 15B — Fondation architecture & industrialisation progressive
+
+**Objectif :** créer les premières briques de gouvernance sans over-engineering — 3 modules sur 6 retenus après analyse Conseil, 3 reportés explicitement.
+
+### Modules implémentés (valeur immédiate)
+
+**1. `ai_gateway/` — Point d'entrée unique pour les appels IA**
+- `gateway.py` : `call_chat_completion()` — wrapper OpenAI chat completions avec logging automatique des requêtes. Client lazy-init indépendant.
+- `request_logger.py` : `log_request()` — appende une ligne JSON dans `logs/ai_requests.jsonl` (timestamp UTC, task_type, duration_ms, ok).
+- Migration vers `ai_service.py` : **prochaine étape documentée** — non faite ici pour préserver la stabilité.
+
+**2. `architecture_guard/` — Audit fichiers et gouvernance de taille**
+- `rules.py` : seuils WARN=300, CRITICAL=500 lignes — exclusion test_*/seed_*.
+- `file_audit.py` : `audit_project()` + `print_audit_report()` — scan des fichiers Python du projet.
+- **Résultat immédiat de l'audit :**
+
+| Fichier | Lignes | Niveau |
+|---------|-------:|--------|
+| `database.py` | 719 | CRITICAL |
+| `adaptive_engine.py` | 534 | CRITICAL |
+| `document_service.py` | 372 | WARN |
+| `ui_helpers.py` | 358 | WARN |
+
+**3. `observability/` — Métriques légères et suivi d'erreurs**
+- `metrics.py` : `increment()`, `record_timing()`, `get_summary()`, `flush_to_disk()` — compteurs et moyennes en mémoire + persistance JSON dans `logs/metrics.json`.
+- `error_tracker.py` : `track()`, `get_recent()` — deque 100 entrées + persistance JSONL dans `logs/errors.jsonl`.
+
+### Décisions de report (anti over-engineering)
+
+| Module | Décision | Raison |
+|--------|----------|--------|
+| `flow_router/` | **Reporté** | Aucun flux à gouverner — app synchrone monolithique. À créer quand un pipeline async/batch réel existe. |
+| `queue_manager/` | **Reporté** | Aucune queue réelle — un dict en mémoire sans worker n'apporte que de la dette cognitive. À créer quand un worker async est nécessaire. |
+| Multi-docs prep | **Reporté** | Abstraction prématurée — les structures émergeront naturellement quand les exigences multi-docs seront spécifiées. |
+
+### Validation
+
+- `py_compile` : 9/9 fichiers OK
+- Tests de régression : **184/184 OK** (0 régression)
+- Smoke test fonctionnel : `audit_project()`, `increment()`, `record_timing()`, `track()`, `call_chat_completion` import OK
+
+### Prochaine étape
+
+Migration de `ai_service.py` → `ai_gateway.call_chat_completion()` pour les 2 call sites LLM (lignes 198 et 232). Segmentation de `database.py` (719 lignes, CRITICAL) en sous-modules analytics/profile/chunks.
+
+---
+
 ## 2026-05-17 — Bilan structurel — Conseil des 5 agents — Note 79/100
 
 **Objectif :** évaluation complète de la structure du projet avant ouverture de Phase 15 — architecture, qualité code, tests, sécurité, robustesse.
