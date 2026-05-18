@@ -4,6 +4,35 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-053 : Catégories de documents
+
+**Objectif :** structurer la bibliothèque par catégorie sans casser l'existant.
+
+### Modifications (commit 8bb0b57)
+
+| Fichier | Changement |
+|---|---|
+| `database.py` | Migration douce `ALTER TABLE documents ADD COLUMN category TEXT` |
+| `db/chunks.py` | `save_document(category=None)` + `d.category` dans `get_documents()` |
+| `document_service.py` | `ingest_document(category=None)` → transmis à `save_document` |
+| `tabs/tab_documents.py` | Champ catégorie dans le form · filtre selectbox · badge 🏷 |
+| `tabs/tab_training.py` | Filtre catégorie au-dessus du sélecteur (masqué si sans catégories) |
+| `test_regression.py` | `TestDocumentCategory` (6 tests) |
+
+**Invariants respectés :**
+- Migration idempotente : `try/except OperationalError` — base existante préservée, document de démo inchangé
+- `category=None` par défaut partout → backward compat totale, aucun caller existant cassé
+- Normalisation : `strip()` + `""` → `None` dans `save_document`
+- Aucun DELETE+INSERT, aucun changement pipeline IA
+
+**Validations :** py_compile OK · **214/214 tests** · migration DB vérifiée · Streamlit HTTP 200
+
+### Prochaine étape suggérée
+
+TASK-054 : entraînement cross-documents — `generate_question()` accepte une liste de `document_id`.
+
+---
+
 ## 2026-05-18 — TASK-052 : Support DOCX (document_service.py)
 
 **Objectif :** ajouter le support DOCX au pipeline d'ingestion existant sans modifier le reste du moteur.
