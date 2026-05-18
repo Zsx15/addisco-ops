@@ -4,6 +4,42 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — Segmentation database.py → db/ + Migration ai_service → ai_gateway
+
+**Objectif :** réduire la dette technique identifiée par l'Architecture Guard (database.py 719L CRITICAL) et compléter la migration ai_service → gateway.
+
+### Migration ai_service → ai_gateway (commit 4c5cda4)
+
+- `ai_gateway/gateway.py` : ajout `call_embedding_api()` + normalisation contenu vide → `None`
+- `ai_service.py` : suppression `_get_client()` + `_client` singleton — 3 call sites délégués au gateway (`question_generation`, `correction`, `embedding`)
+- `test_regression.py` : patches migrés `ai_service._get_client` → `ai_service.call_chat_completion` (pattern : toujours patcher là où le nom est importé)
+- **Piège résolu :** `@patch("ai_gateway.gateway.call_chat_completion")` ne fonctionne pas — il faut `@patch("ai_service.call_chat_completion")`
+
+### Segmentation database.py → db/ (commit 7e2c5f4)
+
+| Avant | Après |
+|-------|-------|
+| `database.py` 719 lignes (CRITICAL) | `database.py` 162 lignes (facade) |
+| — | `db/analytics.py` 115 lignes — tentatives & analytics |
+| — | `db/chunks.py` 245 lignes — documents, chunks, maîtrise |
+| — | `db/profile.py` 172 lignes — profil utilisateur, rétention |
+| — | `db/admin.py` 50 lignes — gestion utilisateurs |
+
+**Backward compatibility totale :** `from database import X` fonctionne pour tous les callers existants.
+
+**Pattern import circulaire :** chaque sous-module fait `import database as _db` au niveau module et accède à `_db.DB_PATH` à l'intérieur des fonctions — le monkey-patch des tests (`database.DB_PATH = tmp`) est respecté car l'attribut est lu à l'heure d'appel.
+
+**Architecture Guard après segmentation :** `database.py` disparaît de la liste CRITICAL.
+
+- `py_compile` : 5/5 OK
+- Tests : **184/184 OK**
+
+### Prochaine étape suggérée
+
+Segmenter `adaptive_engine.py` (534 lignes, encore CRITICAL) ou passer à une autre priorité produit.
+
+---
+
 ## 2026-05-18 — Phase 15B — Fondation architecture & industrialisation progressive
 
 **Objectif :** créer les premières briques de gouvernance sans over-engineering — 3 modules sur 6 retenus après analyse Conseil, 3 reportés explicitement.
