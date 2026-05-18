@@ -4,6 +4,35 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-049 : Profil utilisateur enrichi (UI Dashboard)
+
+**Objectif :** afficher les 3 métriques dynamiques calculées depuis Phase 14 dans le Dashboard.
+
+**Constat pré-implémentation :** backend 100% complet (compute, store, retrieve, 25+ tests). Seule la couche UI manquait.
+
+### Modification (commit d698cc0)
+
+- `tabs/tab_dashboard.py` — **seul fichier modifié**
+- Zone 7 (Profil d'apprentissage) : ajout d'une ligne « Dynamique d'apprentissage » après les 4 scores pédagogiques
+- 3 KPI cards réutilisant `_kpi_card` existant :
+  - **Momentum 7j** : 📈/📉/➡️ · +XX % vert / −XX % rouge / Stable gris
+  - **Vélocité** : ⚡ · même code couleur
+  - **Régularité 30j** : 🔄 · ≥ 50 % vert · ≥ 30 % orange · > 0 % rouge · 0 gris
+- Aucun nouvel appel DB — `get_learning_profile()` déjà appelé ligne 373
+- Aucun changement backend, DB, helpers
+
+**Validations :**
+- `py_compile` : OK
+- Tests : **205/205 OK**
+- Streamlit : HTTP 200
+
+### Prochaine étape suggérée
+
+TASK-050 : afficher `get_next_session_plan` dans le Dashboard (backend déjà complet).
+TASK-051 : afficher les métriques de rétention J+1/J+7/J+30 (backend déjà complet).
+
+---
+
 ## 2026-05-18 — Segmentation database.py → db/ + Migration ai_service → ai_gateway
 
 **Objectif :** réduire la dette technique identifiée par l'Architecture Guard (database.py 719L CRITICAL) et compléter la migration ai_service → gateway.
