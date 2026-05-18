@@ -4,6 +4,34 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-054 : Entraînement cross-documents / corpus RAG multi-docs
+
+**Objectif :** permettre de s'entraîner sur un corpus multi-documents via RAG sémantique.
+
+### Modifications (commit 2041154)
+
+| Fichier | Changement |
+|---|---|
+| `rag_service.py` | `search_similar_chunks_multi(query_embedding, document_ids, top_k)` — IN clause, même ranking cosinus |
+| `ai_service.py` | `generate_question(document_ids=None)` — branche multi-doc prioritaire sur `document_id` |
+| `tabs/tab_training.py` | Sentinel `_CORPUS=-1` · option corpus dans sélecteur · label dynamique catégorie/complet · sync `active_document_ids` · `save_attempt(document_id=None)` en mode corpus |
+| `test_regression.py` | `TestCrossDocuments` (5 tests) |
+
+**Invariants respectés :**
+- `document_ids` prioritaire sur `document_id` — backward compat totale (tous les callers existants passent `document_id` uniquement)
+- Fallback RAG multi-doc → texte brut si embedding API échoue (même garde que mono-doc)
+- `save_attempt(document_id=None)` acceptable en mode corpus — FK nullable
+- Sentinel `_CORPUS=-1` jamais un AUTOINCREMENT SQLite valide
+- `active_document_ids` resyncé à chaque render selon le filtre catégorie actif
+
+**Validations :** py_compile OK · **198/198 tests** · Streamlit HTTP 200
+
+### Prochaine étape suggérée
+
+TASK-055 ou suite UX / dashboard.
+
+---
+
 ## 2026-05-18 — TASK-053 : Catégories de documents
 
 **Objectif :** structurer la bibliothèque par catégorie sans casser l'existant.
