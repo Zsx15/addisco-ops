@@ -1,0 +1,245 @@
+"""
+Documents & Chunks — ingestion, indexation, retrieval, maîtrise.
+Utilise database.DB_PATH via import tardif pour respecter le monkey-patch des tests.
+"""
+import logging
+import sqlite3
+from typing import Optional
+
+import database as _db
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+
+def save_document(
+    title: str,
+    source_type: str,
+    filename: str,
+    raw_text: str,
+    cleaned_text: str,
+) -> int:
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text, char_count)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (title, source_type, filename, raw_text, cleaned_text, len(cleaned_text)),
+        )
+        doc_id = cur.lastrowid
+    logger.info("save_document: id=%d title=%r source=%s", doc_id, title, source_type)
+    return doc_id
+
+
+def save_chunks(document_id: int, chunks: list[dict]) -> None:
+    rows = [
+        (
+            document_id,
+            c["chunk_index"],
+            c.get("section_title"),
+            c["chunk_text"],
+            c["char_count"],
+            c.get("embedding_id"),
+            c.get("embedding"),
+        )
+        for c in chunks
+    ]
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.executemany(
+            """
+            INSERT INTO chunks
+                (document_id, chunk_index, section_title, chunk_text, char_count, embedding_id, embedding)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+
+
+def update_chunk_embedding(chunk_id: int, embedding: bytes) -> None:
+    """UPDATE ciblé — la clé primaire chunk.id reste stable (invariant attempts.chunk_id)."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.execute(
+            "UPDATE chunks SET embedding = ? WHERE id = ?",
+            (embedding, chunk_id),
+        )
+
+
+def get_chunks_for_reindex(document_id: int) -> list[dict]:
+    """Retourne uniquement les chunks sans embedding (idempotence garantie)."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT id, chunk_index, chunk_text
+            FROM chunks
+            WHERE document_id = ? AND embedding IS NULL
+            """,
+            (document_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def has_documents() -> bool:
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+    return count > 0
+
+
+def get_documents() -> pd.DataFrame:
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT
+                d.id,
+                d.title,
+                d.source_type,
+                d.filename,
+                d.char_count,
+                d.created_at,
+                COUNT(c.id) AS chunk_count,
+                SUM(CASE WHEN c.embedding IS NULL THEN 1 ELSE 0 END) AS chunks_missing_embedding
+            FROM documents d
+            LEFT JOIN chunks c ON c.document_id = d.id
+            GROUP BY d.id
+            ORDER BY d.created_at DESC
+            """,
+            conn,
+        )
+    return df
+
+
+def get_chunk_stats(user_id: str = "default") -> pd.DataFrame:
+    """Agrège les tentatives par chunk source (mode RAG uniquement)."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT
+                a.chunk_id,
+                COALESCE(c.section_title, 'Section ' || (c.chunk_index + 1)) AS section_label,
+                d.title  AS document_title,
+                ROUND(AVG(a.score), 2) AS avg_score,
+                COUNT(*)               AS attempts_count,
+                (
+                    SELECT a2.error_type
+                    FROM attempts a2
+                    WHERE a2.chunk_id = a.chunk_id
+                      AND a2.user_id = a.user_id
+                      AND a2.error_type IS NOT NULL
+                      AND a2.error_type != ''
+                      AND a2.error_type != 'correct'
+                    GROUP BY a2.error_type
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 1
+                ) AS dominant_error_type,
+                (
+                    SELECT a3.score
+                    FROM attempts a3
+                    WHERE a3.chunk_id = a.chunk_id
+                      AND a3.user_id = a.user_id
+                      AND a3.score IS NOT NULL
+                    ORDER BY a3.created_at DESC
+                    LIMIT 1
+                ) AS last_score,
+                MAX(a.created_at) AS last_attempt_date
+            FROM attempts a
+            JOIN chunks    c ON a.chunk_id     = c.id
+            JOIN documents d ON c.document_id  = d.id
+            WHERE a.chunk_id IS NOT NULL
+              AND a.score    IS NOT NULL
+              AND a.user_id  = ?
+            GROUP BY a.chunk_id
+            ORDER BY avg_score ASC
+            """,
+            conn,
+            params=(user_id,),
+        )
+    return df
+
+
+def get_chunk_question_history(
+    chunk_id: int, limit: int = 5, user_id: str = "default"
+) -> list[dict]:
+    """Lit pedagogy_type comme question_type (colonne réutilisée sans migration)."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT question, pedagogy_type AS question_type
+            FROM attempts
+            WHERE chunk_id = ? AND user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (chunk_id, user_id, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> Optional[str]:
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT ROUND(AVG(score), 2), COUNT(*)
+            FROM attempts
+            WHERE chunk_id = ? AND score IS NOT NULL AND user_id = ?
+            """,
+            (chunk_id, user_id),
+        ).fetchone()
+    if not row or row[1] < 1:
+        return None
+    avg, n = row
+    if avg < 0.6:
+        return "Fragile"
+    if avg >= 0.8 and n >= 3:
+        return "Maîtrisé"
+    return "En consolidation"
+
+
+def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            """
+            SELECT
+                c.id       AS chunk_id,
+                c.chunk_text,
+                c.document_id,
+                COALESCE(c.section_title, 'Section ' || (c.chunk_index + 1)) AS section_label,
+                d.title                AS document_title,
+                ROUND(AVG(a.score), 2) AS avg_score,
+                COUNT(*)               AS attempts_count,
+                MAX(a.created_at)      AS last_attempt_date
+            FROM attempts a
+            JOIN chunks    c ON a.chunk_id    = c.id
+            JOIN documents d ON c.document_id = d.id
+            WHERE a.chunk_id IS NOT NULL
+              AND a.score    IS NOT NULL
+              AND a.user_id  = ?
+            GROUP BY a.chunk_id
+            HAVING NOT (ROUND(AVG(a.score), 2) >= 0.8 AND COUNT(*) >= 3)
+            ORDER BY
+                CASE
+                    WHEN ROUND(AVG(a.score), 2) < 0.6
+                         AND datetime(MAX(a.created_at), '+1 day')  <= datetime('now') THEN 0
+                    WHEN ROUND(AVG(a.score), 2) >= 0.6
+                         AND datetime(MAX(a.created_at), '+3 days') <= datetime('now') THEN 0
+                    ELSE 1
+                END ASC,
+                CASE WHEN ROUND(AVG(a.score), 2) < 0.6 THEN 0 ELSE 1 END ASC,
+                MAX(a.created_at) ASC,
+                ROUND(AVG(a.score), 2) ASC
+            LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_document_by_id(doc_id: int) -> Optional[dict]:
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM documents WHERE id = ?", (doc_id,)
+        ).fetchone()
+    return dict(row) if row else None
