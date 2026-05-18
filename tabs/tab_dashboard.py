@@ -387,6 +387,40 @@ def render() -> None:
             )
             _gcol.markdown(_kpi_card(icon, label, _pct_str, _accent), unsafe_allow_html=True)
 
+        # ── Métriques dynamiques : momentum, vélocité, régularité ─────────
+        st.markdown(
+            "<p style='font-size:11px;font-weight:600;color:#94a3b8;margin:10px 0 6px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Dynamique d'apprentissage</p>",
+            unsafe_allow_html=True,
+        )
+        _dm1, _dm2, _dm3 = st.columns(3)
+
+        _mom = float(_profile.get("momentum") or 0.0)
+        _vel = float(_profile.get("learning_velocity") or 0.0)
+        _con = float(_profile.get("consistency_score") or 0.0)
+
+        _mom_str = (
+            f"+{round(_mom * 100)} %" if _mom > 0.0
+            else (f"{round(_mom * 100)} %" if _mom < 0.0 else "Stable")
+        )
+        _mom_col = "#15803d" if _mom > 0.0 else ("#b91c1c" if _mom < 0.0 else "#94a3b8")
+        _mom_ico = "📈" if _mom > 0.0 else ("📉" if _mom < 0.0 else "➡️")
+        _dm1.markdown(_kpi_card(_mom_ico, "Momentum 7j", _mom_str, _mom_col), unsafe_allow_html=True)
+
+        _vel_str = (
+            f"+{round(_vel * 100)} %" if _vel > 0.0
+            else (f"{round(_vel * 100)} %" if _vel < 0.0 else "—")
+        )
+        _vel_col = "#15803d" if _vel > 0.0 else ("#b91c1c" if _vel < 0.0 else "#94a3b8")
+        _dm2.markdown(_kpi_card("⚡", "Vélocité", _vel_str, _vel_col), unsafe_allow_html=True)
+
+        _con_str = f"{round(_con * 100)} %" if _con > 0.0 else "—"
+        _con_col = (
+            "#15803d" if _con >= 0.5
+            else ("#b45309" if _con >= 0.3 else ("#b91c1c" if _con > 0.0 else "#94a3b8"))
+        )
+        _dm3.markdown(_kpi_card("🔄", "Régularité 30j", _con_str, _con_col), unsafe_allow_html=True)
+
         _pref       = _profile.get("preferred_pedagogy")
         _pref_label = _PEDAGOGY_FR.get(_pref, _pref) if _pref else None
         _fragile    = _profile.get("fragile_topics") or []
