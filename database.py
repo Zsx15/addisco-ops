@@ -105,6 +105,10 @@ def init_db():
                 )
             except sqlite3.OperationalError:
                 pass
+        try:
+            conn.execute("ALTER TABLE documents ADD COLUMN category TEXT")
+        except sqlite3.OperationalError:
+            pass
     logger.info("init_db: ready (%s)", DB_PATH)
 
 

@@ -1667,6 +1667,85 @@ class TestAntiRegressionPhase15(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests TASK-053 — Catégories de documents
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestDocumentCategory(_DbTestCase):
+    """
+    Vérifie le stockage, la lecture et la normalisation de la colonne category.
+    """
+
+    def _insert_doc(self, title: str = "Doc", category=None) -> int:
+        return self.db.save_document(
+            title=title,
+            source_type="txt",
+            filename="f.txt",
+            raw_text="raw",
+            cleaned_text="clean",
+            category=category,
+        )
+
+    # ── 1. Stockage avec catégorie ────────────────────────────────────────
+
+    def test_save_document_with_category_stored(self):
+        """Catégorie fournie → stockée et relue dans get_documents."""
+        self._insert_doc("Doc RH", category="RH")
+        df = self.db.get_documents()
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]["category"], "RH")
+
+    # ── 2. Backward compat — catégorie absente ────────────────────────────
+
+    def test_save_document_without_category_is_null(self):
+        """Aucune catégorie → valeur NULL (None dans Python)."""
+        self._insert_doc("Doc sans cat")
+        df = self.db.get_documents()
+        self.assertIsNone(df.iloc[0]["category"])
+
+    # ── 3. Normalisation strip + vide = None ─────────────────────────────
+
+    def test_category_whitespace_only_stored_as_null(self):
+        """Catégorie composée uniquement d'espaces → None (normalisée par save_document)."""
+        self._insert_doc("Doc espaces", category="   ")
+        df = self.db.get_documents()
+        self.assertIsNone(df.iloc[0]["category"])
+
+    def test_category_strip_applied(self):
+        """Catégorie avec espaces marginaux → stockée sans espaces."""
+        self._insert_doc("Doc strip", category="  Juridique  ")
+        df = self.db.get_documents()
+        self.assertEqual(df.iloc[0]["category"], "Juridique")
+
+    # ── 4. get_documents retourne bien la colonne category ────────────────
+
+    def test_get_documents_has_category_column(self):
+        """get_documents() retourne un DataFrame avec la colonne category."""
+        self._insert_doc()
+        df = self.db.get_documents()
+        self.assertIn("category", df.columns)
+
+    # ── 5. ingest_document transmet la catégorie ──────────────────────────
+
+    def test_ingest_document_with_category(self):
+        """ingest_document(category=...) → catégorie stockée via save_document."""
+        from unittest.mock import patch as _patch
+        from document_service import ingest_document
+        with _patch("document_service.generate_embedding", return_value=None):
+            doc_id = ingest_document(
+                title="Test DOCX cat",
+                source_type="txt",
+                filename="test.txt",
+                file_bytes=b"Texte de test suffisamment long pour ne pas etre vide.",
+                category="Formation",
+            )
+        df = self.db.get_documents()
+        row = df[df["id"] == doc_id]
+        self.assertFalse(row.empty)
+        self.assertEqual(row.iloc[0]["category"], "Formation")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tests TASK-052 — Extraction DOCX (document_service._extract_text_docx)
 # Aucune DB, aucun appel API. python-docx requis.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1951,6 +2030,7 @@ if __name__ == "__main__":
         TestComputeRetentionPure,
         TestGetRetentionMetricsDb,
         TestAntiRegressionPhase15,
+        TestDocumentCategory,
         TestDocxExtraction,
         TestGenerateQuestionMocked,
         TestCorrectAnswerMocked,

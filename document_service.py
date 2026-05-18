@@ -21,6 +21,7 @@ def ingest_document(
     source_type: str,
     filename: str,
     file_bytes: bytes,
+    category: Optional[str] = None,
 ) -> int:
     """
     Full ingestion pipeline. Returns the new document_id.
@@ -55,6 +56,7 @@ def ingest_document(
         filename=filename,
         raw_text=raw_text,
         cleaned_text=cleaned,
+        category=category,
     )
     logger.info("Document saved: id=%d  chars=%d", doc_id, len(cleaned))
 

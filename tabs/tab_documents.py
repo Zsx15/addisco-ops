@@ -22,6 +22,7 @@ def render() -> None:
 
     with st.form("upload_form", clear_on_submit=True):
         doc_title     = st.text_input("Titre du document", placeholder="Ex : Procédure accueil client")
+        doc_category  = st.text_input("Catégorie (optionnelle)", placeholder="Ex : RH, Sécurité, Juridique…")
         uploaded_file = st.file_uploader("Fichier (TXT, PDF ou DOCX)", type=["txt", "pdf", "docx"])
         submitted     = st.form_submit_button("Importer")
 
@@ -38,6 +39,7 @@ def render() -> None:
                 st.error(_size_err)
             else:
                 source_type = uploaded_file.name.rsplit(".", 1)[-1].lower()
+                _category   = doc_category.strip() if doc_category and doc_category.strip() else None
                 with st.spinner("Extraction et découpage en cours…"):
                     try:
                         doc_id = ingest_document(
@@ -45,6 +47,7 @@ def render() -> None:
                             source_type=source_type,
                             filename=uploaded_file.name,
                             file_bytes=file_bytes,
+                            category=_category,
                         )
                         st.success(f"Document importé avec succès (ID {doc_id}).")
                     except ValueError as exc:
@@ -61,12 +64,24 @@ def render() -> None:
         st.info("Aucun document importé pour l'instant.")
         return
 
+    # ── Filtre catégorie ──────────────────────────────────────────────────
+    _categories = sorted(
+        c for c in df_docs["category"].dropna().unique() if str(c).strip()
+    )
+    if _categories:
+        _cat_options = ["Toutes les catégories"] + _categories
+        _cat_sel = st.selectbox("Filtrer par catégorie", _cat_options, key="filter_category")
+        if _cat_sel != "Toutes les catégories":
+            df_docs = df_docs[df_docs["category"] == _cat_sel]
+
     st.caption(f"{len(df_docs)} document{'s' if len(df_docs) > 1 else ''} dans la bibliothèque")
     for _, doc in df_docs.iterrows():
-        doc_id = int(doc["id"])
-        label  = (
+        doc_id   = int(doc["id"])
+        _cat_tag = f"  ·  🏷 {doc['category']}" if doc.get("category") else ""
+        label    = (
             f"📄 {doc['title']}  ·  {doc['source_type'].upper()}"
             f"  ·  {int(doc['chunk_count'])} section{'s' if doc['chunk_count'] != 1 else ''}"
+            f"{_cat_tag}"
             f"  ·  {str(doc['created_at'])[:16]}"
         )
         with st.expander(label):

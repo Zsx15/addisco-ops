@@ -90,6 +90,14 @@ def render() -> None:
     # ── Sélecteur de document ────────────────────────────────────────────
     _df_docs = get_documents()
     if not _df_docs.empty:
+        # Filtre catégorie (masqué si aucune catégorie définie)
+        _cats = sorted(c for c in _df_docs["category"].dropna().unique() if str(c).strip())
+        if _cats:
+            _cat_opts = ["Toutes les catégories"] + _cats
+            _cat_sel  = st.selectbox("Catégorie", _cat_opts, key="train_filter_category")
+            if _cat_sel != "Toutes les catégories":
+                _df_docs = _df_docs[_df_docs["category"] == _cat_sel]
+
         _doc_ids    = [None] + [int(r["id"]) for _, r in _df_docs.iterrows()]
         _doc_titles = {None: "— Texte libre (sans RAG)"}
         for _, _r in _df_docs.iterrows():

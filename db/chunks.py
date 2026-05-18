@@ -18,17 +18,20 @@ def save_document(
     filename: str,
     raw_text: str,
     cleaned_text: str,
+    category: Optional[str] = None,
 ) -> int:
+    _cat = category.strip() if category and category.strip() else None
     with sqlite3.connect(_db.DB_PATH) as conn:
         cur = conn.execute(
             """
-            INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text, char_count)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO documents
+                (title, source_type, filename, raw_text, cleaned_text, char_count, category)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (title, source_type, filename, raw_text, cleaned_text, len(cleaned_text)),
+            (title, source_type, filename, raw_text, cleaned_text, len(cleaned_text), _cat),
         )
         doc_id = cur.lastrowid
-    logger.info("save_document: id=%d title=%r source=%s", doc_id, title, source_type)
+    logger.info("save_document: id=%d title=%r source=%s category=%r", doc_id, title, source_type, _cat)
     return doc_id
 
 
@@ -97,6 +100,7 @@ def get_documents() -> pd.DataFrame:
                 d.filename,
                 d.char_count,
                 d.created_at,
+                d.category,
                 COUNT(c.id) AS chunk_count,
                 SUM(CASE WHEN c.embedding IS NULL THEN 1 ELSE 0 END) AS chunks_missing_embedding
             FROM documents d
