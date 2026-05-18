@@ -1,15 +1,12 @@
 import json
 import logging
-import os
 import random
 import struct
 from typing import Optional
 
-from dotenv import load_dotenv
-from openai import OpenAI
-
 logger = logging.getLogger(__name__)
 
+from ai_gateway.gateway import call_chat_completion, call_embedding_api
 from database import (
     get_chunk_mastery,
     get_chunk_question_history,
@@ -23,10 +20,6 @@ from adaptive_engine import (
     _choose_question_type,
     explain_type_choice,
 )
-
-load_dotenv()
-
-_client: Optional[OpenAI] = None
 
 TEXT_MAX_CHARS = 6000
 
@@ -65,37 +58,19 @@ _TYPE_PROMPTS = {
 }
 
 
-def _get_client() -> OpenAI:
-    global _client
-    if _client is None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "OPENAI_API_KEY manquante. Créez un fichier .env avec votre clé API."
-            )
-        _client = OpenAI(api_key=api_key)
-    return _client
-
-
 def _truncate(text: str) -> str:
     return text[:TEXT_MAX_CHARS] if len(text) > TEXT_MAX_CHARS else text
 
 
 def _call_embedding_api(text: str) -> list[float]:
     """
-    Appel brut à l'API OpenAI embeddings — retourne le vecteur de floats.
-
-    Ce helper existe pour séparer deux usages distincts du même appel API :
-    - generate_embedding() en a besoin pour sérialiser et stocker en SQLite (→ bytes) ;
-    - generate_question() en a besoin pour chercher des chunks similaires (→ list[float]).
-    Factoriser ici évite de dupliquer la logique d'appel et de troncature.
+    Délègue à ai_gateway.call_embedding_api avec troncature métier.
+    Lève RuntimeError si le gateway retourne None (erreur API).
     """
-    client   = _get_client()
-    response = client.embeddings.create(
-        model=EMBEDDING_MODEL,
-        input=text[:EMBEDDING_MAX_CHARS],
-    )
-    return response.data[0].embedding  # list[float], 1 536 dimensions
+    result = call_embedding_api(text[:EMBEDDING_MAX_CHARS])
+    if result is None:
+        raise RuntimeError("L'API embeddings a échoué.")
+    return result
 
 
 def generate_embedding(text: str) -> bytes:
@@ -129,8 +104,6 @@ def generate_question(
     preferred_pedagogy est utilisé comme tie-breaker final après la rotation et
     le biais mastery. Absent ou None → comportement inchangé.
     """
-    client = _get_client()
-
     # ── Résolution du contexte ────────────────────────────────────────────────
     context   = _truncate(source_text)
     chunk_ids: list[int] = []
@@ -194,27 +167,21 @@ def generate_question(
         f"{avoid_block}"
     )
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": f"Texte source :\n\n{context}"},
-            ],
-            max_tokens=200,
-            temperature=0.7,
-            timeout=30,
-        )
-    except Exception as exc:
-        logger.error("generate_question: API error (%s)", type(exc).__name__)
+    content = call_chat_completion(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": f"Texte source :\n\n{context}"},
+        ],
+        task_type="question_generation",
+        max_tokens=200,
+        temperature=0.7,
+    )
+    if content is None:
         raise RuntimeError(
             "La génération de question a échoué. Vérifiez votre connexion ou réessayez."
-        ) from None
+        )
 
-    if not response.choices or not response.choices[0].message.content:
-        raise RuntimeError("Réponse vide reçue du modèle. Réessayez.")
-
-    return response.choices[0].message.content.strip(), chunk_ids, question_type
+    return content.strip(), chunk_ids, question_type
 
 
 _CORRECT_FALLBACK = {
@@ -227,49 +194,41 @@ _CORRECT_FALLBACK = {
 
 
 def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
-    client = _get_client()
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Tu es un formateur expert qui corrige des réponses. "
-                        "Réponds en JSON avec exactement ces champs :\n"
-                        "- score : décimal entre 0.0 et 1.0\n"
-                        "- expected_answer : réponse idéale concise\n"
-                        "- correction : explication pédagogique en 2 à 4 phrases\n"
-                        "- error_type : un de ces types si score < 0.8 : "
-                        "oubli_etape | confusion_notion | reponse_vague | erreur_ordre | hors_sujet | correct\n"
-                        "- topic : notion principale testée (3 à 5 mots)\n"
-                        "Réponds uniquement avec le JSON brut, sans markdown."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Texte source :\n{_truncate(source_text)}\n\n"
-                        f"Question : {question}\n\n"
-                        f"Réponse de l'apprenant : {user_answer}"
-                    ),
-                },
-            ],
-            max_tokens=400,
-            temperature=0.3,
-            response_format={"type": "json_object"},
-            timeout=30,
-        )
-    except Exception as exc:
-        logger.error("correct_answer: API error (%s)", type(exc).__name__)
-        return dict(_CORRECT_FALLBACK)
-
-    if not response.choices or not response.choices[0].message.content:
-        logger.warning("correct_answer: empty response")
+    content = call_chat_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Tu es un formateur expert qui corrige des réponses. "
+                    "Réponds en JSON avec exactement ces champs :\n"
+                    "- score : décimal entre 0.0 et 1.0\n"
+                    "- expected_answer : réponse idéale concise\n"
+                    "- correction : explication pédagogique en 2 à 4 phrases\n"
+                    "- error_type : un de ces types si score < 0.8 : "
+                    "oubli_etape | confusion_notion | reponse_vague | erreur_ordre | hors_sujet | correct\n"
+                    "- topic : notion principale testée (3 à 5 mots)\n"
+                    "Réponds uniquement avec le JSON brut, sans markdown."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Texte source :\n{_truncate(source_text)}\n\n"
+                    f"Question : {question}\n\n"
+                    f"Réponse de l'apprenant : {user_answer}"
+                ),
+            },
+        ],
+        task_type="correction",
+        max_tokens=400,
+        temperature=0.3,
+        response_format={"type": "json_object"},
+    )
+    if content is None:
         return dict(_CORRECT_FALLBACK)
 
     try:
-        data = json.loads(response.choices[0].message.content)
+        data = json.loads(content)
     except json.JSONDecodeError:
         logger.warning("correct_answer: JSON decode error")
         return dict(_CORRECT_FALLBACK)
