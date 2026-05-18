@@ -4,6 +4,46 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-055 : Recherche sémantique corpus complet — clôture Phase 15
+
+**Objectif :** étendre `search_similar_chunks_multi()` pour accepter `document_ids=None` → recherche sur tout le corpus sans filtre `document_id`.
+
+### Modifications
+
+| Fichier | Changement |
+|---|---|
+| `rag_service.py` | `Optional[list[int]]` sur `document_ids` · branche SQL sans `WHERE document_id IN (...)` quand `None` · garde `[]` → return immédiat inchangée |
+| `ai_service.py` | Branche `else` corpus complet — `search_similar_chunks_multi(None)` quand ni `document_id` ni `document_ids` fourni |
+| `test_regression.py` | `TestCorpusSearch` (5 tests) · correction mock manquant sur `test_happy_path_no_rag` |
+
+**Comportements garantis :**
+- `search_similar_chunks(document_id)` → **strictement inchangé**
+- `search_similar_chunks_multi([1,2,3])` → **strictement inchangé**
+- `search_similar_chunks_multi([])` → `[]` immédiat **inchangé**
+- `search_similar_chunks_multi(None)` → SQL corpus complet, top-k respecté
+- `generate_question()` sans doc → corpus complet (fallback texte brut si corpus vide)
+
+**Invariants respectés :**
+- Aucun DELETE+INSERT, aucune migration DB
+- Fallback texte brut préservé si le corpus complet retourne []
+- `document_ids` reste prioritaire sur `document_id` et sur le mode corpus
+- Backward compat totale — aucun caller existant cassé
+
+**Limites connues (à documenter pour Phase 13+) :**
+Le mode corpus complet (`document_ids=None`) charge tous les chunks avec embedding en mémoire et calcule la similarité cosinus en Python. Acceptable pour MVP / ~50 documents. Au-delà, envisager : ranking plus avancé, limite de chunks pré-filtrée, cache, index ANN, pgvector (Phase 13), ou base vectorielle dédiée.
+
+**Validations :** py_compile OK · **203/203 tests** · Streamlit HTTP 200
+
+### Clôture Phase 15
+
+Phase 15 — Multi-documents et corpus : TASK-052 (DOCX) + TASK-053 (catégories) + TASK-054 (entraînement cross-docs) + TASK-055 (corpus complet RAG) = **Phase 15 complète**.
+
+### Prochaine étape suggérée
+
+TASK-056 : dashboard formateur avancé (Phase 16 — UX professionnelle finale).
+
+---
+
 ## 2026-05-18 — TASK-054 : Entraînement cross-documents / corpus RAG multi-docs
 
 **Objectif :** permettre de s'entraîner sur un corpus multi-documents via RAG sémantique.

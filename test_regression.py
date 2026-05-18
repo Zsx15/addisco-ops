@@ -1814,9 +1814,10 @@ class TestGenerateQuestionMocked(unittest.TestCase):
     # ── 1. Chemin nominal ────────────────────────────────────────────────────
 
     @patch("ai_service.get_learning_profile", return_value=None)
+    @patch("ai_service.search_similar_chunks_multi", return_value=[])
     @patch(_GATEWAY_PATCH)
-    def test_happy_path_no_rag(self, mock_call, mock_prof):
-        """Retourne (str non vide, [], question_type valide) en mode texte brut."""
+    def test_happy_path_no_rag(self, mock_call, mock_multi, mock_prof):
+        """Retourne (str non vide, [], question_type valide) quand le corpus est vide."""
         mock_call.return_value = "Quelle est la règle principale ?"
         q, ids, qtype = generate_question("Texte source suffisamment long.", document_id=None)
         self.assertEqual(q, "Quelle est la règle principale ?")
@@ -2129,6 +2130,126 @@ class TestCrossDocuments(unittest.TestCase):
             mock_single.assert_called_once()
 
 
+class TestCorpusSearch(unittest.TestCase):
+    """Tests pour search_similar_chunks_multi(document_ids=None) — corpus complet."""
+
+    def _make_temp_db(self):
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        return tmp.name
+
+    def _seed_db(self, db_path, n_docs=2, n_chunks_each=3):
+        import struct
+        import sqlite3
+        import database as db
+        from pathlib import Path
+        orig = db.DB_PATH
+        db.DB_PATH = Path(db_path)
+        import rag_service
+        rag_service.database.DB_PATH = db.DB_PATH
+        db.init_db()
+        vec = [0.3] * 1536
+        blob = struct.pack(f"<{len(vec)}f", *vec)
+        doc_ids = []
+        with sqlite3.connect(db.DB_PATH) as conn:
+            for i in range(n_docs):
+                conn.execute(
+                    "INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (f"Doc{i}", "txt", f"d{i}.txt", "raw", "clean"),
+                )
+                doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                doc_ids.append(doc_id)
+                for j in range(n_chunks_each):
+                    conn.execute(
+                        "INSERT INTO chunks (document_id, chunk_index, section_title, chunk_text, char_count, embedding)"
+                        " VALUES (?, ?, ?, ?, ?, ?)",
+                        (doc_id, j, "S", "z" * 200, 200, blob),
+                    )
+            conn.commit()
+        return orig, doc_ids, vec
+
+    def test_none_returns_all_corpus_chunks(self):
+        """document_ids=None doit retourner des résultats sur tout le corpus."""
+        import os
+        from pathlib import Path
+        import database as db
+        import rag_service
+
+        db_path = self._make_temp_db()
+        orig, doc_ids, vec = self._seed_db(db_path)
+        try:
+            result = rag_service.search_similar_chunks_multi(vec, None, top_k=10)
+            self.assertGreater(len(result), 0)
+            # Tous les docs sont représentés
+            result_doc_ids = set()
+            with __import__("sqlite3").connect(db.DB_PATH) as conn:
+                for r in result:
+                    row = conn.execute("SELECT document_id FROM chunks WHERE id=?", (r["id"],)).fetchone()
+                    if row:
+                        result_doc_ids.add(row[0])
+            self.assertEqual(result_doc_ids, set(doc_ids))
+        finally:
+            db.DB_PATH = orig
+            rag_service.database.DB_PATH = orig
+            try:
+                os.unlink(db_path)
+            except OSError:
+                pass
+
+    def test_none_respects_top_k(self):
+        """document_ids=None doit respecter top_k même avec beaucoup de chunks."""
+        import os
+        from pathlib import Path
+        import database as db
+        import rag_service
+
+        db_path = self._make_temp_db()
+        orig, _, vec = self._seed_db(db_path, n_docs=3, n_chunks_each=5)
+        try:
+            result = rag_service.search_similar_chunks_multi(vec, None, top_k=4)
+            self.assertLessEqual(len(result), 4)
+        finally:
+            db.DB_PATH = orig
+            rag_service.database.DB_PATH = orig
+            try:
+                os.unlink(db_path)
+            except OSError:
+                pass
+
+    def test_empty_list_still_returns_empty(self):
+        """document_ids=[] doit toujours retourner [] sans requête SQL."""
+        from rag_service import search_similar_chunks_multi
+        result = search_similar_chunks_multi([0.1] * 10, document_ids=[], top_k=3)
+        self.assertEqual(result, [])
+
+    @patch("ai_service.call_chat_completion", return_value="Question corpus ?")
+    @patch("ai_service.call_embedding_api", return_value=[0.1] * 1536)
+    @patch("ai_service.get_learning_profile", return_value=None)
+    def test_generate_question_no_doc_uses_corpus(self, mock_prof, mock_emb, mock_chat):
+        """generate_question() sans document_id ni document_ids appelle search_similar_chunks_multi(None)."""
+        with patch("ai_service.search_similar_chunks_multi", return_value=[]) as mock_multi, \
+             patch("ai_service.search_similar_chunks", return_value=[]) as mock_single:
+            from ai_service import generate_question
+            generate_question("texte")
+            mock_multi.assert_called_once_with(mock_emb.return_value, None, top_k=__import__("ai_service").RAG_TOP_K)
+            mock_single.assert_not_called()
+
+    @patch("ai_service.call_chat_completion", return_value="Question ?")
+    @patch("ai_service.call_embedding_api", return_value=[0.1] * 1536)
+    @patch("ai_service.get_learning_profile", return_value=None)
+    def test_document_ids_priority_over_corpus(self, mock_prof, mock_emb, mock_chat):
+        """document_ids=[...] doit rester prioritaire sur le mode corpus."""
+        with patch("ai_service.search_similar_chunks_multi", return_value=[]) as mock_multi, \
+             patch("ai_service.search_similar_chunks", return_value=[]) as mock_single:
+            from ai_service import generate_question
+            generate_question("texte", document_ids=[1, 2])
+            args, kwargs = mock_multi.call_args
+            self.assertNotEqual(args[1] if len(args) > 1 else kwargs.get("document_ids"), None)
+            mock_single.assert_not_called()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -2159,6 +2280,7 @@ if __name__ == "__main__":
         TestGenerateQuestionMocked,
         TestCorrectAnswerMocked,
         TestCrossDocuments,
+        TestCorpusSearch,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

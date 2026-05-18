@@ -11,6 +11,7 @@ vers pgvector (Phase 13) ou une base vectorielle dédiée (Phase 15+).
 """
 import sqlite3
 import struct
+from typing import Optional
 
 import numpy as np
 
@@ -77,30 +78,45 @@ def search_similar_chunks(
 
 def search_similar_chunks_multi(
     query_embedding: list[float],
-    document_ids: list[int],
+    document_ids: Optional[list[int]],
     top_k: int = 3,
 ) -> list[dict]:
     """
-    Retourne les top_k chunks les plus proches de query_embedding
-    parmi l'ensemble des documents listés dans document_ids.
-    Même logique de ranking cosinus que search_similar_chunks — extension légère.
+    Retourne les top_k chunks les plus proches de query_embedding.
+
+    document_ids=[1,2,...] → recherche sur ces documents uniquement.
+    document_ids=None      → recherche sur tout le corpus (sans filtre document_id).
+    document_ids=[]        → retourne [] immédiatement.
+
+    Note : le mode corpus complet (None) est acceptable pour un MVP jusqu'à ~50 documents.
+    Au-delà, envisager un index ANN ou pgvector (Phase 13).
     """
-    if not document_ids:
+    if document_ids is not None and len(document_ids) == 0:
         return []
 
-    placeholders = ",".join("?" * len(document_ids))
     with sqlite3.connect(database.DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            f"""
-            SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
-            FROM chunks
-            WHERE document_id IN ({placeholders})
-              AND embedding IS NOT NULL
-              AND char_count >= 150
-            """,
-            document_ids,
-        ).fetchall()
+        if document_ids is None:
+            rows = conn.execute(
+                """
+                SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
+                FROM chunks
+                WHERE embedding IS NOT NULL
+                  AND char_count >= 150
+                """
+            ).fetchall()
+        else:
+            placeholders = ",".join("?" * len(document_ids))
+            rows = conn.execute(
+                f"""
+                SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
+                FROM chunks
+                WHERE document_id IN ({placeholders})
+                  AND embedding IS NOT NULL
+                  AND char_count >= 150
+                """,
+                document_ids,
+            ).fetchall()
 
     if not rows:
         return []

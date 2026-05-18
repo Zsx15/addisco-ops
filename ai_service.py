@@ -127,6 +127,16 @@ def generate_question(
                 chunk_ids = [c["id"] for c in chunks]
         except Exception:
             logger.warning("generate_question: RAG fallback (doc=%s)", document_id)
+    else:
+        # Corpus complet — aucun document_id fourni
+        try:
+            query_vector = _call_embedding_api(source_text)
+            chunks       = search_similar_chunks_multi(query_vector, None, top_k=RAG_TOP_K)
+            if chunks:
+                context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                chunk_ids = [c["id"] for c in chunks]
+        except Exception:
+            logger.warning("generate_question: RAG corpus fallback")
 
     # ── Choix du type pédagogique ─────────────────────────────────────────────
     history: list[dict] = []
