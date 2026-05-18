@@ -4,6 +4,36 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-052 : Support DOCX (document_service.py)
+
+**Objectif :** ajouter le support DOCX au pipeline d'ingestion existant sans modifier le reste du moteur.
+
+### Modifications (commit aa93bbb)
+
+| Fichier | Changement |
+|---|---|
+| `document_service.py` | +`_extract_text_docx()` + 1 branche dans `_extract_text()` |
+| `tabs/tab_documents.py` | `type=["txt","pdf","docx"]` + label "TXT, PDF ou DOCX" |
+| `requirements.txt` | +`python-docx==1.2.0` |
+| `test_regression.py` | +`TestDocxExtraction` (3 tests) |
+
+**Invariants respectés :**
+- Import lazy (`try/except ImportError`) — python-docx absent → `ValueError` user-readable + hint `pip install python-docx`
+- Pipeline inchangé : extract → clean → chunk → embed — aucune modification des autres étapes
+- Aucun changement DB (source_type TEXT accepte "docx" sans migration)
+- Moteur IA inchangé
+
+**Tests DOCX :** happy path (3 paragraphes extraits) · DOCX vide → ValueError · ImportError mocké via `sys.modules` → ValueError
+
+**Validations :** py_compile OK · **208/208 tests** · Streamlit HTTP 200
+
+### Prochaine étape suggérée
+
+Architecture Guard audit post-TASK-052.
+TASK-053 : catégories de documents (colonne `category` dans `documents`).
+
+---
+
 ## 2026-05-18 — TASK-050 + TASK-051 : Plan de session et Rétention (UI Dashboard)
 
 **Objectif :** afficher les deux dernières sorties du moteur adaptatif dans le Dashboard.
