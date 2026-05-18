@@ -4,6 +4,33 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-050 + TASK-051 : Plan de session et Rétention (UI Dashboard)
+
+**Objectif :** afficher les deux dernières sorties du moteur adaptatif dans le Dashboard.
+
+### Modifications (commit 5f88999)
+
+- `tabs/tab_dashboard.py` — **seul fichier modifié** (+66 lignes, +2 imports)
+
+**Zone 2b — Plan de session (TASK-050)**
+- `get_next_session_plan()` → jusqu'à 5 sections ordonnées par priorité
+- Chaque item : rang · section · document / objectif pédagogique · badge mastery · score · durée estimée · statut révision
+- Masqué si aucune donnée (pas de chunk avec historique)
+
+**Zone 4e — Rétention pédagogique (TASK-051)**
+- `get_retention_metrics()` → 3 KPI cards 🧠 J+1 / 📅 J+7 / 📆 J+30
+- Code couleur : vert ≥ 70 % · orange ≥ 50 % · rouge < 50 % · gris —
+- Message d'attente si toutes les valeurs sont None (données insuffisantes)
+
+**Validations :** `py_compile` OK · **205/205 tests** · Streamlit HTTP 200
+
+### Prochaine étape suggérée
+
+Architecture Guard audit pour confirmer l'état du projet post-Phase 15.
+TASK-052 si phase 15 complète (support DOCX).
+
+---
+
 ## 2026-05-18 — TASK-049 : Profil utilisateur enrichi (UI Dashboard)
 
 **Objectif :** afficher les 3 métriques dynamiques calculées depuis Phase 14 dans le Dashboard.
