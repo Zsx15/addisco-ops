@@ -12,6 +12,8 @@ from database import (
     get_chunk_stats,
     get_error_frequency,
     get_learning_profile,
+    get_next_session_plan,
+    get_retention_metrics,
     get_score_evolution,
     get_topic_stats,
 )
@@ -146,6 +148,38 @@ def render() -> None:
                     st.caption(f"⏱ {_ivl_expl}")
 
     st.divider()
+
+    # ── Zone 2b : Plan de session adaptatif ──────────────────────────────
+    _session_plan = get_next_session_plan(st.session_state["user_id"])
+    if _session_plan:
+        st.markdown(
+            "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Plan de session</p>",
+            unsafe_allow_html=True,
+        )
+        _total_min = sum(item["estimated_minutes"] for item in _session_plan)
+        st.caption(
+            f"{len(_session_plan)} section{'s' if len(_session_plan) > 1 else ''}"
+            f" · ~{_total_min} min estimées"
+        )
+        for _rank, _item in enumerate(_session_plan, 1):
+            _s_icon, _ = _BADGE.get(_item["mastery_class"], ("⚪", ""))
+            _s_pct     = round(_item["avg_score"] * 100)
+            _s_mins    = _item["estimated_minutes"]
+            _s_status  = _item["review_status"]
+            with st.container(border=True):
+                _sp_a, _sp_b = st.columns([3, 1])
+                with _sp_a:
+                    st.markdown(
+                        f"**{_rank}. {_item['section_label']}**"
+                        f" · _{_item['document_title']}_"
+                    )
+                    st.caption(_item["objective"])
+                with _sp_b:
+                    st.markdown(f"{_s_icon} **{_s_pct} %**")
+                    st.caption(f"~{_s_mins} min · {_s_status}")
+
+        st.divider()
 
     # ── Zone 3 : Cartes de section ────────────────────────────────────────
     st.markdown(
@@ -327,6 +361,38 @@ def render() -> None:
         + "</div>",
         unsafe_allow_html=True,
     )
+
+    st.divider()
+
+    # ── Zone 4e : Rétention pédagogique ──────────────────────────────────
+    st.markdown(
+        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
+        "text-transform:uppercase;letter-spacing:.07em'>Rétention pédagogique</p>",
+        unsafe_allow_html=True,
+    )
+    _ret = get_retention_metrics(st.session_state["user_id"])
+    _ret_windows = [
+        ("retention_j1",  "🧠", "Rétention J+1",  "Révision lendemain (12h–60h)"),
+        ("retention_j7",  "📅", "Rétention J+7",  "Révision hebdo (4–10j)"),
+        ("retention_j30", "📆", "Rétention J+30", "Révision mensuelle (21–45j)"),
+    ]
+    _rc1, _rc2, _rc3 = st.columns(3)
+    for _rcol, (_key, _ico, _lbl, _sub) in zip((_rc1, _rc2, _rc3), _ret_windows):
+        _rval = _ret.get(_key)
+        if _rval is not None:
+            _rpct   = round(_rval * 100)
+            _rcolor = "#15803d" if _rpct >= 70 else ("#b45309" if _rpct >= 50 else "#b91c1c")
+            _rstr   = f"{_rpct} %"
+        else:
+            _rcolor = "#94a3b8"
+            _rstr   = "—"
+        _rcol.markdown(_kpi_card(_ico, _lbl, _rstr, _rcolor), unsafe_allow_html=True)
+        _rcol.caption(_sub)
+    if all(v is None for v in _ret.values()):
+        st.caption(
+            "Données insuffisantes — révisez le même concept à plusieurs jours d'intervalle "
+            "pour que la rétention soit calculable."
+        )
 
     st.divider()
 
