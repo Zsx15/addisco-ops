@@ -40,6 +40,37 @@ Segmenter `adaptive_engine.py` (534 lignes, encore CRITICAL) ou passer à une au
 
 ---
 
+## 2026-05-18 — Segmentation adaptive_engine.py → engine/
+
+**Objectif :** éliminer le dernier fichier CRITICAL identifié par l'Architecture Guard (adaptive_engine.py 534L).
+
+### Résultat (commit 55ade6b)
+
+| Avant | Après |
+|-------|-------|
+| `adaptive_engine.py` 534 lignes (CRITICAL) | `adaptive_engine.py` 57 lignes (façade) |
+| — | `engine/spaced_rep.py` 103 lignes — REVIEW_INTERVALS, _adaptive_interval, classify_mastery |
+| — | `engine/question_type.py` 123 lignes — types, biais mastery, rotation, explicabilité |
+| — | `engine/profile_metrics.py` 79 lignes — momentum, vélocité, régularité |
+| — | `engine/retention.py` 55 lignes — métriques rétention j1/j7/j30 |
+| — | `engine/session_plan.py` 142 lignes — priorités, objectifs, build_session_plan |
+
+**Backward compatibility totale :** `from adaptive_engine import X` et `from database import X` (chaîne) continuent de fonctionner pour tous les callers.
+
+**Aucun caller modifié :** `database.py`, `db/profile.py`, `ai_service.py`, `app.py`, `tabs/` inchangés.
+
+**Architecture Guard après segmentation :** aucun fichier CRITICAL restant dans le projet.
+
+- `py_compile` : 6/6 OK (tous les fichiers engine/)
+- Post-condition imports : 19 symboles vérifiés depuis `adaptive_engine` + chaîne `database`
+- Tests : **205/205 OK**
+
+### Prochaine étape suggérée
+
+TASK-049 — profil utilisateur enrichi, ou audit Architecture Guard pour confirmer zéro CRITICAL.
+
+---
+
 ## 2026-05-18 — Phase 15B — Fondation architecture & industrialisation progressive
 
 **Objectif :** créer les premières briques de gouvernance sans over-engineering — 3 modules sur 6 retenus après analyse Conseil, 3 reportés explicitement.
