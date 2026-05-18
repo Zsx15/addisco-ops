@@ -4,6 +4,34 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-18 — TASK-055B : Correction UX — contexte RAG visible après génération
+
+**Objectif :** afficher explicitement le document source, la section et un extrait du chunk utilisé par le RAG avant la question générée.
+
+### Modifications
+
+| Fichier | Changement |
+|---|---|
+| `db/chunks.py` | `get_chunk_by_id(chunk_id)` — SELECT chunks JOIN documents, retourne `section_label`, `document_title`, `chunk_text` |
+| `database.py` | Re-export de `get_chunk_by_id` + `__all__` |
+| `tabs/tab_training.py` | Import · fetch chunk primaire après génération · stockage session state · bloc `📄 Contexte RAG utilisé` avant la question · reset dans le cas aucun chunk |
+| `test_regression.py` | `TestGetChunkById` (3 tests) |
+
+**Comportements garantis :**
+- `ai_service.py` / `generate_question()` : **zéro modification** — moteur indépendant de l'UI
+- Mono-doc : contexte affiché (document + section + extrait)
+- Corpus multi-doc : contexte affiché (document source du chunk primaire + section)
+- Mode texte brut (aucun chunk) : expander absent, aucun crash
+- Fetch échoue : try/except silencieux → question fonctionnelle, contexte omis
+
+**Validations :** py_compile OK · **206/206 tests** · Streamlit HTTP 200
+
+### Prochaine étape suggérée
+
+TASK-056 : dashboard formateur avancé (Phase 16).
+
+---
+
 ## 2026-05-18 — TASK-055 : Recherche sémantique corpus complet — clôture Phase 15
 
 **Objectif :** étendre `search_similar_chunks_multi()` pour accepter `document_ids=None` → recherche sur tout le corpus sans filtre `document_id`.

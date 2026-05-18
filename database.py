@@ -135,6 +135,7 @@ from db.chunks import (                                             # noqa: E402
     get_chunk_mastery,
     get_revision_suggestion,
     get_document_by_id,
+    get_chunk_by_id,
 )
 from db.profile import (                                            # noqa: E402
     get_learning_profile,
@@ -157,7 +158,7 @@ __all__ = [
     # Documents & Chunks
     "save_document", "save_chunks", "update_chunk_embedding", "get_chunks_for_reindex",
     "has_documents", "get_documents", "get_chunk_stats", "get_chunk_question_history",
-    "get_chunk_mastery", "get_revision_suggestion", "get_document_by_id",
+    "get_chunk_mastery", "get_revision_suggestion", "get_document_by_id", "get_chunk_by_id",
     # Profil
     "get_learning_profile", "compute_and_save_learning_profile",
     "get_next_session_plan", "get_retention_metrics",

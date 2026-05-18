@@ -9,6 +9,7 @@ from ai_service import correct_answer, explain_type_choice, generate_question
 from database import (
     classify_mastery,
     compute_and_save_learning_profile,
+    get_chunk_by_id,
     get_chunk_mastery,
     get_chunk_question_history,
     get_chunk_stats,
@@ -188,6 +189,23 @@ def render() -> None:
                 st.session_state["result"]        = None
                 st.session_state["answer_input"]  = ""
                 if chunk_ids:
+                    # Contexte RAG — métadonnées du chunk primaire pour l'affichage UI
+                    try:
+                        _primary = get_chunk_by_id(chunk_ids[0])
+                        if _primary:
+                            _raw = _primary.get("chunk_text") or ""
+                            st.session_state["source_chunk_text"]  = _raw[:300] + ("…" if len(_raw) > 300 else "")
+                            st.session_state["source_chunk_title"] = _primary.get("section_label") or ""
+                            st.session_state["source_doc_title"]   = _primary.get("document_title") or ""
+                        else:
+                            st.session_state["source_chunk_text"]  = None
+                            st.session_state["source_chunk_title"] = None
+                            st.session_state["source_doc_title"]   = None
+                    except Exception:
+                        st.session_state["source_chunk_text"]  = None
+                        st.session_state["source_chunk_title"] = None
+                        st.session_state["source_doc_title"]   = None
+                    st.session_state["source_chunk_count"] = len(chunk_ids)
                     try:
                         st.session_state["question_mastery"] = get_chunk_mastery(
                             chunk_ids[0], user_id=st.session_state["user_id"]
@@ -233,11 +251,31 @@ def render() -> None:
                     st.session_state["question_chunk_status"]     = "—"
                     st.session_state["question_type_reason"]      = None
                     st.session_state["question_profile_pedagogy"] = None
+                    st.session_state["source_chunk_text"]         = None
+                    st.session_state["source_chunk_title"]        = None
+                    st.session_state["source_doc_title"]          = None
+                    st.session_state["source_chunk_count"]        = 0
             except Exception as exc:
                 st.error(f"Erreur lors de la génération : {exc}")
 
     if st.session_state["question"]:
         st.divider()
+
+        _src_doc   = st.session_state.get("source_doc_title")
+        _src_title = st.session_state.get("source_chunk_title")
+        _src_text  = st.session_state.get("source_chunk_text")
+        _src_count = st.session_state.get("source_chunk_count") or 0
+        if _src_doc or _src_title or _src_text:
+            with st.expander("📄 Contexte RAG utilisé", expanded=False):
+                if _src_count:
+                    st.caption(f"📚 Sources utilisées : {_src_count} chunk{'s' if _src_count > 1 else ''}")
+                if _src_doc:
+                    st.markdown(f"**📄 Document :**  \n{_src_doc}")
+                if _src_title:
+                    st.markdown(f"**🏷 Section :**  \n{_src_title}")
+                if _src_text:
+                    st.markdown(f'**🧠 Extrait :**  \n"{_src_text}"')
+
         st.subheader("Question")
         st.info(st.session_state["question"])
         _q_type = st.session_state.get("question_type")

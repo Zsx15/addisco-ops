@@ -2130,6 +2130,119 @@ class TestCrossDocuments(unittest.TestCase):
             mock_single.assert_called_once()
 
 
+class TestGetChunkById(unittest.TestCase):
+    """Tests pour get_chunk_by_id() — métadonnées chunk + document_title."""
+
+    def test_returns_dict_with_document_title(self):
+        """get_chunk_by_id doit retourner chunk_text, section_label et document_title."""
+        import struct
+        import tempfile, os, sqlite3
+        from pathlib import Path
+        import database as db
+        from db.chunks import get_chunk_by_id
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        orig = db.DB_PATH
+        db.DB_PATH = Path(tmp.name)
+        import db.chunks as _c
+        _c._db.DB_PATH = db.DB_PATH
+        try:
+            db.init_db()
+            with sqlite3.connect(db.DB_PATH) as conn:
+                conn.execute(
+                    "INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    ("MonDoc", "txt", "f.txt", "raw", "clean"),
+                )
+                doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                conn.execute(
+                    "INSERT INTO chunks (document_id, chunk_index, section_title, chunk_text, char_count)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (doc_id, 0, "Ma section", "Contenu du chunk.", 17),
+                )
+                chunk_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                conn.commit()
+            result = get_chunk_by_id(chunk_id)
+            self.assertIsNotNone(result)
+            self.assertEqual(result["document_title"], "MonDoc")
+            self.assertEqual(result["section_label"], "Ma section")
+            self.assertEqual(result["chunk_text"], "Contenu du chunk.")
+            self.assertEqual(result["document_id"], doc_id)
+        finally:
+            db.DB_PATH = orig
+            _c._db.DB_PATH = orig
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+    def test_returns_none_for_missing_chunk(self):
+        """get_chunk_by_id doit retourner None si le chunk n'existe pas."""
+        import tempfile, os
+        from pathlib import Path
+        import database as db
+        from db.chunks import get_chunk_by_id
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        orig = db.DB_PATH
+        db.DB_PATH = Path(tmp.name)
+        import db.chunks as _c
+        _c._db.DB_PATH = db.DB_PATH
+        try:
+            db.init_db()
+            result = get_chunk_by_id(99999)
+            self.assertIsNone(result)
+        finally:
+            db.DB_PATH = orig
+            _c._db.DB_PATH = orig
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+    def test_section_label_fallback_when_no_title(self):
+        """section_label doit utiliser 'Section N' quand section_title est NULL."""
+        import tempfile, os, sqlite3
+        from pathlib import Path
+        import database as db
+        from db.chunks import get_chunk_by_id
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        orig = db.DB_PATH
+        db.DB_PATH = Path(tmp.name)
+        import db.chunks as _c
+        _c._db.DB_PATH = db.DB_PATH
+        try:
+            db.init_db()
+            with sqlite3.connect(db.DB_PATH) as conn:
+                conn.execute(
+                    "INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    ("Doc2", "txt", "f2.txt", "raw", "clean"),
+                )
+                doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                conn.execute(
+                    "INSERT INTO chunks (document_id, chunk_index, section_title, chunk_text, char_count)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (doc_id, 2, None, "Texte.", 6),
+                )
+                chunk_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                conn.commit()
+            result = get_chunk_by_id(chunk_id)
+            self.assertIsNotNone(result)
+            self.assertEqual(result["section_label"], "Section 3")
+        finally:
+            db.DB_PATH = orig
+            _c._db.DB_PATH = orig
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+
 class TestCorpusSearch(unittest.TestCase):
     """Tests pour search_similar_chunks_multi(document_ids=None) — corpus complet."""
 
@@ -2281,6 +2394,7 @@ if __name__ == "__main__":
         TestCorrectAnswerMocked,
         TestCrossDocuments,
         TestCorpusSearch,
+        TestGetChunkById,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

@@ -247,3 +247,27 @@ def get_document_by_id(doc_id: int) -> Optional[dict]:
             "SELECT * FROM documents WHERE id = ?", (doc_id,)
         ).fetchone()
     return dict(row) if row else None
+
+
+def get_chunk_by_id(chunk_id: int) -> Optional[dict]:
+    """Retourne les métadonnées d'un chunk avec son document source.
+    Utilisé par l'UI pour afficher le contexte RAG après génération.
+    """
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            """
+            SELECT
+                c.id,
+                c.chunk_text,
+                COALESCE(c.section_title, 'Section ' || (c.chunk_index + 1)) AS section_label,
+                c.chunk_index,
+                d.id    AS document_id,
+                d.title AS document_title
+            FROM chunks c
+            JOIN documents d ON c.document_id = d.id
+            WHERE c.id = ?
+            """,
+            (chunk_id,),
+        ).fetchone()
+    return dict(row) if row else None
