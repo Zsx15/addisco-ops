@@ -372,7 +372,7 @@ def render() -> None:
     )
     _ret = get_retention_metrics(st.session_state["user_id"])
     _ret_windows = [
-        ("retention_j1",  "🧠", "Rétention J+1",  "Révision lendemain (12h–60h)"),
+        ("retention_j1",  "🧠", "Rétention J+1",  "Révision lendemain (12h–2j)"),
         ("retention_j7",  "📅", "Rétention J+7",  "Révision hebdo (4–10j)"),
         ("retention_j30", "📆", "Rétention J+30", "Révision mensuelle (21–45j)"),
     ]
