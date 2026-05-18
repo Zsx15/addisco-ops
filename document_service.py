@@ -144,6 +144,8 @@ def _extract_text(file_bytes: bytes, source_type: str) -> str:
         return _extract_text_txt(file_bytes)
     if source_type == "pdf":
         return _extract_text_pdf(file_bytes)
+    if source_type == "docx":
+        return _extract_text_docx(file_bytes)
     raise ValueError(f"Type de fichier non supporté : {source_type}")
 
 
@@ -201,6 +203,30 @@ def _extract_text_pdf(file_bytes: bytes) -> str:
         "PDF extracted: %d chars — %d/%d pages OK",
         len(full_text), total_pages - len(failed), total_pages,
     )
+    return full_text
+
+
+def _extract_text_docx(file_bytes: bytes) -> str:
+    try:
+        from docx import Document
+    except ImportError:
+        raise ValueError(
+            "La librairie python-docx n'est pas installée. "
+            "Exécutez : pip install python-docx"
+        )
+
+    import io
+    doc   = Document(io.BytesIO(file_bytes))
+    parts = [para.text.strip() for para in doc.paragraphs if para.text.strip()]
+
+    full_text = "\n\n".join(parts)
+    if not full_text.strip():
+        raise ValueError(
+            "Aucun texte lisible dans ce DOCX. "
+            "Vérifiez que le document contient du texte (non scanné)."
+        )
+
+    logger.info("DOCX extracted: %d chars, %d paragraphes", len(full_text), len(parts))
     return full_text
 
 

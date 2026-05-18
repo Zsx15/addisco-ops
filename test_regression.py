@@ -1667,6 +1667,58 @@ class TestAntiRegressionPhase15(_DbTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests TASK-052 — Extraction DOCX (document_service._extract_text_docx)
+# Aucune DB, aucun appel API. python-docx requis.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestDocxExtraction(unittest.TestCase):
+    """
+    Tests d'extraction DOCX — document_service._extract_text_docx().
+    Aucune DB, aucun appel API.
+    """
+
+    def _make_docx_bytes(self, paragraphs: list) -> bytes:
+        """Crée un DOCX minimal en mémoire avec les paragraphes donnés."""
+        import io
+        from docx import Document
+        doc = Document()
+        for para in paragraphs:
+            doc.add_paragraph(para)
+        buf = io.BytesIO()
+        doc.save(buf)
+        return buf.getvalue()
+
+    def test_happy_path_extracts_paragraphs(self):
+        """DOCX avec 3 paragraphes → chaque paragraphe présent dans le résultat."""
+        from document_service import _extract_text_docx
+        content = [
+            "Titre du chapitre",
+            "Premier paragraphe du document.",
+            "Deuxième paragraphe avec plus de détails.",
+        ]
+        result = _extract_text_docx(self._make_docx_bytes(content))
+        for para in content:
+            self.assertIn(para, result)
+
+    def test_empty_docx_raises_value_error(self):
+        """DOCX sans texte → ValueError avec message lisible."""
+        from document_service import _extract_text_docx
+        empty_bytes = self._make_docx_bytes([])
+        with self.assertRaises(ValueError) as ctx:
+            _extract_text_docx(empty_bytes)
+        self.assertIn("Aucun texte", str(ctx.exception))
+
+    @patch.dict("sys.modules", {"docx": None})
+    def test_import_error_raises_value_error_with_pip_hint(self):
+        """Si python-docx absent (docx=None dans sys.modules) → ValueError avec hint pip."""
+        from document_service import _extract_text_docx
+        with self.assertRaises(ValueError) as ctx:
+            _extract_text_docx(b"dummy")
+        self.assertIn("pip install python-docx", str(ctx.exception))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tests mockés ai_service — generate_question / correct_answer
 # Aucun appel OpenAI réel — ai_gateway.gateway.call_chat_completion est mocké.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1899,6 +1951,7 @@ if __name__ == "__main__":
         TestComputeRetentionPure,
         TestGetRetentionMetricsDb,
         TestAntiRegressionPhase15,
+        TestDocxExtraction,
         TestGenerateQuestionMocked,
         TestCorrectAnswerMocked,
     ):

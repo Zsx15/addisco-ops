@@ -22,7 +22,7 @@ def render() -> None:
 
     with st.form("upload_form", clear_on_submit=True):
         doc_title     = st.text_input("Titre du document", placeholder="Ex : Procédure accueil client")
-        uploaded_file = st.file_uploader("Fichier (TXT ou PDF)", type=["txt", "pdf"])
+        uploaded_file = st.file_uploader("Fichier (TXT, PDF ou DOCX)", type=["txt", "pdf", "docx"])
         submitted     = st.form_submit_button("Importer")
 
     if submitted:
