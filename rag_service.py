@@ -73,3 +73,50 @@ def search_similar_chunks(
 
     scored.sort(key=lambda x: x["similarity"], reverse=True)
     return scored[:top_k]
+
+
+def search_similar_chunks_multi(
+    query_embedding: list[float],
+    document_ids: list[int],
+    top_k: int = 3,
+) -> list[dict]:
+    """
+    Retourne les top_k chunks les plus proches de query_embedding
+    parmi l'ensemble des documents listés dans document_ids.
+    Même logique de ranking cosinus que search_similar_chunks — extension légère.
+    """
+    if not document_ids:
+        return []
+
+    placeholders = ",".join("?" * len(document_ids))
+    with sqlite3.connect(database.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
+            FROM chunks
+            WHERE document_id IN ({placeholders})
+              AND embedding IS NOT NULL
+              AND char_count >= 150
+            """,
+            document_ids,
+        ).fetchall()
+
+    if not rows:
+        return []
+
+    scored = []
+    for row in rows:
+        vec = _blob_to_vector(row["embedding"])
+        sim = _cosine_similarity(query_embedding, vec)
+        scored.append({
+            "id":            row["id"],
+            "chunk_index":   row["chunk_index"],
+            "section_title": row["section_title"],
+            "chunk_text":    row["chunk_text"],
+            "char_count":    row["char_count"],
+            "similarity":    sim,
+        })
+
+    scored.sort(key=lambda x: x["similarity"], reverse=True)
+    return scored[:top_k]

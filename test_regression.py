@@ -2006,6 +2006,130 @@ class TestCorrectAnswerMocked(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# TASK-054 — Cross-document RAG
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCrossDocuments(unittest.TestCase):
+    """Tests pour search_similar_chunks_multi et generate_question(document_ids=...)."""
+
+    def test_empty_document_ids_returns_empty(self):
+        """search_similar_chunks_multi([]) doit retourner [] sans accès DB."""
+        from rag_service import search_similar_chunks_multi
+        result = search_similar_chunks_multi([0.1, 0.2, 0.3], document_ids=[], top_k=3)
+        self.assertEqual(result, [])
+
+    def test_multi_doc_returns_top_k(self):
+        """search_similar_chunks_multi retourne au plus top_k résultats."""
+        import struct
+        import tempfile, os
+        import sqlite3
+        from pathlib import Path
+        import rag_service
+        import database as db
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        orig = db.DB_PATH
+        db.DB_PATH = Path(tmp.name)
+        rag_service.database.DB_PATH = db.DB_PATH
+        try:
+            db.init_db()
+            vec = [0.1] * 1536
+            blob = struct.pack(f"<{len(vec)}f", *vec)
+            with sqlite3.connect(db.DB_PATH) as conn:
+                conn.execute(
+                    "INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    ("D1", "txt", "d1.txt", "raw", "clean"),
+                )
+                doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                for i in range(5):
+                    conn.execute(
+                        "INSERT INTO chunks (document_id, chunk_index, section_title, chunk_text, char_count, embedding)"
+                        " VALUES (?, ?, ?, ?, ?, ?)",
+                        (doc_id, i, "S", "x" * 200, 200, blob),
+                    )
+                conn.commit()
+            result = rag_service.search_similar_chunks_multi(vec, [doc_id], top_k=3)
+            self.assertLessEqual(len(result), 3)
+            self.assertGreater(len(result), 0)
+        finally:
+            db.DB_PATH = orig
+            rag_service.database.DB_PATH = orig
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+    def test_single_id_equivalent_to_single_doc(self):
+        """search_similar_chunks_multi([id]) == search_similar_chunks(id) en résultats."""
+        import struct
+        import tempfile, os
+        import sqlite3
+        from pathlib import Path
+        import rag_service
+        import database as db
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        orig = db.DB_PATH
+        db.DB_PATH = Path(tmp.name)
+        rag_service.database.DB_PATH = db.DB_PATH
+        try:
+            db.init_db()
+            vec = [0.5] * 1536
+            blob = struct.pack(f"<{len(vec)}f", *vec)
+            with sqlite3.connect(db.DB_PATH) as conn:
+                conn.execute(
+                    "INSERT INTO documents (title, source_type, filename, raw_text, cleaned_text)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    ("D2", "txt", "d2.txt", "raw", "clean"),
+                )
+                doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                for i in range(3):
+                    conn.execute(
+                        "INSERT INTO chunks (document_id, chunk_index, section_title, chunk_text, char_count, embedding)"
+                        " VALUES (?, ?, ?, ?, ?, ?)",
+                        (doc_id, i, "S", "y" * 200, 200, blob),
+                    )
+                conn.commit()
+            r_multi  = rag_service.search_similar_chunks_multi(vec, [doc_id], top_k=3)
+            r_single = rag_service.search_similar_chunks(vec, doc_id, top_k=3)
+            self.assertEqual([r["id"] for r in r_multi], [r["id"] for r in r_single])
+        finally:
+            db.DB_PATH = orig
+            rag_service.database.DB_PATH = orig
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+    @patch("ai_service.call_chat_completion", return_value="Question de test ?")
+    @patch("ai_service.call_embedding_api", return_value=[0.1] * 1536)
+    @patch("ai_service.get_learning_profile", return_value=None)
+    def test_generate_question_document_ids_priority(self, mock_prof, mock_emb, mock_chat):
+        """generate_question(document_ids=[...]) appelle search_similar_chunks_multi."""
+        with patch("ai_service.search_similar_chunks_multi", return_value=[]) as mock_multi, \
+             patch("ai_service.search_similar_chunks", return_value=[]) as mock_single:
+            from ai_service import generate_question
+            generate_question("texte", document_id=42, document_ids=[1, 2, 3])
+            mock_multi.assert_called_once()
+            mock_single.assert_not_called()
+
+    @patch("ai_service.call_chat_completion", return_value="Question ?")
+    @patch("ai_service.call_embedding_api", return_value=[0.1] * 1536)
+    @patch("ai_service.get_learning_profile", return_value=None)
+    def test_generate_question_no_document_ids_uses_single(self, mock_prof, mock_emb, mock_chat):
+        """generate_question(document_id=X) sans document_ids utilise search_similar_chunks."""
+        with patch("ai_service.search_similar_chunks_multi", return_value=[]) as mock_multi, \
+             patch("ai_service.search_similar_chunks", return_value=[]) as mock_single:
+            from ai_service import generate_question
+            generate_question("texte", document_id=42)
+            mock_multi.assert_not_called()
+            mock_single.assert_called_once()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -2034,6 +2158,7 @@ if __name__ == "__main__":
         TestDocxExtraction,
         TestGenerateQuestionMocked,
         TestCorrectAnswerMocked,
+        TestCrossDocuments,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

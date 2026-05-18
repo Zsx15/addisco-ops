@@ -1,6 +1,7 @@
 """Onglet Entraînement — génération de question, réponse, correction."""
 import time
 from datetime import datetime
+from typing import Optional
 
 import streamlit as st
 
@@ -42,6 +43,9 @@ _MASTERY_BIAS_LABELS = {
     "En consolidation": "Section en progression — types variés pour ancrer les acquis.",
     "Maîtrisé":         "Section maîtrisée — questions pièges et cas pratiques pour challenger la maîtrise.",
 }
+
+# Sentinel : jamais un AUTOINCREMENT SQLite valide — signal "corpus multi-documents"
+_CORPUS = -1
 
 
 def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
@@ -89,6 +93,7 @@ def render() -> None:
 
     # ── Sélecteur de document ────────────────────────────────────────────
     _df_docs = get_documents()
+    _cat_sel: Optional[str] = None
     if not _df_docs.empty:
         # Filtre catégorie (masqué si aucune catégorie définie)
         _cats = sorted(c for c in _df_docs["category"].dropna().unique() if str(c).strip())
@@ -98,8 +103,15 @@ def render() -> None:
             if _cat_sel != "Toutes les catégories":
                 _df_docs = _df_docs[_df_docs["category"] == _cat_sel]
 
-        _doc_ids    = [None] + [int(r["id"]) for _, r in _df_docs.iterrows()]
-        _doc_titles = {None: "— Texte libre (sans RAG)"}
+        # Corpus label selon le filtre actif
+        _n_docs = len(_df_docs)
+        if _cat_sel and _cat_sel != "Toutes les catégories":
+            _corpus_label = f"📚 Corpus catégorie : {_cat_sel} ({_n_docs} docs)"
+        else:
+            _corpus_label = f"📚 Corpus complet ({_n_docs} docs)"
+
+        _doc_ids    = [None, _CORPUS] + [int(r["id"]) for _, r in _df_docs.iterrows()]
+        _doc_titles = {None: "— Texte libre (sans RAG)", _CORPUS: _corpus_label}
         for _, _r in _df_docs.iterrows():
             _doc_titles[int(_r["id"])] = _r["title"]
         _active_id = st.session_state.get("active_document_id")
@@ -110,10 +122,20 @@ def render() -> None:
             format_func=lambda x: _doc_titles.get(x, "—"),
             index=_sel_idx,
         )
+        # Sync active_document_ids pour le corpus (mis à jour à chaque render selon le filtre)
+        if _selected == _CORPUS:
+            st.session_state["active_document_ids"] = [int(r["id"]) for _, r in _df_docs.iterrows()]
+        else:
+            st.session_state.pop("active_document_ids", None)
+
         if _selected != _active_id:
             if _selected is None:
                 st.session_state["active_document_id"]    = None
                 st.session_state["active_document_title"] = ""
+                st.session_state["source_text_input"]     = ""
+            elif _selected == _CORPUS:
+                st.session_state["active_document_id"]    = _CORPUS
+                st.session_state["active_document_title"] = _corpus_label
                 st.session_state["source_text_input"]     = ""
             else:
                 _full = get_document_by_id(_selected)
@@ -133,19 +155,29 @@ def render() -> None:
         key="source_text_input",
     )
 
-    if st.session_state.get("active_document_id"):
+    _active_doc_id = st.session_state.get("active_document_id")
+    if _active_doc_id == _CORPUS:
+        _corpus_ids = st.session_state.get("active_document_ids") or []
+        st.caption(f"📚 Corpus actif — {len(_corpus_ids)} document(s) · RAG multi-documents")
+    elif _active_doc_id:
         _doc_title = st.session_state.get("active_document_title") or "Document importé"
         st.caption(f"Source : {_doc_title}")
 
     if len(source_text) > 6000:
         st.warning("Texte trop long — seuls les 6 000 premiers caractères seront utilisés.")
 
-    if st.button("Générer une question", disabled=not source_text.strip()):
+    # En mode corpus, le texte source vient du RAG — on autorise le bouton même si vide
+    _is_corpus = st.session_state.get("active_document_id") == _CORPUS
+    _btn_disabled = not (source_text.strip() or _is_corpus)
+    if st.button("Générer une question", disabled=_btn_disabled):
         with st.spinner("Génération en cours…"):
             try:
+                _gen_doc_ids = st.session_state.get("active_document_ids") if _is_corpus else None
+                _gen_doc_id  = None if _is_corpus else st.session_state.get("active_document_id")
                 question, chunk_ids, question_type = generate_question(
-                    source_text,
-                    document_id=st.session_state.get("active_document_id"),
+                    source_text or " ",
+                    document_id=_gen_doc_id,
+                    document_ids=_gen_doc_ids,
                     user_id=st.session_state["user_id"],
                 )
                 st.session_state["question"]      = question
@@ -209,7 +241,14 @@ def render() -> None:
         st.subheader("Question")
         st.info(st.session_state["question"])
         _q_type = st.session_state.get("question_type")
-        _mode   = "RAG actif" if st.session_state.get("chunk_ids") else "Texte brut"
+        _chunk_ids_q = st.session_state.get("chunk_ids") or []
+        if st.session_state.get("active_document_id") == _CORPUS and _chunk_ids_q:
+            _n_corpus = len(st.session_state.get("active_document_ids") or [])
+            _mode = f"📚 Corpus ({_n_corpus} docs)"
+        elif _chunk_ids_q:
+            _mode = "RAG actif"
+        else:
+            _mode = "Texte brut"
         _tlabel = _TYPE_LABELS.get(_q_type, _q_type) if _q_type else "—"
         st.caption(f"Type : {_tlabel} · {_mode}")
 
@@ -261,7 +300,12 @@ def render() -> None:
                     st.session_state["result"]        = result
                     st.session_state["response_time"] = elapsed
 
-                    _chunk_ids = st.session_state.get("chunk_ids") or []
+                    _chunk_ids  = st.session_state.get("chunk_ids") or []
+                    _save_doc_id = (
+                        None
+                        if st.session_state.get("active_document_id") == _CORPUS
+                        else st.session_state.get("active_document_id")
+                    )
                     save_attempt(
                         question=st.session_state["question"],
                         user_answer=user_answer,
@@ -272,7 +316,7 @@ def render() -> None:
                         error_type=result.get("error_type", ""),
                         topic=result.get("topic", ""),
                         pedagogy_type=st.session_state.get("question_type"),
-                        document_id=st.session_state.get("active_document_id"),
+                        document_id=_save_doc_id,
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
                         user_id=st.session_state["user_id"],
                     )

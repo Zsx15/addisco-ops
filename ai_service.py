@@ -12,7 +12,7 @@ from database import (
     get_chunk_question_history,
     get_learning_profile,
 )
-from rag_service import search_similar_chunks
+from rag_service import search_similar_chunks, search_similar_chunks_multi
 from adaptive_engine import (
     _MASTERY_BIAS,
     _PEDAGOGY_GROUPS as _PROFILE_TYPES,
@@ -85,6 +85,7 @@ def generate_embedding(text: str) -> bytes:
 def generate_question(
     source_text: str,
     document_id: Optional[int] = None,
+    document_ids: Optional[list[int]] = None,
     user_id: str = "default",
 ) -> tuple[str, list[int], str]:
     """
@@ -108,7 +109,16 @@ def generate_question(
     context   = _truncate(source_text)
     chunk_ids: list[int] = []
 
-    if document_id is not None:
+    if document_ids:
+        try:
+            query_vector = _call_embedding_api(source_text)
+            chunks       = search_similar_chunks_multi(query_vector, document_ids, top_k=RAG_TOP_K)
+            if chunks:
+                context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                chunk_ids = [c["id"] for c in chunks]
+        except Exception:
+            logger.warning("generate_question: RAG multi fallback (docs=%s)", document_ids)
+    elif document_id is not None:
         try:
             query_vector = _call_embedding_api(source_text)
             chunks       = search_similar_chunks(query_vector, document_id, top_k=RAG_TOP_K)
@@ -117,7 +127,6 @@ def generate_question(
                 chunk_ids = [c["id"] for c in chunks]
         except Exception:
             logger.warning("generate_question: RAG fallback (doc=%s)", document_id)
-            pass
 
     # ── Choix du type pédagogique ─────────────────────────────────────────────
     history: list[dict] = []
