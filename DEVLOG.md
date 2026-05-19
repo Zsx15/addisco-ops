@@ -4,6 +4,109 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — TASK-059 : Remap Skills V1.1 — documents de démo
+
+**Objectif :** peupler `chunk_skills` sur les documents existants afin d'activer `user_skill_mastery` dans le simulateur mock.
+
+### Contexte
+
+Avant cette opération, les documents de démo avaient 0 `chunk_skills` — ils avaient été importés avant l'ajout du Skills Engine V1.0. Le simulateur mock créait des attempts sur des chunks sans mapping skills → `user_skill_mastery` restait vide.
+
+### Opération
+
+Appel de `remap_all_documents()` (db/skills.py) — keyword-only, non destructif.
+
+### Résultats
+
+| doc | titre | chunks éligibles | inserts | updates | désactivations |
+|---|---|---|---|---|---|
+| 1 | Procédure d'accueil voyageur | 4 / 5 | 10 | 0 | 0 |
+| 2 | Addisco Ops | 6 / 6 | 10 | 0 | 0 |
+
+**Total : 20 chunk_skills insérés.**
+
+### Analytics post-remap
+
+| Skill | Chunks | Avg weight |
+|---|---|---|
+| `evaluation_critique` | 6 / 11 | 0.444 |
+| `resolution_problemes` | 6 / 11 | 0.500 |
+| `memorisation_faits` | 4 / 11 | 0.667 |
+| `prise_decision` | 2 / 11 | 0.333 |
+| `identification_concepts` | 1 / 11 | 0.333 |
+| `comprehension_procedure` | 1 / 11 | 0.333 |
+
+Skills absents des docs démo : `analyse_causale`, `application_regles`, `conformite_reglementaire`, `synthese_reformulation` — vocabulaire non couvert par la procédure d'accueil voyageur.
+
+1 chunk sans skill : en-tête d'intro du doc 1 (aucun mot-clé pédagogique détectable).
+
+Collision principale : `resolution_problemes` × `evaluation_critique` co=3 (attendu sur chunks incidents).
+
+### Invariants respectés
+
+- `chunks.id` intouchables — aucun chunk modifié
+- `is_validated=1` — aucune ligne de ce type présente (tous inserts frais)
+- Aucun attempt supprimé
+
+### Validation — rerun mock weak
+
+Après remap, `test_robustesse_100q.py --mock --profile weak` produit :
+
+```
+comprehension_procedure    68%  (9 tent.)
+resolution_problemes       56%  (54 tent.)
+memorisation_faits         53%  (36 tent.)
+evaluation_critique        52%  (54 tent.)
+identification_concepts    50%  (9 tent.)
+prise_decision             40%  (18 tent.)
+```
+
+6 skills alimentés (vs 0 avant remap). Verdict : **GO SAFE**.
+
+### Prochaine étape suggérée
+
+Vérifier le dashboard pédagogique Zone 8 avec un utilisateur réel après quelques tentatives sur les documents remappés.
+
+---
+
+## 2026-05-19 — TASK-058B : Mode mock — test robustesse 100 questions
+
+**Objectif :** permettre un test complet sans appels API OpenAI pour valider la robustesse du moteur (attempts, profil, skill mastery, analytics) en < 5 secondes.
+
+### Ajouts à `test_robustesse_100q.py`
+
+```
+python test_robustesse_100q.py --mock                   # profil mixed (défaut)
+python test_robustesse_100q.py --mock --profile good    # 80 % bonnes / 20 % partielles
+python test_robustesse_100q.py --mock --profile weak    # 30 % / 50 % / 20 % mauvaises
+python test_robustesse_100q.py --mock --profile random  # aléatoire à chaque lancement
+```
+
+### Distribution des profils
+
+| Profil | good (0.75–1.0) | partial (0.35–0.65) | bad (0.0–0.34) |
+|---|---|---|---|
+| `good` | 80 % | 20 % | 0 % |
+| `mixed` | 60 % | 40 % | 0 % |
+| `weak` | 30 % | 50 % | 20 % |
+| `random` | aléatoire | — | — |
+
+### Fonctions ajoutées
+
+- `_build_mock_score_schedule(n, profile, seed)` — distribution déterministe (seed=42)
+- `_mock_score(band, rng)` — retourne `(score, error_type)` cohérents
+- Pools locaux : 15 questions, 15 topics, 6 question_types
+- `run_test(mock, profile)` — branche `if mock:` sans modifier le chemin API
+
+### Validation
+
+- GO SAFE sur les 3 commandes de validation (mixed, random, cleanup)
+- Durée : < 1 seconde pour 100 cycles
+- Mode API inchangé — 0 régression
+- 227/227 tests maintenus
+
+---
+
 ## 2026-05-19 — TASK-058 : Test de robustesse pédagogique — 100 questions simulées
 
 **Objectif :** vérifier la robustesse de l'ensemble du moteur ADDISCO OPS (RAG, attempts, profil, skill mastery, multi-user) par un test contrôlé end-to-end simulant un utilisateur réel sur 100 questions.
