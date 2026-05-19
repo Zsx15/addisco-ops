@@ -130,3 +130,23 @@ def render() -> None:
                             "Rechargez la page pour relancer les manquants."
                         )
                     st.rerun()
+
+            # ── Remapping skills V1.1 ─────────────────────────────────────
+            if st.button(
+                "Recalculer les skills (V1.1)",
+                key=f"remap_skills_{doc_id}",
+                help="Recalcule le mapping skills avec les keywords V1.1. "
+                     "Ne touche pas les mappings validés manuellement.",
+            ):
+                try:
+                    from database import remap_document_skills
+                    with st.spinner("Remapping skills en cours…"):
+                        _remap = remap_document_skills(doc_id)
+                    st.success(
+                        f"Skills recalculés : +{_remap['inserted']} nouveaux · "
+                        f"{_remap['updated']} mis à jour · "
+                        f"{_remap['deactivated']} désactivés "
+                        f"({_remap['remapped_chunks']}/{_remap['total_chunks']} chunks)"
+                    )
+                except Exception as _exc:
+                    st.warning(f"Remap échoué (non bloquant) : {_exc}")

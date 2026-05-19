@@ -143,6 +143,15 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
             ),
         )
 
+    # Mise à jour skill mastery — non bloquante
+    try:
+        from db.skills import update_user_skill_mastery
+        update_user_skill_mastery(user_id)
+    except Exception as exc:
+        logger.warning(
+            "update_user_skill_mastery échoué pour user %s (non bloquant) : %s", user_id, exc
+        )
+
     return profile
 
 

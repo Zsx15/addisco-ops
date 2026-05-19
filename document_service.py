@@ -83,6 +83,17 @@ def ingest_document(
     save_chunks(doc_id, chunks)
     logger.info("Chunks created: %d segments for document %d", len(chunks), doc_id)
 
+    # Skills mapping — déterministe, non bloquant
+    try:
+        from db.skills import classify_and_save_document_skills
+        report = classify_and_save_document_skills(doc_id)
+        logger.info(
+            "Skills mapping: doc %d — %d/%d chunks, %d liens",
+            doc_id, report["mapped_chunks"], report["total_chunks"], report["total_mappings"],
+        )
+    except Exception as exc:
+        logger.warning("Skills mapping échoué pour document %d (non bloquant) : %s", doc_id, exc)
+
     return doc_id
 
 

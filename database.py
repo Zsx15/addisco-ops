@@ -109,6 +109,47 @@ def init_db():
             conn.execute("ALTER TABLE documents ADD COLUMN category TEXT")
         except sqlite3.OperationalError:
             pass
+        # ── Skills Engine V1.0 — tables additives ────────────────────────
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS skills (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug        TEXT    NOT NULL UNIQUE,
+                label_fr    TEXT    NOT NULL,
+                description TEXT,
+                is_active   INTEGER NOT NULL DEFAULT 1,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS chunk_skills (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                chunk_id     INTEGER NOT NULL REFERENCES chunks(id),
+                skill_id     INTEGER NOT NULL REFERENCES skills(id),
+                weight       REAL    NOT NULL DEFAULT 1.0,
+                source       TEXT    NOT NULL DEFAULT 'keyword',
+                is_validated INTEGER NOT NULL DEFAULT 0,
+                is_active    INTEGER NOT NULL DEFAULT 1,
+                validated_by TEXT,
+                created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(chunk_id, skill_id)
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_skill_mastery (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id          TEXT    NOT NULL,
+                skill_id         INTEGER NOT NULL REFERENCES skills(id),
+                mastery_score    REAL    NOT NULL DEFAULT 0.0,
+                attempts_count   INTEGER NOT NULL DEFAULT 0,
+                last_reviewed_at TIMESTAMP,
+                updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, skill_id)
+            )
+        """)
+    # Seed des 10 skills V1.0 — idempotent
+    from db.skills import seed_skills as _seed_skills
+    _seed_skills()
     logger.info("init_db: ready (%s)", DB_PATH)
 
 
@@ -144,6 +185,18 @@ from db.profile import (                                            # noqa: E402
     get_retention_metrics,
 )
 from db.admin import count_admins, get_all_users, set_user_role    # noqa: E402
+from db.skills import (                                             # noqa: E402
+    seed_skills,
+    get_all_skills,
+    get_skill_by_slug,
+    get_chunk_skills,
+    classify_and_save_document_skills,
+    remap_document_skills,
+    remap_all_documents,
+    get_user_skill_mastery,
+    update_user_skill_mastery,
+)
+from engine.skill_engine import classify_skill_mastery             # noqa: E402
 
 __all__ = [
     # Infrastructure
@@ -164,4 +217,11 @@ __all__ = [
     "get_next_session_plan", "get_retention_metrics",
     # Admin
     "count_admins", "get_all_users", "set_user_role",
+    # Skills Engine V1.0
+    "seed_skills", "get_all_skills", "get_skill_by_slug",
+    "get_chunk_skills", "classify_and_save_document_skills",
+    "get_user_skill_mastery", "update_user_skill_mastery",
+    "classify_skill_mastery",
+    # Skills Engine V1.1
+    "remap_document_skills", "remap_all_documents",
 ]

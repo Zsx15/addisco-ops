@@ -7,6 +7,7 @@ import streamlit as st
 
 from database import (
     classify_mastery,
+    classify_skill_mastery,
     compute_and_save_learning_profile,
     get_attempts,
     get_chunk_stats,
@@ -16,6 +17,7 @@ from database import (
     get_retention_metrics,
     get_score_evolution,
     get_topic_stats,
+    get_user_skill_mastery,
 )
 from ui_helpers import (
     _ERROR_LABELS,
@@ -517,6 +519,183 @@ def render() -> None:
         with st.spinner("Calcul du profil…"):
             compute_and_save_learning_profile(st.session_state["user_id"])
         st.rerun()
+
+    st.divider()
+
+    # ── Zone 8 : Compétences détectées (Skills Engine V1.0) ───────────────
+    st.markdown(
+        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 4px;"
+        "text-transform:uppercase;letter-spacing:.07em'>Compétences détectées</p>",
+        unsafe_allow_html=True,
+    )
+    st.caption("Score estimé V1 — mapping automatique par mots-clés, non validé")
+
+    _skill_mastery = get_user_skill_mastery(st.session_state["user_id"])
+    if _skill_mastery:
+        _sk_cols = st.columns(3)
+        _sk_state_color = {
+            "Fragile":  "#dc2626",
+            "En cours": "#d97706",
+            "Acquis":   "#16a34a",
+        }
+        _sk_state_icon = {
+            "Fragile":  "🔴",
+            "En cours": "🟡",
+            "Acquis":   "🟢",
+        }
+        for _i, _sk in enumerate(_skill_mastery):
+            _sk_score = float(_sk.get("mastery_score") or 0.0)
+            _sk_count = int(_sk.get("attempts_count") or 0)
+            _sk_label = _sk.get("label_fr") or _sk.get("slug", "")
+            _sk_class = classify_skill_mastery(_sk_score, _sk_count)
+            _sk_color = _sk_state_color.get(_sk_class, "#94a3b8")
+            _sk_icon  = _sk_state_icon.get(_sk_class, "⚪")
+            with _sk_cols[_i % 3]:
+                with st.container(border=True):
+                    st.markdown(
+                        f'<span style="font-size:12px;font-weight:700;color:{_sk_color}">'
+                        f'{_sk_icon} {_sk_class}</span>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(f"**{_sk_label}**")
+                    st.progress(min(_sk_score, 1.0), text=f"{round(_sk_score * 100)} %")
+                    st.caption(f"{_sk_count} tentative{'s' if _sk_count > 1 else ''}")
+    else:
+        st.info(
+            "Aucune compétence détectée. "
+            "Effectuez des tentatives sur un document importé pour activer l'analyse."
+        )
+
+    # ── Zone 8b : Debug pédagogique V1.1 (lecture seule) ─────────────────
+    with st.expander("Debug pédagogique V1.1 — Analytics skills (lecture seule)"):
+        try:
+            from engine.skill_analytics import (
+                get_skill_frequency,
+                get_skill_collisions,
+                get_unused_skills,
+                get_overrepresented_skills,
+                get_chunks_without_skills,
+            )
+            from engine.skill_debug import explain_chunk_skills
+
+            _tab_freq, _tab_coll, _tab_diag = st.tabs(
+                ["Fréquence skills", "Collisions", "Diagnostic chunk"]
+            )
+
+            with _tab_freq:
+                _freq = get_skill_frequency()
+                _unused = get_unused_skills()
+                _over = get_overrepresented_skills(threshold_pct=0.7)
+
+                if _freq:
+                    st.markdown("**Fréquence par skill (chunks actifs)**")
+                    _fdf = pd.DataFrame(_freq)
+                    _fdf["coverage %"] = (_fdf["chunk_count"] / max(_fdf["chunk_count"].max(), 1) * 100).round(1)
+                    st.dataframe(
+                        _fdf[["slug", "label_fr", "chunk_count", "avg_weight"]],
+                        use_container_width=True, hide_index=True,
+                    )
+                else:
+                    st.caption("Aucun mapping actif en base.")
+
+                if _over:
+                    st.markdown("**Skills sur-représentés (≥ 70 % des chunks)**")
+                    st.dataframe(
+                        pd.DataFrame(_over)[["slug", "chunk_count", "total_chunks", "coverage_pct"]],
+                        use_container_width=True, hide_index=True,
+                    )
+                    st.caption("Ces skills couvrent trop de chunks — indicateur de keywords trop génériques.")
+
+                if _unused:
+                    st.markdown("**Skills sans aucun mapping**")
+                    st.dataframe(
+                        pd.DataFrame(_unused)[["slug", "label_fr"]],
+                        use_container_width=True, hide_index=True,
+                    )
+
+            with _tab_coll:
+                _coll = get_skill_collisions()
+                if _coll:
+                    st.markdown("**Co-occurrences les plus fréquentes (même chunk)**")
+                    st.dataframe(
+                        pd.DataFrame(_coll),
+                        use_container_width=True, hide_index=True,
+                    )
+                    st.caption(
+                        "Une co-occurrence élevée indique que deux skills sont difficiles à discriminer "
+                        "avec les keywords V1.1 actuels."
+                    )
+                else:
+                    st.caption("Aucune collision détectée (ou mapping vide).")
+
+                _no_skill_chunks = get_chunks_without_skills()
+                if _no_skill_chunks:
+                    st.markdown(f"**Chunks sans skill ({len(_no_skill_chunks)})**")
+                    st.dataframe(
+                        pd.DataFrame(_no_skill_chunks)[
+                            ["chunk_id", "chunk_index", "section_title", "document_title", "text_preview"]
+                        ],
+                        use_container_width=True, hide_index=True,
+                    )
+                else:
+                    st.caption("Tous les chunks ont au moins un skill mappé.")
+
+            with _tab_diag:
+                st.caption(
+                    "Saisissez un chunk_id pour comparer le mapping stocké en base "
+                    "avec la détection live des keywords V1.1."
+                )
+                _diag_id = st.number_input(
+                    "Chunk ID", min_value=1, step=1, key="debug_chunk_id"
+                )
+                if st.button("Analyser ce chunk", key="btn_debug_chunk"):
+                    _diag = explain_chunk_skills(int(_diag_id))
+                    if "error" in _diag:
+                        st.warning(_diag["error"])
+                    else:
+                        st.markdown(
+                            f"**Chunk #{_diag['chunk_id']}** — "
+                            f"{_diag.get('document_title', '—')} › "
+                            f"{_diag.get('section_title') or '(sans titre)'}"
+                        )
+                        st.caption(_diag.get("text_preview", ""))
+
+                        _dcol1, _dcol2 = st.columns(2)
+                        with _dcol1:
+                            st.markdown("**Mappings en base**")
+                            if _diag["stored_mappings"]:
+                                st.dataframe(
+                                    pd.DataFrame(_diag["stored_mappings"])[
+                                        ["slug", "weight", "source", "is_validated", "is_active"]
+                                    ],
+                                    use_container_width=True, hide_index=True,
+                                )
+                            else:
+                                st.caption("Aucun mapping stocké.")
+
+                        with _dcol2:
+                            st.markdown("**Détection live (keywords V1.1)**")
+                            if _diag["live_detection"]:
+                                st.dataframe(
+                                    pd.DataFrame(_diag["live_detection"])[
+                                        ["slug", "weight", "keywords_matched"]
+                                    ],
+                                    use_container_width=True, hide_index=True,
+                                )
+                            else:
+                                st.caption("Aucun skill détecté avec les keywords actuels.")
+
+                        if _diag["discrepancies"]:
+                            st.markdown("**Écarts détectés**")
+                            st.dataframe(
+                                pd.DataFrame(_diag["discrepancies"]),
+                                use_container_width=True, hide_index=True,
+                            )
+                        else:
+                            st.success("Aucun écart — mapping cohérent avec les keywords V1.1.")
+
+        except Exception as _dbg_exc:
+            st.caption(f"Debug indisponible : {_dbg_exc}")
 
     st.divider()
 
