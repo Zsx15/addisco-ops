@@ -4,6 +4,23 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Snapshot `snapshot_test_robustesse_corpus_v1`
+
+Backup stable après validation du mode `--scope corpus` et des 3 profils mock sur utilisateur cible `test`.
+
+**Fichier :** `backups/snapshot_test_robustesse_corpus_v1_20260519_1714.zip`  (36 fichiers, 122 Ko)
+
+**Contenu :** `test_robustesse_100q.py` (version complète avec `--username`, `--scope`), `database.py`, `db/`, `engine/`, `tabs/`, `app.py`, `ai_service.py`, `rag_service.py`, `adaptive_engine.py`, `auth_service.py`, `document_service.py`, `ui_helpers.py`, `DEVLOG.md`, `ROADMAP.md`.
+
+**État au snapshot :**
+- 400 attempts sur utilisateur `test` (300 profils + 100 corpus)
+- 10 skills actifs dans `user_skill_mastery`
+- 295 chunks disponibles sur 4 documents
+- 227/227 tests
+- Dernier commit : `02e9b2f`
+
+---
+
 ## 2026-05-19 — Test robustesse corpus complet (`--scope corpus`)
 
 **Objectif :** vérifier la solidité du moteur sur l'ensemble du corpus (tous documents, tous chunks) via une couverture maximale en mode mock.
