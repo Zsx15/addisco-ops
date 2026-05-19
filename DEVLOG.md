@@ -4,6 +4,69 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — TASK-058 : Test de robustesse pédagogique — 100 questions simulées
+
+**Objectif :** vérifier la robustesse de l'ensemble du moteur ADDISCO OPS (RAG, attempts, profil, skill mastery, multi-user) par un test contrôlé end-to-end simulant un utilisateur réel sur 100 questions.
+
+### Fichier livré
+
+`test_robustesse_100q.py` — script autonome, non collecté par pytest.
+
+```
+python test_robustesse_100q.py            # lance le test (confirmation interactive)
+python test_robustesse_100q.py --no-confirm  # mode CI
+python test_robustesse_100q.py --cleanup  # efface les données du user test
+```
+
+### Isolation et réversibilité
+
+- Utilisateur test dédié : `test_100_questions` (rôle apprenant)
+- Toutes les données écrites sous ce `user_id` — zéro pollution des vrais utilisateurs
+- `--cleanup` supprime proprement attempts + profil + skill mastery + user (DELETE ciblé)
+- Relançable à l'identique (seed=42, distribution déterministe)
+- Aucune modification des documents, chunks ou attempts existants
+
+### 100 cycles par question
+
+Pour chaque cycle : `generate_question` → réponse simulée → `correct_answer` → `save_attempt` → recalcul profil tous les 10 cycles.
+
+### Distribution des réponses simulées (seed=42, déterministe)
+
+| Type | N | Comportement attendu |
+|---|---|---|
+| `good` | 40 | extrait du chunk → score élevé |
+| `partial` | 25 | extrait court → score moyen |
+| `bad` | 15 | affirmation contraire → score faible |
+| `short` | 10 | "Je ne sais pas." → score très faible |
+| `off_topic` | 10 | hors sujet total → hors_sujet |
+
+### Vérifications post-test
+
+- Historique attempts peuplé (`get_attempts`)
+- Profil calculé (`get_learning_profile`)
+- `user_skill_mastery` mise à jour
+- Isolation multi-user (autres tentatives non touchées)
+- Taux cycles réussis ≥ 90 %
+
+### Verdict automatique
+
+- **GO SAFE** : 0 erreur, ≥ 90 % cycles, profil + mastery OK
+- **GO WITH WARNING** : ≥ 90 % cycles mais erreurs non bloquantes
+- **FAILED** : < 90 % cycles ou crash bloquant
+
+### Contraintes respectées
+
+- `chunks.id` intouchable — aucun chunk modifié
+- `attempts` immutables — INSERT uniquement pour le user test
+- Fallback mode préservé — test fonctionne sans embeddings
+- 227/227 tests de régression maintenus
+
+### Prochaine étape suggérée
+
+Lancer le test sur la DB réelle et analyser le rapport (répartition error_type, skills détectés, score moyen par type de réponse).
+
+---
+
 ## 2026-05-19 — TASK-057 : Skills Engine V1.0 + V1.1
 
 **Objectif :** couche analytique skills déterministe — mapper automatiquement les chunks à des compétences pédagogiques sans dépendance réseau ni IA, puis calibrer et outiller le debug.
