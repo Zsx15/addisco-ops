@@ -4,6 +4,78 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Test corpus réels sur utilisateur cible `test`
+
+**Objectif :** alimenter les métriques pédagogiques de l'utilisateur `test` (attempts, profil, skill mastery) via les 3 profils mock, sans créer d'utilisateur temporaire ni supprimer aucune donnée.
+
+### Modification apportée à `test_robustesse_100q.py`
+
+Ajout du paramètre `--username` (5 changements ciblés, 0 refactor) :
+
+- `_get_or_create_test_user(username=TEST_USERNAME)` — paramétrisé
+- `run_test(mock, profile, username=TEST_USERNAME)` — paramétrisé, rapport mis à jour
+- `argparse` — nouvelle option `--username` (défaut : `test_100_questions`)
+- Guard : `--cleanup` refuse tout `--username != TEST_USERNAME` (exit 1)
+
+### Commandes lancées
+
+```
+python test_robustesse_100q.py --mock --profile good  --username test --no-confirm
+python test_robustesse_100q.py --mock --profile mixed --username test --no-confirm
+python test_robustesse_100q.py --mock --profile weak  --username test --no-confirm
+```
+
+### Résultats par profil
+
+| Profil | Attempts | Score moyen | Dominant error_type |
+|---|---|---|---|
+| good  | 100 | 80 % | correct (80) |
+| mixed | 100 | 72 % | correct (60) + reponse_vague (17) |
+| weak  | 100 | 55 % | correct (30) + confusion_notion (24) |
+
+Tous les runs : **GO SAFE**. 300/300 attempts sauvegardés.
+
+### Métriques finales utilisateur `test` (cumulées — 300 attempts)
+
+| Métrique | Valeur |
+|---|---|
+| Total attempts | 300 |
+| Score moyen global | 69 % (0.689) |
+| Profil pédagogique préféré | narrative |
+| Erreur dominante | correct (170) · confusion_notion (42) · reponse_vague (40) · oubli_etape (33) |
+
+### user_skill_mastery finale
+
+| Skill | Mastery | Attempts |
+|---|---|---|
+| comprehension_procedure | 78 % | 9 |
+| identification_concepts | 76 % | 6 |
+| prise_decision | 74 % | 81 |
+| analyse_causale | 74 % | 60 |
+| synthese_reformulation | 72 % | 6 |
+| memorisation_faits | 71 % | 57 |
+| application_regles | 70 % | 30 |
+| conformite_reglementaire | 69 % | 171 |
+| resolution_problemes | 65 % | 33 |
+| evaluation_critique | 64 % | 30 |
+
+Skills faibles : `evaluation_critique`, `resolution_problemes`, `conformite_reglementaire`.
+Skills forts : `comprehension_procedure`, `identification_concepts`.
+
+### Invariants respectés
+
+- Aucune donnée de `test` supprimée
+- `chunks.id` non touchés
+- Documents et embeddings intacts
+- 0 appel API (mode mock)
+- 227/227 tests maintenus
+
+**Commit :** `c05f818`
+
+**Prochaine étape suggérée :** ouvrir le dashboard avec l'utilisateur `test` pour valider l'affichage des métriques en conditions réelles.
+
+---
+
 ## 2026-05-19 — ROADMAP : mise à jour phase actuelle
 
 **Objectif :** synchroniser ROADMAP.md avec l'état réel du projet après les sessions TASK-056 à TASK-059.
