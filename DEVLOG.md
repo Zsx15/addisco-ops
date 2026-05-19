@@ -4,6 +4,66 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — TASK-057 : Skills Engine V1.0 + V1.1
+
+**Objectif :** couche analytique skills déterministe — mapper automatiquement les chunks à des compétences pédagogiques sans dépendance réseau ni IA, puis calibrer et outiller le debug.
+
+### Architecture créée
+
+```
+engine/
+├── skill_keywords.py   — SKILL_KEYWORDS : 10 slugs → listes keywords (V1.1 calibrée)
+├── skill_mapper.py     — classify_chunk_skills(), keyword_match_score()
+├── skill_engine.py     — compute_skill_mastery(), classify_skill_mastery()
+├── skill_debug.py      — explain_skill_detection(), explain_chunk_skills() [lecture seule]
+└── skill_analytics.py  — 6 fonctions analytiques descriptives [lecture seule]
+
+db/
+└── skills.py           — CRUD complet + seed 10 slugs + remap V1.1
+```
+
+### Tables ajoutées (database.py)
+
+| Table | Rôle |
+|---|---|
+| `skills` | Référentiel 10 slugs, immutables après déploiement |
+| `chunk_skills` | Lien chunk ↔ skill avec weight, source, is_validated, is_active |
+| `user_skill_mastery` | Score de maîtrise par user × skill, mis à jour après chaque profil |
+
+### Invariants critiques respectés
+
+- `chunks.id` — jamais recréé, jamais supprimé
+- `attempts` — immutable après insertion
+- `is_validated=1` — intouchable par tout remap automatique
+- `chunk_skills` — couche additive uniquement (INSERT OR IGNORE en V1.0)
+- Pipeline ingestion — si mapping skills échoue → log warning → ingestion continue
+- Application — fonctionnelle avec 0 skill, 0 mapping, 0 mastery
+
+### V1.0 — Foundation
+
+- `classify_and_save_document_skills()` appelé à la fin de chaque ingestion (non bloquant)
+- `update_user_skill_mastery()` appelé à la fin de `compute_and_save_learning_profile()` (non bloquant)
+- Zone 8 dans tab_dashboard.py : barres de maîtrise par skill (Fragile / En cours / Acquis)
+
+### V1.1 — Calibration & Debug
+
+- **Keywords calibrés** : retrait de 10 termes trop génériques (`doit`, `procédure`, `puis`, `ensuite`, `traiter`, `gérer`, `en cas de`, `sécurité`, `article`, `ainsi`)
+- **`remap_document_skills()`** : recalcule les mappings keyword sans toucher `is_validated=1`; soft-delete (`is_active=0`) des skills obsolètes
+- **Expander Debug V1.1** dans tab_dashboard.py : fréquence skills, collisions, diagnostic chunk (compare DB vs live)
+- **Bouton "Recalculer les skills V1.1"** dans tab_documents.py : remap par document à la demande
+
+### Validations
+
+- py_compile 7 fichiers OK
+- **227/227 tests** — aucune régression
+- Fallback mode préservé
+
+### Prochaine étape suggérée
+
+Valider le mapping sur des documents réels (bouton remap → vérifier discriminabilité des skills via l'expander Debug), puis envisager V1.2 : scoring adaptatif skill-aware dans `build_session_plan()`.
+
+---
+
 ## 2026-05-19 — TASK-056B : UX Polish / Densification visuelle cockpit formateur
 
 **Objectif :** passer du prototype validé à une interface premium, dense et crédible professionnellement.
