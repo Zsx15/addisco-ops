@@ -4,6 +4,39 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — ROADMAP : mise à jour phase actuelle
+
+**Objectif :** synchroniser ROADMAP.md avec l'état réel du projet après les sessions TASK-056 à TASK-059.
+
+### Actions
+
+- Phases 11, 12, 14, 15 marquées **COMPLÈTE** avec commit de référence pour chacune.
+- Phase 13 marquée **DIFFÉRÉE** (SQLAlchemy/PostgreSQL reporté jusqu'à disponibilité d'une `DATABASE_URL` réelle — TASK-045+046 combinables en migration unique le moment venu).
+- Phase 16 marquée **EN COURS** avec :
+  - liste des tâches effectivement livrées (TASK-056, 056B, 057*, 058*, 058B*, 059*) avec commits ;
+  - note explicite sur la divergence entre la numérotation planifiée (vue admin / PDF / responsive) et les tâches réellement exécutées (Skills Engine, test robustesse, remap) ;
+  - section "Restant à réaliser" : vue admin, rapport PDF, UX responsive.
+- Phase 17 inchangée (non démarrée).
+
+### État du projet à cette date
+
+| Couche | État |
+|---|---|
+| Moteur pédagogique (RAG, adaptatif, répétition espacée) | Stable — 227/227 tests |
+| Skills Engine V1.0 + V1.1 | Opérationnel — 20 chunk_skills actifs |
+| Authentification multi-rôles | Opérationnel |
+| Corpus multi-documents + cross-RAG | Opérationnel |
+| Cockpit formateur | Opérationnel |
+| Test robustesse 100q (API + mock) | Livré |
+| Vue admin / rapport PDF / UX responsive | Non démarrés |
+| PostgreSQL / SQLAlchemy | Différé |
+
+**Commit :** `4f47f2c`
+
+**Prochaine étape suggérée :** vue admin (gestion utilisateurs, stats globales) ou rapport export.
+
+---
+
 ## 2026-05-19 — TASK-059 : Remap Skills V1.1 — documents de démo
 
 **Objectif :** peupler `chunk_skills` sur les documents existants afin d'activer `user_skill_mastery` dans le simulateur mock.
