@@ -4,6 +4,42 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — TASK-056B : UX Polish / Densification visuelle cockpit formateur
+
+**Objectif :** passer du prototype validé à une interface premium, dense et crédible professionnellement.
+
+### Améliorations par composant
+
+| Composant | Changement |
+|---|---|
+| `learner_card.py` | Full HTML compact — single `st.markdown()`, progress bar 5px, pills metadata, ~40% moins de hauteur |
+| `adaptive_profile.py` | CSS grid HTML (2 col) — supprime l'overhead `st.columns()`, cards `.ap-card` avec hover indigo |
+| `stat_card.py` | Paramètre `trend_str` : indicateur ↗/↘/→ coloré sous la valeur |
+| `alerts_panel.py` | Padding réduit 12px→10px, transitions CSS |
+| `progress_chart.py` | Palette indigo primaire, barres opacity .85, messages vides gracieux |
+| `recommendation_panel.py` | Classe `.rec-card` avec hover, badge priority 9.5px compact |
+| `trainer_dashboard.py` | CSS global `_COCKPIT_CSS`, header accent bar indigo, `_section_header()` indigo, apprenants 2 colonnes, tendances KPI, charts dans `st.container(border=True)` |
+
+### CSS global (`_COCKPIT_CSS`)
+
+- `.lc:hover` — ombre indigo subtile + border #c7d2fe
+- `.ap-card:hover` — ombre légère + border #cbd5e1
+- `.rec-card:hover` — fond #f1f5f9
+- `stVerticalBlockBorderWrapper:hover` — ombre globale sur containers Streamlit
+
+### Tendances KPI
+
+- Mode mock : `↗ +8 pts cette semaine` · `→ stable` · `↘ −1 vs hier`
+- Mode réel : `_score_trend_str()` — delta premier/second moitié de `get_score_evolution()`
+
+**Validations :** py_compile 7 fichiers OK · **206/206 tests** · Streamlit HTTP 200
+
+### Prochaine étape suggérée
+
+TASK-057 : vue admin — gestion des utilisateurs, stats globales plateforme.
+
+---
+
 ## 2026-05-19 — TASK-056 : Cockpit Pédagogique Formateur — Dashboard Premium
 
 **Objectif :** transformer l'onglet Formateur en cockpit pédagogique professionnel à fort impact visuel et démonstratif.
