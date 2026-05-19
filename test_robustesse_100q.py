@@ -242,7 +242,7 @@ def _get_or_create_test_user(username: str = TEST_USERNAME) -> str:
 
 
 # ── Cœur du test ──────────────────────────────────────────────────────────────
-def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_USERNAME) -> str:
+def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_USERNAME, scope: str = "default") -> str:
     """Lance les 100 cycles. Retourne 'GO SAFE', 'GO WITH WARNING' ou 'FAILED'."""
     import database
     database.init_db()
@@ -287,6 +287,23 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
                 r[0] for r in _conn.execute("SELECT id FROM chunks ORDER BY id").fetchall()
             ]
 
+    # Mode corpus : schedule basé sur tous les chunks liés à leur document
+    all_chunks_with_doc: list[dict] = []
+    corpus_schedule:     list[dict] = []
+    if scope == "corpus":
+        with sqlite3.connect(str(database.DB_PATH)) as _conn:
+            _rows = _conn.execute(
+                "SELECT id, document_id FROM chunks ORDER BY document_id, id"
+            ).fetchall()
+        all_chunks_with_doc = [{"chunk_id": r[0], "doc_id": r[1]} for r in _rows]
+        if all_chunks_with_doc:
+            for _j in range(N_QUESTIONS):
+                corpus_schedule.append(all_chunks_with_doc[_j % len(all_chunks_with_doc)])
+        print(
+            f"[CORPUS] {len(all_chunks_with_doc)} chunk(s) sur {len(doc_ids)} doc(s) "
+            f"-- schedule {N_QUESTIONS} attempts"
+        )
+
     mode_label = f"MOCK (profil={profile})" if mock else "API"
     print(f"[SETUP] {len(doc_ids)} document(s) : {doc_ids}")
     print(f"[TEST]  {N_QUESTIONS} cycles — mode={mode_label}  seed={RANDOM_SEED}\n")
@@ -306,12 +323,17 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
     topics:      Counter     = Counter()
     cycle_times: list[float] = []
     mastery_rows: list[dict] = []
+    used_doc_ids:   Counter  = Counter()
+    used_chunk_ids: set      = set()
 
     t_start = time.time()
 
     for i in range(N_QUESTIONS):
-        doc_id   = doc_ids[i % len(doc_ids)]
-        src_text = doc_texts[doc_id]
+        if scope == "corpus" and corpus_schedule:
+            doc_id = corpus_schedule[i]["doc_id"]
+        else:
+            doc_id = doc_ids[i % len(doc_ids)]
+        src_text = doc_texts.get(doc_id, "")
         ans_type = answer_schedule[i]
         t_cycle  = time.time()
 
@@ -330,9 +352,12 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
             sim_answer    = _simulate_answer(ans_type, src_text, rng)
             score, error_type = _mock_score(mock_score_schedule[i], rng)
             topic         = _MOCK_TOPICS[i % len(_MOCK_TOPICS)]
-            chunk_ids     = (
-                [all_chunk_ids[i % len(all_chunk_ids)]] if all_chunk_ids else []
-            )
+            if scope == "corpus" and corpus_schedule:
+                chunk_ids = [corpus_schedule[i]["chunk_id"]]
+            else:
+                chunk_ids = (
+                    [all_chunk_ids[i % len(all_chunk_ids)]] if all_chunk_ids else []
+                )
             generated += 1
             corrected += 1   # correction simulée localement
 
@@ -382,6 +407,9 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
         error_types[error_type] += 1
         if topic:
             topics[topic] += 1
+        used_doc_ids[doc_id] += 1
+        if chunk_ids:
+            used_chunk_ids.add(chunk_ids[0])
 
         # 3 (commun). Enregistrement tentative
         try:
@@ -536,6 +564,34 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
     else:
         print("  [aucun skill mastery — pas de tentatives sur chunks mappés]")
 
+    if scope == "corpus":
+        print()
+        print("Couverture corpus :")
+        _n_chunks_avail = len(all_chunks_with_doc)
+        print(f"  Documents disponibles  : {len(doc_ids)}")
+        print(f"  Chunks disponibles     : {_n_chunks_avail}")
+        print(f"  Documents sollicites   : {len(used_doc_ids)} / {len(doc_ids)}")
+        print(f"  Chunks sollicites      : {len(used_chunk_ids)} / {_n_chunks_avail}")
+        print()
+        print("  Attempts par document :")
+        for _did, _cnt in sorted(used_doc_ids.items()):
+            _row = df_docs[df_docs["id"] == _did]
+            _title = str(_row["title"].values[0]) if not _row.empty else f"doc#{_did}"
+            print(f"    doc {_did:2d}  {_title:<40}  x{_cnt}")
+        with sqlite3.connect(str(database.DB_PATH)) as _conn:
+            _total_chunks = _conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
+            _with_skills  = _conn.execute(
+                "SELECT COUNT(DISTINCT chunk_id) FROM chunk_skills WHERE is_active=1"
+            ).fetchone()[0]
+            _docs_with_skills = _conn.execute(
+                "SELECT COUNT(DISTINCT document_id) FROM chunks c "
+                "WHERE EXISTS (SELECT 1 FROM chunk_skills cs WHERE cs.chunk_id=c.id AND cs.is_active=1)"
+            ).fetchone()[0]
+        print()
+        print(f"  Chunks avec skills     : {_with_skills} / {_total_chunks}")
+        print(f"  Chunks sans skills     : {_total_chunks - _with_skills} / {_total_chunks}")
+        print(f"  Documents avec skills  : {_docs_with_skills} / {len(doc_ids)}")
+
     print()
     print("Vérifications :")
     all_checks_ok = True
@@ -589,6 +645,7 @@ if __name__ == "__main__":
             "  python test_robustesse_100q.py --mock --no-confirm\n"
             "  python test_robustesse_100q.py --mock --profile weak --no-confirm\n"
             "  python test_robustesse_100q.py --mock --profile random --no-confirm\n"
+            "  python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --no-confirm\n"
             "  python test_robustesse_100q.py --cleanup\n"
             "  python test_robustesse_100q.py            # mode API (200 appels OpenAI)\n"
         ),
@@ -619,6 +676,15 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--scope",
+        choices=["default", "corpus"],
+        default="default",
+        help=(
+            "Portee du test. 'default' : comportement habituel. "
+            "'corpus' : couvre tous les chunks de tous les documents."
+        ),
+    )
+    parser.add_argument(
         "--no-confirm",
         action="store_true",
         help="Désactive la confirmation interactive (CI, automatisation).",
@@ -643,6 +709,7 @@ if __name__ == "__main__":
     print("TEST ROBUSTESSE PÉDAGOGIQUE — 100 QUESTIONS SIMULÉES")
     print(f"  Mode      : {mode_str}")
     print(f"  User test : {target_user}")
+    print(f"  Scope     : {args.scope}")
     print(f"  N         : {N_QUESTIONS} questions  |  seed={RANDOM_SEED}")
     print(f"  Profil    : recalculé tous les {PROFILE_EVERY} cycles")
     if not args.mock:
@@ -657,5 +724,5 @@ if __name__ == "__main__":
             print("Test abandonné.")
             sys.exit(0)
 
-    verdict = run_test(mock=args.mock, profile=args.profile, username=target_user)
+    verdict = run_test(mock=args.mock, profile=args.profile, username=target_user, scope=args.scope)
     sys.exit(0 if verdict != "FAILED" else 1)
