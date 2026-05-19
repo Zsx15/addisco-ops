@@ -4,6 +4,23 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Snapshot `snapshot_test_robustesse_n_parametrable_v1`
+
+Backup stable après validation de `--n` (cycles paramétrables) et couverture corpus 100 % à N=300.
+
+**Fichier :** `backups/snapshot_test_robustesse_n_parametrable_v1_20260519_1730.zip`  (36 fichiers, 123 Ko)
+
+**Contenu :** `test_robustesse_100q.py` (version complète avec `--username`, `--scope`, `--n`), `database.py`, `db/`, `engine/`, `tabs/`, `app.py`, `ai_service.py`, `rag_service.py`, `adaptive_engine.py`, `auth_service.py`, `document_service.py`, `ui_helpers.py`, `DEVLOG.md`, `ROADMAP.md`.
+
+**État au snapshot :**
+- `test_robustesse_100q.py` supporte `--mock`, `--profile`, `--username`, `--scope corpus`, `--n`
+- 700 attempts sur utilisateur `test` (300 profils + 100 corpus + 300 corpus N=300)
+- 295/295 chunks couverts à N=300, 368 attempts/s
+- 227/227 tests
+- Dernier commit : `9f39320`
+
+---
+
 ## 2026-05-19 — Test corpus paramétrable (`--n`) — stress-test 300 cycles
 
 **Objectif :** rendre le nombre de cycles configurable pour permettre une couverture totale du corpus et des stress-tests à grande échelle.
