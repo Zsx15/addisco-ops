@@ -4,6 +4,70 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Test corpus paramétrable (`--n`) — stress-test 300 cycles
+
+**Objectif :** rendre le nombre de cycles configurable pour permettre une couverture totale du corpus et des stress-tests à grande échelle.
+
+### Modifications apportées à `test_robustesse_100q.py`
+
+11 changements ciblés, 0 refactor, comportement identique sans `--n` :
+
+- `run_test(... n_questions: int = N_QUESTIONS)` — paramètre runtime
+- `_n = n_questions` en tête de fonction ; tous les `N_QUESTIONS` internes remplacés par `_n`
+- `--n` (argparse, défaut : 100) — transmis à `run_test(n_questions=args.n)`
+- Rapport étendu : `N demande`, `attempts/s`, couverture `%` chunks + docs, chunks non sollicités avec liste d'exemples
+
+### Commande lancée
+
+```
+python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 300 --no-confirm
+```
+
+### Résultats
+
+| Métrique | Valeur |
+|---|---|
+| N demandé | 300 |
+| Attempts sauvegardées | 300 / 300 |
+| Score moyen | 70 % (0.697) |
+| Temps total | 1 s |
+| Débit | 368 attempts/s |
+| Documents sollicités | 4 / 4 (100 %) |
+| Chunks sollicités | 295 / 295 (100 %) |
+| Chunks non sollicités | 0 (couverture totale) |
+
+Répartition attempts par document :
+
+| doc | titre | attempts | % |
+|---|---|---|---|
+| 1 | Procédure d'accueil voyageur | x10 | 3 % |
+| 2 | Addisco Ops | x6 | 2 % |
+| 3 | Police | x8 | 3 % |
+| 4 | Decrets | x276 | 92 % |
+
+### Diagnostic structurel
+
+- Moteur stable sur 300 cycles, 0 erreur, profil recalculé 30 fois
+- `user_skill_mastery` cohérente : `conformite_reglementaire` à 425 tentatives cumulées, pas de saturation
+- 368 attempts/s — coût SQL marginal sur SQLite
+- Couverture totale (100 %) atteinte à N >= 295 (= nombre de chunks)
+
+### Limites observées
+
+- Déséquilibre attendu : doc 4 (`Decrets`, 275 chunks) capte 92 % des attempts par effet modulo
+- 64 / 295 chunks sans skills (22 %) — structurel, non bloquant
+- `synthese_reformulation` : 11 tentatives seulement (peu de chunks mappés)
+
+### Invariants respectés
+
+- 0 appel API, données `test` préservées, `chunks.id` intacts, 227/227 tests
+
+**Commit :** `33acba3`
+
+**Prochaine étape suggérée :** vue admin (gestion utilisateurs) ou augmenter N pour stress-test > 1000 cycles.
+
+---
+
 ## 2026-05-19 — Snapshot `snapshot_test_robustesse_corpus_v1`
 
 Backup stable après validation du mode `--scope corpus` et des 3 profils mock sur utilisateur cible `test`.
