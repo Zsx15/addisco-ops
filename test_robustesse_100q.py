@@ -8,6 +8,7 @@ Usage:
     python test_robustesse_100q.py --mock --profile weak   # profil weak
     python test_robustesse_100q.py --mock --profile random # scores aléatoires
     python test_robustesse_100q.py --mock --no-confirm     # sans confirmation
+    python test_robustesse_100q.py --mock --scope corpus --n 300  # 300 cycles corpus complet
     python test_robustesse_100q.py --cleanup               # supprime les données du user test
 
 Profils disponibles (--mock uniquement) :
@@ -242,7 +243,7 @@ def _get_or_create_test_user(username: str = TEST_USERNAME) -> str:
 
 
 # ── Cœur du test ──────────────────────────────────────────────────────────────
-def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_USERNAME, scope: str = "default") -> str:
+def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_USERNAME, scope: str = "default", n_questions: int = N_QUESTIONS) -> str:
     """Lance les 100 cycles. Retourne 'GO SAFE', 'GO WITH WARNING' ou 'FAILED'."""
     import database
     database.init_db()
@@ -259,11 +260,12 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
     )
     from db.skills import update_user_skill_mastery
 
+    _n              = n_questions
     rng             = random.Random(RANDOM_SEED)
-    answer_schedule = _build_answer_schedule(N_QUESTIONS, RANDOM_SEED)
+    answer_schedule = _build_answer_schedule(_n, RANDOM_SEED)
 
     # Pré-calcul du schedule de scores mock (ignoré en mode API)
-    mock_score_schedule = _build_mock_score_schedule(N_QUESTIONS, profile, RANDOM_SEED)
+    mock_score_schedule = _build_mock_score_schedule(_n, profile, RANDOM_SEED)
 
     user_id = _get_or_create_test_user(username)
 
@@ -297,16 +299,16 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
             ).fetchall()
         all_chunks_with_doc = [{"chunk_id": r[0], "doc_id": r[1]} for r in _rows]
         if all_chunks_with_doc:
-            for _j in range(N_QUESTIONS):
+            for _j in range(_n):
                 corpus_schedule.append(all_chunks_with_doc[_j % len(all_chunks_with_doc)])
         print(
             f"[CORPUS] {len(all_chunks_with_doc)} chunk(s) sur {len(doc_ids)} doc(s) "
-            f"-- schedule {N_QUESTIONS} attempts"
+            f"-- schedule {_n} attempts"
         )
 
     mode_label = f"MOCK (profil={profile})" if mock else "API"
     print(f"[SETUP] {len(doc_ids)} document(s) : {doc_ids}")
-    print(f"[TEST]  {N_QUESTIONS} cycles — mode={mode_label}  seed={RANDOM_SEED}\n")
+    print(f"[TEST]  {_n} cycles — mode={mode_label}  seed={RANDOM_SEED}\n")
     print(
         f"  {'#':>3}  {'type':<10}  {'q_type':<22}  "
         f"{'score':>5}  {'avg':>5}  {'t':>5}"
@@ -328,7 +330,7 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
 
     t_start = time.time()
 
-    for i in range(N_QUESTIONS):
+    for i in range(_n):
         if scope == "corpus" and corpus_schedule:
             doc_id = corpus_schedule[i]["doc_id"]
         else:
@@ -512,9 +514,9 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
         errors.append(f"Verify: isolation — {exc}")
 
     # Taux de succès des cycles
-    success_rate = saved / N_QUESTIONS if N_QUESTIONS > 0 else 0.0
+    success_rate = saved / _n if _n > 0 else 0.0
     checks.append(
-        (f"Taux cycles réussis >= 90% ({saved}/{N_QUESTIONS})", success_rate >= 0.9)
+        (f"Taux cycles réussis >= 90% ({saved}/{_n})", success_rate >= 0.9)
     )
 
     # Aucune erreur rencontrée
@@ -526,18 +528,20 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
 
     # ── Rapport ───────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
-    print("RAPPORT — TEST ROBUSTESSE PÉDAGOGIQUE 100 QUESTIONS")
+    print("RAPPORT — TEST ROBUSTESSE PEDAGOGIQUE")
     print("=" * 70)
     print(f"Mode               : {mode_label}")
+    print(f"N demande          : {_n}")
     print(f"User test          : {username}  (uid={user_id})")
-    print(f"Documents utilisés : {doc_ids}")
+    print(f"Documents utilises : {doc_ids}")
     print()
-    print(f"Questions générées : {generated} / {N_QUESTIONS}")
+    print(f"Questions generees : {generated} / {_n}")
     corr_label = f"{corrected} / {generated}" if not mock else f"{corrected} / {generated}  [simulation locale]"
     print(f"Corrections réuss. : {corr_label}")
     print(f"Tentatives sauveg. : {saved} / {generated}")
     print(f"Score moyen global : {avg_score:.3f}  ({round(avg_score * 100)} %)")
-    print(f"Temps total        : {round(t_total)}s  (moy. {avg_cycle}s/cycle)")
+    _aps = round(_n / t_total, 1) if t_total > 0 else 0.0
+    print(f"Temps total        : {round(t_total)}s  (moy. {avg_cycle}s/cycle  {_aps} attempts/s)")
     print()
 
     print("Répartition error_type :")
@@ -568,16 +572,25 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
         print()
         print("Couverture corpus :")
         _n_chunks_avail = len(all_chunks_with_doc)
+        _cov_chunks = round(len(used_chunk_ids) / _n_chunks_avail * 100) if _n_chunks_avail else 0
+        _cov_docs   = round(len(used_doc_ids)   / len(doc_ids)    * 100) if doc_ids       else 0
         print(f"  Documents disponibles  : {len(doc_ids)}")
         print(f"  Chunks disponibles     : {_n_chunks_avail}")
-        print(f"  Documents sollicites   : {len(used_doc_ids)} / {len(doc_ids)}")
-        print(f"  Chunks sollicites      : {len(used_chunk_ids)} / {_n_chunks_avail}")
+        print(f"  Documents sollicites   : {len(used_doc_ids)} / {len(doc_ids)}  ({_cov_docs} %)")
+        print(f"  Chunks sollicites      : {len(used_chunk_ids)} / {_n_chunks_avail}  ({_cov_chunks} %)")
+        _unsolicited = [c["chunk_id"] for c in all_chunks_with_doc if c["chunk_id"] not in used_chunk_ids]
+        if _unsolicited:
+            _sample = str(_unsolicited[:10]) + ("..." if len(_unsolicited) > 10 else "")
+            print(f"  Chunks non sollicites  : {len(_unsolicited)}  (ex: {_sample})")
+        else:
+            print(f"  Chunks non sollicites  : 0  (couverture totale)")
         print()
         print("  Attempts par document :")
         for _did, _cnt in sorted(used_doc_ids.items()):
             _row = df_docs[df_docs["id"] == _did]
             _title = str(_row["title"].values[0]) if not _row.empty else f"doc#{_did}"
-            print(f"    doc {_did:2d}  {_title:<40}  x{_cnt}")
+            _pct_doc = round(_cnt / _n * 100) if _n else 0
+            print(f"    doc {_did:2d}  {_title:<40}  x{_cnt}  ({_pct_doc} %)")
         with sqlite3.connect(str(database.DB_PATH)) as _conn:
             _total_chunks = _conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
             _with_skills  = _conn.execute(
@@ -644,8 +657,8 @@ if __name__ == "__main__":
             "Exemples :\n"
             "  python test_robustesse_100q.py --mock --no-confirm\n"
             "  python test_robustesse_100q.py --mock --profile weak --no-confirm\n"
-            "  python test_robustesse_100q.py --mock --profile random --no-confirm\n"
-            "  python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --no-confirm\n"
+            "  python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 300 --no-confirm\n"
+            "  python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 1000 --no-confirm\n"
             "  python test_robustesse_100q.py --cleanup\n"
             "  python test_robustesse_100q.py            # mode API (200 appels OpenAI)\n"
         ),
@@ -685,6 +698,12 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--n",
+        type=int,
+        default=N_QUESTIONS,
+        help=f"Nombre de cycles. Defaut : {N_QUESTIONS}.",
+    )
+    parser.add_argument(
         "--no-confirm",
         action="store_true",
         help="Désactive la confirmation interactive (CI, automatisation).",
@@ -710,7 +729,7 @@ if __name__ == "__main__":
     print(f"  Mode      : {mode_str}")
     print(f"  User test : {target_user}")
     print(f"  Scope     : {args.scope}")
-    print(f"  N         : {N_QUESTIONS} questions  |  seed={RANDOM_SEED}")
+    print(f"  N         : {args.n} questions  |  seed={RANDOM_SEED}")
     print(f"  Profil    : recalculé tous les {PROFILE_EVERY} cycles")
     if not args.mock:
         print("  ATTENTION : ~200 appels API réels (coût + durée 5-15 min)")
@@ -724,5 +743,5 @@ if __name__ == "__main__":
             print("Test abandonné.")
             sys.exit(0)
 
-    verdict = run_test(mock=args.mock, profile=args.profile, username=target_user, scope=args.scope)
+    verdict = run_test(mock=args.mock, profile=args.profile, username=target_user, scope=args.scope, n_questions=args.n)
     sys.exit(0 if verdict != "FAILED" else 1)
