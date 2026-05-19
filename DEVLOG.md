@@ -4,6 +4,38 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Optimisation dashboard — double get_chunk_stats + 295 cartes UI
+
+**Problème :** dashboard bugue encore sur `test` (700 attempts, 295 chunks) malgré le LIMIT SQL.
+Deux causes distinctes identifiées par benchmark autonome (`_bench_dashboard.py`).
+
+**Cause 1 — double appel `get_chunk_stats()` : +35 ms**
+`get_next_session_plan()` appelait `get_chunk_stats()` en interne alors que `df_chunks` était déjà calculé.
+Total avant : 63.7 ms pour les deux appels cumulés.
+
+**Cause 2 — 295 cartes de section : 1770 widgets Streamlit**
+Zone 3 itérait sur tous les chunks sans limite → 295 × 6 widgets ≈ 1770 appels Streamlit.
+C'est le blocage UI réel (15× trop de widgets, Streamlit se bloque côté navigateur).
+
+**Correction (1 fichier : `tabs/tab_dashboard.py`) :**
+- Import `build_session_plan` (déjà dans `database.__all__`), suppression `get_next_session_plan`
+- `get_next_session_plan(uid)` → `build_session_plan(df_chunks, max_items=5)` (réutilise df déjà chargé)
+- Spinner étendu à tous les chargements initiaux (`df_all`, `df_topics`, `df_chunks`, `df_errors`)
+- Zone 3 : limite à 20 sections par défaut, bouton "Charger les N restantes" (session_state toggle)
+
+**Mesures :**
+- SQL double appel : 63.7 ms → 31.8 ms (−50 %)
+- Widgets section cards : 1770 → 120 par défaut (−93 %)
+
+**Invariants préservés :**
+- Bouton "Charger les N sections restantes" → toutes les sections accessibles sur demande
+- Aucune donnée modifiée — affichage uniquement
+- 206/206 tests OK, py_compile OK
+
+**Verdict :** GO SAFE
+
+---
+
 ## 2026-05-19 — Optimisation dashboard — fenêtre d'analyse + LIMIT SQL
 
 **Problème :** dashboard lent pour l'utilisateur `test` (700 attempts après stress-tests).

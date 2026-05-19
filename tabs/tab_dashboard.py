@@ -6,6 +6,7 @@ import plotly.express as px
 import streamlit as st
 
 from database import (
+    build_session_plan,
     classify_mastery,
     classify_skill_mastery,
     compute_and_save_learning_profile,
@@ -14,7 +15,6 @@ from database import (
     get_chunk_stats,
     get_error_frequency,
     get_learning_profile,
-    get_next_session_plan,
     get_retention_metrics,
     get_score_evolution,
     get_topic_stats,
@@ -83,11 +83,10 @@ def render() -> None:
     _window_limit = _WINDOW_OPTIONS[_window_label]
 
     with st.spinner("Chargement du tableau de bord…"):
-        df_all = get_attempts(user_id=_uid, limit=_window_limit)
-
-    df_topics = get_topic_stats(user_id=_uid)
-    df_chunks = classify_mastery(get_chunk_stats(user_id=st.session_state["user_id"]))
-    df_errors = get_error_frequency(user_id=st.session_state["user_id"])
+        df_all    = get_attempts(user_id=_uid, limit=_window_limit)
+        df_topics = get_topic_stats(user_id=_uid)
+        df_chunks = classify_mastery(get_chunk_stats(user_id=_uid))
+        df_errors = get_error_frequency(user_id=_uid)
 
     # ── Zone 1 : KPIs enrichis ────────────────────────────────────────────
     scores_all = df_all["score"].dropna()
@@ -172,7 +171,7 @@ def render() -> None:
     st.divider()
 
     # ── Zone 2b : Plan de session adaptatif ──────────────────────────────
-    _session_plan = get_next_session_plan(st.session_state["user_id"])
+    _session_plan = build_session_plan(df_chunks, max_items=5) if not df_chunks.empty else []
     if _session_plan:
         st.markdown(
             "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 6px;"
@@ -209,15 +208,18 @@ def render() -> None:
         "text-transform:uppercase;letter-spacing:.07em'>Progression par section</p>",
         unsafe_allow_html=True,
     )
+    _MAX_SECTIONS = 20
     if not df_chunks.empty:
         df_ordered = pd.concat([
             df_chunks[df_chunks["mastery_class"] == "Fragile"].sort_values("avg_score"),
             df_chunks[df_chunks["mastery_class"] == "En consolidation"].sort_values("avg_score"),
             df_chunks[df_chunks["mastery_class"] == "Maîtrisé"],
         ])
-        _ncols     = min(len(df_ordered), 3)
+        _show_all_sec = st.session_state.get("dashboard_show_all_sections", False)
+        _df_display   = df_ordered if _show_all_sec else df_ordered.head(_MAX_SECTIONS)
+        _ncols     = min(len(_df_display), 3)
         _card_cols = st.columns(_ncols)
-        for i, (_, r) in enumerate(df_ordered.iterrows()):
+        for i, (_, r) in enumerate(_df_display.iterrows()):
             _icon, _badge = _BADGE.get(r["mastery_class"], ("⚪", r["mastery_class"].upper()))
             _pct  = round(float(r["avg_score"]) * 100)
             _n    = int(r["attempts_count"])
@@ -247,6 +249,18 @@ def render() -> None:
                     )
                     if _ivl:
                         st.caption(f"⏱ {_ivl}")
+
+        _total_sec = len(df_ordered)
+        if not _show_all_sec and _total_sec > _MAX_SECTIONS:
+            _rem = _total_sec - _MAX_SECTIONS
+            st.caption(f"Affichage des {_MAX_SECTIONS} sections prioritaires sur {_total_sec}.")
+            if st.button(f"Charger les {_rem} sections restantes", key="btn_all_sections"):
+                st.session_state["dashboard_show_all_sections"] = True
+                st.rerun()
+        elif _show_all_sec and _total_sec > _MAX_SECTIONS:
+            if st.button("Réduire à l'affichage standard (20 sections)", key="btn_reduce_sections"):
+                st.session_state["dashboard_show_all_sections"] = False
+                st.rerun()
     else:
         st.info(
             "Aucune donnée par section disponible. "
