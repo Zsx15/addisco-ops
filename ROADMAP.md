@@ -247,6 +247,8 @@ Risques :
 - modularisation `app.py` peut introduire des régressions Streamlit (session_state partagé) ;
   mitigation : migration onglet par onglet avec test Streamlit headless après chaque onglet.
 
+**Phase 11 — COMPLÈTE.** Commit `5876c03`. TASK-038 → 040 soldés. `rag_service.py` extrait, `app.py` modulaire (tabs/), dettes `str | None` soldées.
+
 ---
 
 ## Phase 12 — Authentification réelle
@@ -276,6 +278,8 @@ Risques :
 - migration douce `users` : si `user_id` existants en base ne correspondent pas
   aux nouveaux comptes → plan de migration des données historiques nécessaire.
 
+**Phase 12 — COMPLÈTE.** Commit `1e0691f`. TASK-041 → 044 soldés. Table `users`, `auth_service.py` (bcrypt), formulaire login/register, rôles actifs (apprenant / formateur / admin). Mode démo préservé.
+
 ---
 
 ## Phase 13 — Base de données scalable
@@ -302,6 +306,8 @@ Risques :
 - SQLAlchemy Core est un changement profond de `database.py` ;
   mitigation : garder les signatures de fonctions identiques, changer uniquement
   l'implémentation interne ; les tests existants valident la non-régression.
+
+**Phase 13 — DIFFÉRÉE.** Décision `b66af9b`. SQLAlchemy / PostgreSQL reporté jusqu'à disponibilité d'une `DATABASE_URL` réelle. TASK-045 et TASK-046 combinables en une migration unique le moment venu. TASK-047 (pgvector) suit automatiquement. Stack SQLite + numpy reste officielle en attendant.
 
 ---
 
@@ -334,6 +340,8 @@ Risques :
   et `ai_service.py` — risk de casser les imports ;
   mitigation : extraire par copie d'abord, vérifier les tests, supprimer les originaux ensuite.
 
+**Phase 14 — COMPLÈTE.** Commit `82c8b55`. TASK-048 → 051 soldés. `adaptive_engine.py` extrait en module `engine/`. Profil enrichi (momentum, learning_velocity, consistency_score), plan de session adaptatif, métriques de rétention J+1 / J+7 / J+30 dans le Dashboard.
+
 ---
 
 ## Phase 15 — Multi-documents et corpus
@@ -363,15 +371,17 @@ Risques :
 - performances cross-documents sur SQLite : acceptable jusqu'à ~50 documents,
   bottleneck au-delà → mitigation par Phase 13 (pgvector).
 
+**Phase 15 — COMPLÈTE.** Commit `21e8e40`. TASK-052 → 055B soldés. Support DOCX, catégories de documents, entraînement cross-documents, RAG corpus complet (`search_similar_chunks_multi`), contexte RAG visible en UI. Architecture segmentée (`engine/`, `db/`, `ai_gateway`). 227/227 tests.
+
 ---
 
-## Phase 16 — UX professionnelle finale
+## Phase 16 — UX professionnelle finale  ← PHASE ACTUELLE
 
 Objectif : interface indiscernable d'un vrai SaaS B2B.
 
 Dépendance : Phase 12 (rôles), Phase 14 (métriques enrichies), Phase 15 (corpus).
 
-Tâches :
+Tâches planifiées à l'origine :
 - TASK-056 : dashboard formateur avancé — graphiques de cohorte, comparaison
   inter-apprenants, export PDF du rapport ;
 - TASK-057 : vue admin — gestion des utilisateurs (activation/désactivation),
@@ -388,6 +398,32 @@ Critère de sortie :
 Risques :
 - génération PDF en Python (reportlab / weasyprint) : dépendance lourde ;
   mitigation : export HTML en premier, PDF en second.
+
+**Phase 16 — EN COURS.**
+
+Réalisé (avec numérotation effective des tâches exécutées) :
+- TASK-056 (`ff45c02`) : cockpit pédagogique formateur — Dashboard premium, métriques
+  apprenant, zones de progression, cohorte simulée ;
+- TASK-056B (`c1a42b0`) : UX polish cockpit — densification visuelle, layout compact,
+  colonnes uniformisées ;
+- TASK-057* (`380b661`) : Skills Engine V1.0 + V1.1 — tables `skills` / `chunk_skills` /
+  `user_skill_mastery`, mapping keyword déterministe, debug analytics, remap non-destructif ;
+- TASK-058* (`a5d9dbf`) : test robustesse 100 questions simulées — script
+  `test_robustesse_100q.py`, verdict GO SAFE / GO WITH WARNING / FAILED ;
+- TASK-058B* (`2f1d901`) : mode mock `--mock` / `--profile good|mixed|weak|random` —
+  simulation locale sans appels API, 0,3 s pour 100 cycles ;
+- TASK-059* (`eed38d5`) : remap skills V1.1 sur documents de démo — 20 chunk_skills
+  actifs, `user_skill_mastery` peuplée, analytics validés.
+
+Note : les TASK-057/058/059 ci-dessus correspondent aux tâches réellement exécutées.
+Elles ne coïncident pas avec les TASK-057/058/059 planifiés à l'origine (vue admin,
+rapport PDF, UX responsive), qui restent à faire.
+
+Restant à réaliser :
+- vue admin — gestion des utilisateurs (activation/désactivation),
+  gestion des documents, stats globales de la plateforme ;
+- rapport automatique — génération d'un bilan PDF hebdomadaire par apprenant ;
+- UX responsive — layout optimisé tablette, mode présentation plein écran.
 
 ---
 
