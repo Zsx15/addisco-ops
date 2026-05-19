@@ -4,6 +4,78 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Test robustesse corpus complet (`--scope corpus`)
+
+**Objectif :** vérifier la solidité du moteur sur l'ensemble du corpus (tous documents, tous chunks) via une couverture maximale en mode mock.
+
+### Modification apportée à `test_robustesse_100q.py`
+
+Ajout de `--scope {default,corpus}` — 9 changements ciblés, 0 refactor :
+
+- `run_test(scope="default")` — nouveau paramètre
+- `corpus_schedule` construit si `scope=="corpus"` : liste de `{chunk_id, doc_id}` couvrant l'ensemble des chunks liés à leur document réel
+- Boucle principale : `doc_id` et `chunk_ids` sélectionnés depuis `corpus_schedule` en mode corpus
+- Compteurs `used_doc_ids: Counter` et `used_chunk_ids: set` pour tracking de couverture
+- Section "Couverture corpus" ajoutée au rapport : documents/chunks disponibles vs sollicités, attempts par document, chunks/docs avec et sans skills
+- `--scope corpus` dans argparse + epilog + header
+
+### Commande lancée
+
+```
+python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --no-confirm
+```
+
+### Résultats
+
+| Métrique | Valeur |
+|---|---|
+| Chunks disponibles | 295 |
+| Documents disponibles | 4 |
+| Documents sollicités | 4 / 4 |
+| Chunks sollicités | 100 / 295 |
+| Attempts sauvegardées | 100 / 100 |
+| Score moyen global | 72 % |
+
+Répartition par document :
+
+| doc | titre | attempts |
+|---|---|---|
+| 1 | Procédure d'accueil voyageur | x5 |
+| 2 | Addisco Ops | x6 |
+| 3 | Police | x8 |
+| 4 | Decrets | x81 |
+
+| Chunks avec skills | 231 / 295 |
+|---|---|
+| Chunks sans skills | 64 / 295 |
+| Documents avec skills | 4 / 4 |
+
+### Diagnostic de solidité
+
+- Moteur stable sur 295 chunks, 4 documents, 0 erreur
+- `user_skill_mastery` mise à jour correctement (10 skills actifs)
+- Profil recalculé tous les 10 cycles sans exception
+- Isolation multi-user confirmée
+
+### Limites observées
+
+- Déséquilibre attendu : doc 4 (`Decrets`, ~275 chunks) capture 81/100 attempts par effet du modulo sur corpus de taille inégale.
+- 64/295 chunks sans skills (22 %) : chunks courts/introductifs sans mots-clés pédagogiques. Génèrent des attempts valides mais n'alimentent pas `user_skill_mastery`.
+- Couverture chunks : 100/295 (34 %) avec N=100. Couverture complète nécessiterait N >= 295.
+
+### Invariants respectés
+
+- 0 appel API
+- `chunks.id` et documents non modifiés
+- Données utilisateur `test` préservées (ajout seul)
+- 227/227 tests maintenus
+
+**Commit :** `d493a8b`
+
+**Prochaine étape suggérée :** vue admin (gestion utilisateurs, stats globales) ou augmenter N pour couverture corpus complète.
+
+---
+
 ## 2026-05-19 — Test corpus réels sur utilisateur cible `test`
 
 **Objectif :** alimenter les métriques pédagogiques de l'utilisateur `test` (attempts, profil, skill mastery) via les 3 profils mock, sans créer d'utilisateur temporaire ni supprimer aucune donnée.
