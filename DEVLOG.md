@@ -4,6 +4,41 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — TASK-057 — `audit_skills_empirique.py` (audit empirique read-only)
+
+**Objectif :** créer un script autonome d'analyse empirique des skills sans aucune écriture SQL ni appel API.
+
+### Script créé : `audit_skills_empirique.py`
+
+**Usage :** `python audit_skills_empirique.py --username test`
+
+**7 sections d'analyse :**
+1. **Skills vivants** — chunks couverts, docs, couverture %, mastery, attempts, verdict
+2. **Skills morts** — aucune détection ou aucun attempt
+3. **Skills discriminants** — `>= 10 attempts` ET `|mastery − avg| >= 0.05`
+4. **Skills polluants** — couverture `>= 40 %` du corpus (trop larges)
+5. **Patterns émergents** — co-occurrences, skills étroits, concentration documentaire, error types
+6. **Rapport final** — tableau récapitulatif trié par verdict
+7. **Verdict par skill** — KEEP / WATCH / REFINE / REMOVE/REWORK
+
+**Résultats sur `--username test` (295 chunks, 10 skills) :**
+- `conformite_reglementaire` : 66.8 % corpus → **REFINE** (polluant)
+- `synthese_reformulation` : 3 chunks → **REFINE** (trop étroit)
+- `comprehension_procedure` / `identification_concepts` : delta +0.055 → **KEEP**
+- 6 skills → **WATCH** (actifs mais delta insuffisant ou attempts < 10)
+- 0 skill mort
+
+**Invariants préservés :**
+- Aucune écriture SQL
+- Aucun appel API
+- Aucun remap, aucun cleanup
+- `is_validated=1` non touché
+- Données utilisateur `test` intactes
+
+**Commit :** `378e2ce`
+
+---
+
 ## 2026-05-19 — Snapshot `snapshot_test_robustesse_n_parametrable_v1`
 
 Backup stable après validation de `--n` (cycles paramétrables) et couverture corpus 100 % à N=300.
