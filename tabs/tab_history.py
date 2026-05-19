@@ -1,28 +1,43 @@
 """Onglet Historique — liste des tentatives avec détail et export CSV."""
 import streamlit as st
 
-from database import get_attempts
+from database import get_attempts, get_attempts_count
 from ui_helpers import _ERROR_LABELS
+
+_HISTORY_LIMIT = 50
 
 
 def render() -> None:
     st.subheader("Historique des tentatives")
 
-    df = get_attempts(user_id=st.session_state["user_id"])
+    _uid  = st.session_state["user_id"]
+    total = get_attempts_count(user_id=_uid)
+
+    if total == 0:
+        st.info("Aucune tentative enregistrée pour l'instant.")
+        return
+
+    df = get_attempts(user_id=_uid, limit=_HISTORY_LIMIT)
 
     if df.empty:
         st.info("Aucune tentative enregistrée pour l'instant.")
         return
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Tentatives", len(df))
+    col1.metric("Tentatives (total)", total)
     scores = df["score"].dropna()
     mean_score_str = f"{round(scores.mean() * 100)} %" if len(scores) > 0 else "—"
-    col2.metric("Score moyen", mean_score_str)
+    col2.metric("Score moyen (50 dern.)", mean_score_str)
     col3.metric(
         "Dernière tentative",
         str(df["created_at"].iloc[0])[:16] if not df.empty else "—",
     )
+
+    if total > _HISTORY_LIMIT:
+        st.caption(
+            f"Affichage des {_HISTORY_LIMIT} dernières tentatives sur {total} au total. "
+            "L'export CSV inclut ces mêmes tentatives."
+        )
 
     _EXPORT_COLS = [
         "created_at", "question", "user_answer", "expected_answer",

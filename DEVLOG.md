@@ -4,6 +4,34 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Freeze pré-render identifié et corrigé — tab_history.py
+
+**Symptôme :** dashboard `test` complètement vide — CP-0 n'apparaît pas dans la version diagnostic.
+
+**Cause racine identifiée :** `render_history()` s'exécute AVANT `render_dashboard()` dans app.py.
+- `get_attempts()` sans LIMIT → charge 700+ rows incluant colonnes texte lourdes
+- `for _, row in df.iterrows()` → 700 `st.expander` × ~10 widgets = **7 000+ widgets Streamlit**
+- Streamlit crash/timeout avant même d'appeler `render_dashboard()` → CP-0 jamais atteint
+
+**Correction minimale (`tabs/tab_history.py`) :**
+- Import `get_attempts_count`
+- `total = get_attempts_count()` → COUNT seul pour métriques
+- `get_attempts(limit=50)` → LIMIT 50 pour l'affichage et l'export
+- Note affiché si `total > 50` : "50 dernières tentatives sur N totales"
+- Résultat : 50 expanders × ~10 widgets = 500 widgets (−93 %)
+
+**Restauration :** `tab_dashboard.py` revenu à la version feature-flags (commit a543646).
+Checkpoint version supprimée — diagnostic accompli.
+
+**Invariants préservés :**
+- `get_attempts()` sans limit reste inchangé (backward compat)
+- Aucune donnée modifiée ou supprimée
+- 206/206 tests OK, py_compile OK
+
+**Verdict :** GO SAFE
+
+---
+
 ## 2026-05-19 — Dashboard — isolation par feature flags (diagnostic blocs)
 
 **Problème :** malgré les deux rounds d'optimisation (LIMIT SQL + 20 cartes), le dashboard bugue encore sur `test`. Impossible d'identifier le bloc coupable sans outil d'isolation.
