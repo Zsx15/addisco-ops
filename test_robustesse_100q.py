@@ -2,16 +2,27 @@
 Test de robustesse pédagogique — 100 questions simulées.
 
 Usage:
-    python test_robustesse_100q.py            # lance le test complet
-    python test_robustesse_100q.py --cleanup  # supprime les données du user test
+    python test_robustesse_100q.py                         # mode API (200 appels OpenAI)
+    python test_robustesse_100q.py --mock                  # mode MOCK, profil mixed (défaut)
+    python test_robustesse_100q.py --mock --profile good   # profil good
+    python test_robustesse_100q.py --mock --profile weak   # profil weak
+    python test_robustesse_100q.py --mock --profile random # scores aléatoires
+    python test_robustesse_100q.py --mock --no-confirm     # sans confirmation
+    python test_robustesse_100q.py --cleanup               # supprime les données du user test
+
+Profils disponibles (--mock uniquement) :
+    good   : 80 % bonnes (0.75–1.0), 20 % partielles (0.35–0.65)
+    mixed  : 60 % bonnes, 40 % partielles                [défaut]
+    weak   : 30 % bonnes, 50 % partielles, 20 % mauvaises (0.0–0.34)
+    random : distribution aléatoire à chaque lancement
 
 Verdict final : GO SAFE | GO WITH WARNING | FAILED
 
 Isolation : toutes les données sont écrites sous l'utilisateur 'test_100_questions'.
 Les vrais utilisateurs et documents ne sont pas modifiés.
 
-ATTENTION : effectue ~200 appels API réels (génération + correction × 100 cycles).
-Durée estimée : 5 à 15 minutes selon la latence API.
+Mode API : ~200 appels OpenAI, durée 5–15 min, coût réel.
+Mode MOCK : 0 appel API, durée < 5 s, recommandé pour tests rapides.
 """
 import argparse
 import logging
@@ -61,6 +72,90 @@ _SHORT_ANSWERS = [
     "Peut-être.",
     "Aucune idée.",
 ]
+
+# ── Données mock (utilisées uniquement en mode --mock) ────────────────────────
+_MOCK_QUESTIONS = [
+    "Quelle est la durée maximale autorisée pour traiter cette demande ?",
+    "Décrivez les étapes principales de la procédure décrite.",
+    "Dans quel cas l'agent doit-il contacter son responsable hiérarchique ?",
+    "Quelle est la différence entre une alerte et une anomalie selon le document ?",
+    "Comment l'agent doit-il réagir face à un incident de sécurité ?",
+    "Quelles sont les obligations de l'agent en cas de perturbation du service ?",
+    "Vrai ou faux : l'agent peut quitter son poste sans avoir validé son rapport.",
+    "Quelle règle s'applique spécifiquement aux voyageurs à mobilité réduite ?",
+    "Résumez le processus de traçabilité décrit dans ce document.",
+    "Citez trois caractéristiques du comportement professionnel attendu.",
+    "Quel délai est prévu pour signaler un incident à la hiérarchie ?",
+    "Quelle distinction le texte établit-il entre information active et passive ?",
+    "Dans quelle situation l'agent doit-il rédiger un rapport d'anomalie ?",
+    "Quelles alternatives l'agent doit-il proposer en cas d'indisponibilité ?",
+    "Quel principe de priorité est défini pour les missions concurrentes ?",
+]
+
+_MOCK_TOPICS = [
+    "Procédure accueil",
+    "Gestion incidents",
+    "Obligations agent",
+    "Conformité réglementaire",
+    "Traçabilité service",
+    "Assistance PMR",
+    "Information voyageurs",
+    "Délai intervention",
+    "Rapport activité",
+    "Posture professionnelle",
+    "Délai signalement",
+    "Gestion perturbations",
+    "Rapport anomalie",
+    "Alternatives service",
+    "Priorité missions",
+]
+
+_MOCK_QUESTION_TYPES = [
+    "question_directe",
+    "cas_pratique",
+    "vrai_faux",
+    "question_piege",
+    "reformulation",
+    "consequence",
+]
+
+_MOCK_PROFILE_DISTRIBUTIONS: dict[str, dict[str, int]] = {
+    "good":  {"good": 80, "partial": 20, "bad":  0},
+    "mixed": {"good": 60, "partial": 40, "bad":  0},
+    "weak":  {"good": 30, "partial": 50, "bad": 20},
+}
+
+_MOCK_PARTIAL_ERRORS = ["oubli_etape", "confusion_notion", "reponse_vague"]
+_MOCK_BAD_ERRORS     = ["erreur_ordre", "hors_sujet", "confusion_notion"]
+
+
+def _build_mock_score_schedule(n: int, profile: str, seed: int) -> list[str]:
+    """Retourne une liste de n bands ('good'|'partial'|'bad') selon le profil."""
+    if profile == "random":
+        rng = random.Random()   # pas de seed → aléatoire à chaque lancement
+        return [rng.choice(["good", "partial", "bad"]) for _ in range(n)]
+
+    dist = _MOCK_PROFILE_DISTRIBUTIONS.get(profile, _MOCK_PROFILE_DISTRIBUTIONS["mixed"])
+    bands = (
+        ["good"]    * dist["good"] +
+        ["partial"] * dist["partial"] +
+        ["bad"]     * dist["bad"]
+    )
+    while len(bands) < n:
+        bands.extend(["good", "partial"])
+    bands = bands[:n]
+    rng = random.Random(seed)
+    rng.shuffle(bands)
+    return bands
+
+
+def _mock_score(band: str, rng: random.Random) -> tuple[float, str]:
+    """Retourne (score, error_type) déterministe selon le band."""
+    if band == "good":
+        return round(rng.uniform(0.75, 1.0), 2), "correct"
+    if band == "partial":
+        return round(rng.uniform(0.35, 0.65), 2), rng.choice(_MOCK_PARTIAL_ERRORS)
+    return round(rng.uniform(0.0, 0.34), 2), rng.choice(_MOCK_BAD_ERRORS)
 
 
 def _build_answer_schedule(n: int, seed: int) -> list[str]:
@@ -147,12 +242,11 @@ def _get_or_create_test_user() -> str:
 
 
 # ── Cœur du test ──────────────────────────────────────────────────────────────
-def run_test() -> str:
+def run_test(mock: bool = False, profile: str = "mixed") -> str:
     """Lance les 100 cycles. Retourne 'GO SAFE', 'GO WITH WARNING' ou 'FAILED'."""
     import database
     database.init_db()
 
-    from ai_service import correct_answer, generate_question
     from database import (
         compute_and_save_learning_profile,
         get_attempts,
@@ -168,6 +262,9 @@ def run_test() -> str:
     rng             = random.Random(RANDOM_SEED)
     answer_schedule = _build_answer_schedule(N_QUESTIONS, RANDOM_SEED)
 
+    # Pré-calcul du schedule de scores mock (ignoré en mode API)
+    mock_score_schedule = _build_mock_score_schedule(N_QUESTIONS, profile, RANDOM_SEED)
+
     user_id = _get_or_create_test_user()
 
     # Documents disponibles
@@ -182,8 +279,17 @@ def run_test() -> str:
         d = get_document_by_id(did)
         doc_texts[did] = (d.get("cleaned_text") or "")[:2000] if d else ""
 
+    # En mode mock : récupère les chunk_ids réels pour les lier aux attempts
+    all_chunk_ids: list[int] = []
+    if mock:
+        with sqlite3.connect(str(database.DB_PATH)) as _conn:
+            all_chunk_ids = [
+                r[0] for r in _conn.execute("SELECT id FROM chunks ORDER BY id").fetchall()
+            ]
+
+    mode_label = f"MOCK (profil={profile})" if mock else "API"
     print(f"[SETUP] {len(doc_ids)} document(s) : {doc_ids}")
-    print(f"[TEST]  {N_QUESTIONS} cycles — seed={RANDOM_SEED}\n")
+    print(f"[TEST]  {N_QUESTIONS} cycles — mode={mode_label}  seed={RANDOM_SEED}\n")
     print(
         f"  {'#':>3}  {'type':<10}  {'q_type':<22}  "
         f"{'score':>5}  {'avg':>5}  {'t':>5}"
@@ -213,68 +319,79 @@ def run_test() -> str:
         chunk_ids:     list[int]      = []
         question_type: str            = "question_directe"
         chunk_text:    Optional[str]  = None
-        result:        Optional[dict] = None
+        score:         float          = 0.0
+        error_type:    str            = "hors_sujet"
+        topic:         str            = ""
 
-        # 1. Génération de question
-        try:
-            question, chunk_ids, question_type = generate_question(
-                source_text=src_text,
-                document_id=doc_id,
-                user_id=user_id,
+        if mock:
+            # ── Mode MOCK : génération 100 % locale, 0 appel API ─────────────
+            question      = _MOCK_QUESTIONS[i % len(_MOCK_QUESTIONS)]
+            question_type = _MOCK_QUESTION_TYPES[i % len(_MOCK_QUESTION_TYPES)]
+            sim_answer    = _simulate_answer(ans_type, src_text, rng)
+            score, error_type = _mock_score(mock_score_schedule[i], rng)
+            topic         = _MOCK_TOPICS[i % len(_MOCK_TOPICS)]
+            chunk_ids     = (
+                [all_chunk_ids[i % len(all_chunk_ids)]] if all_chunk_ids else []
             )
             generated += 1
-        except Exception as exc:
-            err = f"Cycle {i+1}: generate_question — {exc}"
-            logger.warning(err)
-            errors.append(err)
-            print(f"  [{i+1:3d}]  ERREUR génération : {str(exc)[:60]}")
-            continue
+            corrected += 1   # correction simulée localement
 
-        # Récupère le texte du chunk principal pour la réponse simulée
-        if chunk_ids:
+        else:
+            # ── Mode API : appels OpenAI réels ───────────────────────────────
+            from ai_service import correct_answer, generate_question
+
+            # 1. Génération de question
             try:
-                c = get_chunk_by_id(chunk_ids[0])
-                chunk_text = c.get("chunk_text") if c else None
-            except Exception:
-                pass
+                question, chunk_ids, question_type = generate_question(
+                    source_text=src_text,
+                    document_id=doc_id,
+                    user_id=user_id,
+                )
+                generated += 1
+            except Exception as exc:
+                err = f"Cycle {i+1}: generate_question — {exc}"
+                logger.warning(err)
+                errors.append(err)
+                print(f"  [{i+1:3d}]  ERREUR génération : {str(exc)[:60]}")
+                continue
 
-        # 2. Réponse simulée
-        sim_answer = _simulate_answer(ans_type, chunk_text or src_text, rng)
+            # Récupère le texte du chunk principal
+            if chunk_ids:
+                try:
+                    c = get_chunk_by_id(chunk_ids[0])
+                    chunk_text = c.get("chunk_text") if c else None
+                except Exception:
+                    pass
 
-        # 3. Correction
-        try:
-            result = correct_answer(question, sim_answer, chunk_text or src_text)
-            corrected += 1
-        except Exception as exc:
-            err = f"Cycle {i+1}: correct_answer — {exc}"
-            logger.warning(err)
-            errors.append(err)
-            result = {
-                "score": 0.0,
-                "expected_answer": "",
-                "correction": f"Indisponible : {exc}",
-                "error_type": "hors_sujet",
-                "topic": "",
-            }
+            sim_answer = _simulate_answer(ans_type, chunk_text or src_text, rng)
 
-        score      = float(result.get("score", 0.0))
-        error_type = result.get("error_type") or "hors_sujet"
-        topic      = result.get("topic") or ""
+            # 2. Correction
+            try:
+                result = correct_answer(question, sim_answer, chunk_text or src_text)
+                corrected += 1
+                score      = float(result.get("score", 0.0))
+                error_type = result.get("error_type") or "hors_sujet"
+                topic      = result.get("topic") or ""
+            except Exception as exc:
+                err = f"Cycle {i+1}: correct_answer — {exc}"
+                logger.warning(err)
+                errors.append(err)
+                score, error_type, topic = 0.0, "hors_sujet", ""
 
         scores.append(score)
         error_types[error_type] += 1
         if topic:
             topics[topic] += 1
 
-        # 4. Enregistrement tentative
+        # 3 (commun). Enregistrement tentative
         try:
             save_attempt(
-                question=question,
+                question=question or f"[mock] question #{i+1}",
                 user_answer=sim_answer,
-                expected_answer=result.get("expected_answer", ""),
-                correction=result.get("correction", ""),
+                expected_answer="",
+                correction="[mock]" if mock else "",
                 score=score,
-                response_time_seconds=round(time.time() - t_cycle, 2),
+                response_time_seconds=round(time.time() - t_cycle, 4),
                 error_type=error_type,
                 topic=topic,
                 pedagogy_type=question_type,
@@ -383,11 +500,13 @@ def run_test() -> str:
     print("\n" + "=" * 70)
     print("RAPPORT — TEST ROBUSTESSE PÉDAGOGIQUE 100 QUESTIONS")
     print("=" * 70)
+    print(f"Mode               : {mode_label}")
     print(f"User test          : {TEST_USERNAME}  (uid={user_id})")
     print(f"Documents utilisés : {doc_ids}")
     print()
     print(f"Questions générées : {generated} / {N_QUESTIONS}")
-    print(f"Corrections réuss. : {corrected} / {generated}")
+    corr_label = f"{corrected} / {generated}" if not mock else f"{corrected} / {generated}  [simulation locale]"
+    print(f"Corrections réuss. : {corr_label}")
     print(f"Tentatives sauveg. : {saved} / {generated}")
     print(f"Score moyen global : {avg_score:.3f}  ({round(avg_score * 100)} %)")
     print(f"Temps total        : {round(t_total)}s  (moy. {avg_cycle}s/cycle)")
@@ -395,7 +514,7 @@ def run_test() -> str:
 
     print("Répartition error_type :")
     for et, cnt in error_types.most_common():
-        bar = "▪" * min(cnt, 40)
+        bar = "*" * min(cnt, 40)
         print(f"  {et:<30}  {cnt:>4}  {bar}")
 
     print()
@@ -467,10 +586,23 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Exemples :\n"
-            "  python test_robustesse_100q.py\n"
+            "  python test_robustesse_100q.py --mock --no-confirm\n"
+            "  python test_robustesse_100q.py --mock --profile weak --no-confirm\n"
+            "  python test_robustesse_100q.py --mock --profile random --no-confirm\n"
             "  python test_robustesse_100q.py --cleanup\n"
-            "  python test_robustesse_100q.py --no-confirm\n"
+            "  python test_robustesse_100q.py            # mode API (200 appels OpenAI)\n"
         ),
+    )
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Mode simulation locale : 0 appel API. Recommandé pour tests rapides.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["good", "mixed", "weak", "random"],
+        default="mixed",
+        help="Distribution des scores simulés (--mock uniquement). Défaut : mixed.",
     )
     parser.add_argument(
         "--cleanup",
@@ -490,16 +622,17 @@ if __name__ == "__main__":
         cleanup_test_user()
         sys.exit(0)
 
+    mode_str = f"MOCK  profil={args.profile}" if args.mock else "API   (~200 appels OpenAI)"
     print("=" * 70)
     print("TEST ROBUSTESSE PÉDAGOGIQUE — 100 QUESTIONS SIMULÉES")
+    print(f"  Mode      : {mode_str}")
     print(f"  User test : {TEST_USERNAME}")
-    print(f"  N         : {N_QUESTIONS} questions")
-    print(f"  Seed      : {RANDOM_SEED}")
+    print(f"  N         : {N_QUESTIONS} questions  |  seed={RANDOM_SEED}")
     print(f"  Profil    : recalculé tous les {PROFILE_EVERY} cycles")
-    print(
-        "  ATTENTION : ~200 appels API réels "
-        "(coût + durée estimée 5-15 min selon latence)"
-    )
+    if not args.mock:
+        print("  ATTENTION : ~200 appels API réels (coût + durée 5-15 min)")
+    else:
+        print("  Durée estimée : < 5 secondes")
     print("=" * 70)
 
     if not args.no_confirm:
@@ -508,5 +641,5 @@ if __name__ == "__main__":
             print("Test abandonné.")
             sys.exit(0)
 
-    verdict = run_test()
+    verdict = run_test(mock=args.mock, profile=args.profile)
     sys.exit(0 if verdict != "FAILED" else 1)
