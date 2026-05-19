@@ -1,10 +1,13 @@
-"""Composant RecommendationPanel — recommandations pédagogiques générées par le moteur IA."""
+"""Composant RecommendationPanel — recommandations pédagogiques générées par le moteur IA.
+
+La classe `.rec-card` et son hover sont définis dans _COCKPIT_CSS (trainer_dashboard.py).
+"""
 import streamlit as st
 
 _PRIORITY_CFG: dict[str, dict] = {
-    "high":   {"color": "#dc2626", "bg": "#fef2f2", "label": "Prioritaire"},
-    "medium": {"color": "#d97706", "bg": "#fffbeb", "label": "Recommandé"},
-    "low":    {"color": "#2563eb", "bg": "#eff6ff", "label": "Suggestion"},
+    "high":   {"color": "#dc2626", "bg": "#fef2f2", "label": "Prioritaire", "border": "#dc2626"},
+    "medium": {"color": "#d97706", "bg": "#fffbeb", "label": "Recommandé",  "border": "#d97706"},
+    "low":    {"color": "#2563eb", "bg": "#eff6ff", "label": "Suggestion",  "border": "#93c5fd"},
 }
 
 
@@ -15,17 +18,17 @@ def render_recommendations(recommendations: list[dict]) -> None:
     for rec in recommendations:
         pconf = _PRIORITY_CFG.get(rec.get("priority", "low"), _PRIORITY_CFG["low"])
         html = (
-            f'<div style="padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;'
-            f'border-left:3px solid {pconf["color"]};border-radius:8px;margin-bottom:8px">'
-            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
-            f'<span style="font-size:17px">{rec["icon"]}</span>'
-            f'<span style="font-size:13px;font-weight:700;color:#0f172a">{rec["title"]}</span>'
-            f'<span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;'
-            f'background:{pconf["bg"]};color:{pconf["color"]}">{pconf["label"]}</span>'
+            f'<div class="rec-card" style="border-left:3px solid {pconf["border"]}">'
+            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
+            f'<span style="font-size:16px">{rec["icon"]}</span>'
+            f'<span style="font-size:12.5px;font-weight:700;color:#0f172a">{rec["title"]}</span>'
+            f'<span style="font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:9px;'
+            f'background:{pconf["bg"]};color:{pconf["color"]};flex-shrink:0">'
+            f'{pconf["label"]}</span>'
             f'</div>'
-            f'<p style="font-size:12px;color:#475569;margin:0 0 5px;line-height:1.5">'
+            f'<p style="font-size:11.5px;color:#475569;margin:0 0 4px;line-height:1.5">'
             f'{rec["description"]}</p>'
-            f'<span style="font-size:11px;color:#94a3b8">👤 {rec.get("target","—")}</span>'
+            f'<span style="font-size:10.5px;color:#94a3b8">👤 {rec.get("target","—")}</span>'
             f'</div>'
         )
         st.markdown(html, unsafe_allow_html=True)

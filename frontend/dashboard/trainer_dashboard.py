@@ -1,5 +1,5 @@
 """
-Cockpit Pédagogique Formateur — TASK-056
+Cockpit Pédagogique Formateur — TASK-056 / TASK-056B
 Orchestrateur principal : données réelles (cohorte >= 2 apprenants)
 ou mock data (démonstration) avec même interface.
 """
@@ -37,6 +37,87 @@ _PEDAGOGY_LABELS: dict[str, tuple[str, str]] = {
     "narrative":  ("Narratif",    "📖"),
     "analogy":    ("Analogique",  "🔗"),
 }
+
+# ── CSS global injecté une seule fois au démarrage du render() ─────────────
+_COCKPIT_CSS = """
+<style>
+/* ── SYNPZ OPS — Cockpit Formateur ── */
+
+/* Learner cards */
+.lc {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(15,23,42,.05);
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.lc:hover {
+  box-shadow: 0 4px 14px rgba(79,70,229,.10);
+  border-color: #c7d2fe;
+}
+
+/* Adaptive profile cards */
+.ap-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.ap-card:hover {
+  box-shadow: 0 3px 10px rgba(15,23,42,.08);
+  border-color: #cbd5e1;
+}
+
+/* Recommendation cards */
+.rec-card {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 7px;
+  transition: box-shadow .12s ease;
+}
+.rec-card:hover {
+  box-shadow: 0 2px 8px rgba(15,23,42,.07);
+  background: #f1f5f9;
+}
+
+/* Streamlit containers hover */
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+  transition: box-shadow .15s ease;
+}
+div[data-testid="stVerticalBlockBorderWrapper"] > div:hover {
+  box-shadow: 0 3px 12px rgba(15,23,42,.08) !important;
+}
+</style>
+"""
+
+# ── Tendances mock pour le mode démonstration ──────────────────────────────
+_MOCK_KPI_TRENDS: dict[str, str] = {
+    "score":   "↗ +8 pts cette semaine",
+    "active":  "→ stable",
+    "docs":    "",
+    "alerts":  "↘ −1 vs hier",
+}
+
+
+def _score_trend_str(df_evo: pd.DataFrame) -> str:
+    """Calcule un indicateur de tendance depuis l'évolution de score."""
+    if len(df_evo) < 6:
+        return ""
+    mid = len(df_evo) // 2
+    old_avg = float(df_evo["score"].iloc[:mid].mean())
+    new_avg = float(df_evo["score"].iloc[mid:].mean())
+    delta = round((new_avg - old_avg) * 100)
+    if delta >= 3:
+        return f"↗ +{delta} pts"
+    if delta <= -3:
+        return f"↘ {delta} pts"
+    return "→ stable"
 
 
 def _build_real_learner(user: dict) -> dict:
@@ -205,15 +286,28 @@ def _build_report(learners: list[dict], alerts: list[dict], recs: list[dict]) ->
     return "\n".join(lines)
 
 
+def _section_header(icon: str, title: str) -> None:
+    st.markdown(
+        f"<p style='font-size:11px;font-weight:700;color:#4f46e5;margin:0 0 10px;"
+        f"text-transform:uppercase;letter-spacing:.09em'>{icon} {title}</p>",
+        unsafe_allow_html=True,
+    )
+
+
 def render(current_user_id: str = "default") -> None:
     """Cockpit pédagogique formateur — point d'entrée principal."""
 
+    # ── CSS global ────────────────────────────────────────────────────────────
+    st.markdown(_COCKPIT_CSS, unsafe_allow_html=True)
+
     # ── Header ────────────────────────────────────────────────────────────────
     st.markdown(
-        "<h3 style='margin:0 0 4px;color:#0f172a;font-size:16px;font-weight:800;"
+        "<div style='border-left:4px solid #4f46e5;padding-left:12px;margin-bottom:12px'>"
+        "<h3 style='margin:0 0 2px;color:#0f172a;font-size:16px;font-weight:800;"
         "letter-spacing:-0.01em'>🎓 Cockpit Pédagogique Formateur</h3>"
-        "<p style='color:#64748b;font-size:12px;margin:0 0 16px'>"
-        "Vue superviseur — suivi de cohorte, alertes IA, recommandations adaptatives.</p>",
+        "<p style='color:#64748b;font-size:11.5px;margin:0'>"
+        "Vue superviseur — cohorte · alertes IA · recommandations adaptatives</p>"
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -243,82 +337,73 @@ def render(current_user_id: str = "default") -> None:
             icon="📊",
         )
 
+    # ── Calcul tendances KPI ─────────────────────────────────────────────────
+    if use_mock:
+        trend_score  = _MOCK_KPI_TRENDS["score"]
+        trend_active = _MOCK_KPI_TRENDS["active"]
+        trend_alerts = _MOCK_KPI_TRENDS["alerts"]
+    else:
+        df_evo_ref   = get_score_evolution(limit=20, user_id=current_user_id)
+        trend_score  = _score_trend_str(df_evo_ref)
+        trend_active = ""
+        trend_alerts = ""
+
     # ── KPI Header ────────────────────────────────────────────────────────────
     n_learners = len(learners)
     avg_score_raw = sum(l["score"] for l in learners) / n_learners if learners else 0.0
     avg_score = round(avg_score_raw * 100)
-    n_active = sum(1 for l in learners if l.get("status") == "active")
-    n_alerts = len(alerts)
-    docs = get_documents()
-    n_docs = len(docs) if not docs.empty else 0
+    n_active  = sum(1 for l in learners if l.get("status") == "active")
+    n_alerts  = len(alerts)
+    docs      = get_documents()
+    n_docs    = len(docs) if not docs.empty else 0
     score_color = "#15803d" if avg_score >= 80 else ("#b45309" if avg_score >= 60 else "#dc2626")
+    alerts_color = "#dc2626" if n_alerts > 0 else "#15803d"
 
     k1, k2, k3, k4, k5 = st.columns(5)
-    k1.markdown(stat_card_html("👥", "Apprenants", str(n_learners)), unsafe_allow_html=True)
-    k2.markdown(stat_card_html("📈", "Score moyen", f"{avg_score} %", score_color), unsafe_allow_html=True)
-    k3.markdown(stat_card_html("⚡", "Actifs", str(n_active)), unsafe_allow_html=True)
-    k4.markdown(stat_card_html("📄", "Documents", str(n_docs)), unsafe_allow_html=True)
-    k5.markdown(
-        stat_card_html("⚠️", "Alertes", str(n_alerts),
-                       "#dc2626" if n_alerts > 0 else "#15803d",
-                       alert=n_alerts > 0),
-        unsafe_allow_html=True,
-    )
+    k1.markdown(stat_card_html("👥", "Apprenants",   str(n_learners)), unsafe_allow_html=True)
+    k2.markdown(stat_card_html("📈", "Score moyen",  f"{avg_score} %",  score_color,  trend_str=trend_score),  unsafe_allow_html=True)
+    k3.markdown(stat_card_html("⚡", "Actifs",       str(n_active),    "#334155",     trend_str=trend_active), unsafe_allow_html=True)
+    k4.markdown(stat_card_html("📄", "Documents",    str(n_docs)),      unsafe_allow_html=True)
+    k5.markdown(stat_card_html("⚠️", "Alertes",      str(n_alerts),    alerts_color,  trend_str=trend_alerts, alert=n_alerts > 0), unsafe_allow_html=True)
 
     st.divider()
 
     # ── Alertes pédagogiques ──────────────────────────────────────────────────
     if alerts:
-        st.markdown(
-            "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 8px;"
-            "text-transform:uppercase;letter-spacing:.07em'>⚠️ Alertes pédagogiques</p>",
-            unsafe_allow_html=True,
-        )
+        _section_header("⚠️", "Alertes pédagogiques")
         render_alerts_panel(alerts)
         st.divider()
 
-    # ── Cartes apprenants ────────────────────────────────────────────────────
-    st.markdown(
-        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 10px;"
-        "text-transform:uppercase;letter-spacing:.07em'>👥 Apprenants</p>",
-        unsafe_allow_html=True,
-    )
-    for learner in learners:
-        render_learner_card(learner)
+    # ── Cartes apprenants — 2 colonnes ────────────────────────────────────────
+    _section_header("👥", "Apprenants")
+    _lc = st.columns(2)
+    for _i, _learner in enumerate(learners):
+        with _lc[_i % 2]:
+            render_learner_card(_learner)
     st.divider()
 
     # ── Profils adaptatifs ───────────────────────────────────────────────────
-    st.markdown(
-        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 10px;"
-        "text-transform:uppercase;letter-spacing:.07em'>🧠 Profils détectés par l'IA</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("🧠", "Profils détectés par l'IA")
     render_adaptive_profiles(adaptive_profiles)
     st.divider()
 
     # ── Analyse de performance ───────────────────────────────────────────────
-    st.markdown(
-        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 10px;"
-        "text-transform:uppercase;letter-spacing:.07em'>📊 Analyse de performance</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("📊", "Analyse de performance")
     col_chart, col_errors = st.columns([3, 2])
     with col_chart:
-        st.caption("Évolution du score — session formateur")
-        df_evo = get_score_evolution(limit=20, user_id=current_user_id)
-        render_score_chart(df_evo)
+        with st.container(border=True):
+            st.caption("📈 Évolution du score — session formateur")
+            df_evo = get_score_evolution(limit=20, user_id=current_user_id)
+            render_score_chart(df_evo)
     with col_errors:
-        st.caption("Distribution des erreurs")
-        df_errors = get_error_frequency(user_id=current_user_id)
-        render_error_heatmap(df_errors)
+        with st.container(border=True):
+            st.caption("🔍 Distribution des erreurs")
+            df_errors = get_error_frequency(user_id=current_user_id)
+            render_error_heatmap(df_errors)
     st.divider()
 
     # ── Recommandations IA ───────────────────────────────────────────────────
-    st.markdown(
-        "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 10px;"
-        "text-transform:uppercase;letter-spacing:.07em'>💡 Recommandations pédagogiques IA</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("💡", "Recommandations pédagogiques IA")
     render_recommendations(recs)
     st.divider()
 
