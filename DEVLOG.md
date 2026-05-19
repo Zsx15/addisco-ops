@@ -4,6 +4,30 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Dashboard — isolation par feature flags (diagnostic blocs)
+
+**Problème :** malgré les deux rounds d'optimisation (LIMIT SQL + 20 cartes), le dashboard bugue encore sur `test`. Impossible d'identifier le bloc coupable sans outil d'isolation.
+
+**Solution — diagnostic d'isolation (1 fichier : `tabs/tab_dashboard.py`) :**
+- Ajout d'un `st.expander("Diagnostic d'isolation des blocs")` non-expanded par défaut
+- Master checkbox "Mode diagnostic — désactiver tous les blocs" (défaut OFF = comportement inchangé)
+- Mode diagnostic ON : 12 checkboxes individuelles (toutes OFF par défaut) pour activer les blocs un par un :
+  Recommandations, Révision prioritaire, Plan de session, Sections (cartes),
+  Graphiques, Timeline, Rétention, Analyse pédagogique, Profil,
+  Compétences, Debug V1.1, Export
+- Mode diagnostic OFF : toutes les 12 variables `_show_X = True` → dashboard complet (backward compat)
+- Chargements lourds déplacés dans leurs blocs conditionnels :
+  `get_retention_metrics()`, `get_learning_profile()`, `get_user_skill_mastery()`, `_build_report()` ne s'exécutent que si le bloc est activé
+
+**Invariants préservés :**
+- Par défaut (`diag_mode=False`) : comportement identique avant cette task
+- Aucune donnée modifiée ou supprimée
+- 206/206 tests OK, py_compile OK
+
+**Verdict :** GO SAFE — attente test utilisateur `test` pour identifier le bloc coupable
+
+---
+
 ## 2026-05-19 — Optimisation dashboard — double get_chunk_stats + 295 cartes UI
 
 **Problème :** dashboard bugue encore sur `test` (700 attempts, 295 chunks) malgré le LIMIT SQL.
