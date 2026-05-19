@@ -229,20 +229,20 @@ def cleanup_test_user() -> None:
 
 
 # ── Setup utilisateur test ────────────────────────────────────────────────────
-def _get_or_create_test_user() -> str:
+def _get_or_create_test_user(username: str = TEST_USERNAME) -> str:
     from auth_service import get_user_by_username, register_user
 
-    existing = get_user_by_username(TEST_USERNAME)
+    existing = get_user_by_username(username)
     if existing:
-        print(f"[SETUP] Utilisateur test existant : uid={existing['user_id']}")
+        print(f"[SETUP] Utilisateur existant : uid={existing['user_id']}  ({username})")
         return existing["user_id"]
-    uid = register_user(TEST_USERNAME, TEST_PASSWORD, TEST_ROLE)
-    print(f"[SETUP] Utilisateur test créé : uid={uid}")
+    uid = register_user(username, TEST_PASSWORD, TEST_ROLE)
+    print(f"[SETUP] Utilisateur créé : uid={uid}  ({username})")
     return uid
 
 
 # ── Cœur du test ──────────────────────────────────────────────────────────────
-def run_test(mock: bool = False, profile: str = "mixed") -> str:
+def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_USERNAME) -> str:
     """Lance les 100 cycles. Retourne 'GO SAFE', 'GO WITH WARNING' ou 'FAILED'."""
     import database
     database.init_db()
@@ -265,7 +265,7 @@ def run_test(mock: bool = False, profile: str = "mixed") -> str:
     # Pré-calcul du schedule de scores mock (ignoré en mode API)
     mock_score_schedule = _build_mock_score_schedule(N_QUESTIONS, profile, RANDOM_SEED)
 
-    user_id = _get_or_create_test_user()
+    user_id = _get_or_create_test_user(username)
 
     # Documents disponibles
     df_docs = get_documents()
@@ -501,7 +501,7 @@ def run_test(mock: bool = False, profile: str = "mixed") -> str:
     print("RAPPORT — TEST ROBUSTESSE PÉDAGOGIQUE 100 QUESTIONS")
     print("=" * 70)
     print(f"Mode               : {mode_label}")
-    print(f"User test          : {TEST_USERNAME}  (uid={user_id})")
+    print(f"User test          : {username}  (uid={user_id})")
     print(f"Documents utilisés : {doc_ids}")
     print()
     print(f"Questions générées : {generated} / {N_QUESTIONS}")
@@ -610,6 +610,15 @@ if __name__ == "__main__":
         help="Supprime toutes les données du user test (attempts, profil, mastery, user).",
     )
     parser.add_argument(
+        "--username",
+        default=TEST_USERNAME,
+        help=(
+            "Utilisateur cible (doit exister ou sera créé). "
+            f"Défaut : {TEST_USERNAME}. "
+            "Exemple : --username test"
+        ),
+    )
+    parser.add_argument(
         "--no-confirm",
         action="store_true",
         help="Désactive la confirmation interactive (CI, automatisation).",
@@ -617,16 +626,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.cleanup:
+        if args.username != TEST_USERNAME:
+            print(
+                f"[GUARD] --cleanup refusé sur '{args.username}' : "
+                f"seul '{TEST_USERNAME}' peut être nettoyé automatiquement."
+            )
+            sys.exit(1)
         import database
         database.init_db()
         cleanup_test_user()
         sys.exit(0)
 
+    target_user = args.username
     mode_str = f"MOCK  profil={args.profile}" if args.mock else "API   (~200 appels OpenAI)"
     print("=" * 70)
     print("TEST ROBUSTESSE PÉDAGOGIQUE — 100 QUESTIONS SIMULÉES")
     print(f"  Mode      : {mode_str}")
-    print(f"  User test : {TEST_USERNAME}")
+    print(f"  User test : {target_user}")
     print(f"  N         : {N_QUESTIONS} questions  |  seed={RANDOM_SEED}")
     print(f"  Profil    : recalculé tous les {PROFILE_EVERY} cycles")
     if not args.mock:
@@ -641,5 +657,5 @@ if __name__ == "__main__":
             print("Test abandonné.")
             sys.exit(0)
 
-    verdict = run_test(mock=args.mock, profile=args.profile)
+    verdict = run_test(mock=args.mock, profile=args.profile, username=target_user)
     sys.exit(0 if verdict != "FAILED" else 1)
