@@ -4,6 +4,42 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-19 — Optimisation dashboard — fenêtre d'analyse + LIMIT SQL
+
+**Problème :** dashboard lent pour l'utilisateur `test` (700 attempts après stress-tests).
+Cause : `get_attempts()` chargeait **tous** les attempts sans LIMIT (`SELECT * FROM attempts`) incluant les colonnes texte lourdes (question, réponse attendue, correction).
+
+**Diagnostic :**
+- 700 attempts pour l'utilisateur `test` (UUID `316ccbb7`)
+- `get_attempts(no limit)` : 6.9 ms · `get_attempts(limit=200)` : 2.0 ms
+- Toutes les autres fonctions (chunk_stats, topic_stats, error_frequency) sont des agrégations SQL — déjà légères
+
+**Correction minimale (3 fichiers) :**
+
+1. `db/analytics.py` :
+   - Ajout `get_attempts_count(user_id)` → `SELECT COUNT(*)` (léger, pour KPI total)
+   - Ajout param `limit: Optional[int] = None` à `get_attempts()` → `LIMIT ?` côté SQL
+
+2. `database.py` :
+   - Re-export `get_attempts_count` dans les blocs `import` et `__all__`
+
+3. `tabs/tab_dashboard.py` :
+   - Ajout `get_attempts_count` dans les imports
+   - `st.selectbox` fenêtre d'analyse : 100 / 200 (défaut) / 300 / Tout l'historique
+   - `st.spinner("Chargement du tableau de bord…")` autour du chargement
+   - KPI "Tentatives" affiche désormais `total_attempts` (COUNT réel) et non `len(df_all)`
+   - Guard clause basée sur `total_attempts` (COUNT) au lieu de charger tout
+
+**Invariants préservés :**
+- `get_attempts()` sans `limit` retourne toujours tout l'historique (backward compat)
+- Aucune donnée modifiée ou supprimée
+- Tests : 206/206 passés
+- py_compile : OK sur les 3 fichiers
+
+**Verdict :** GO SAFE
+
+---
+
 ## 2026-05-19 — TASK-057 — `audit_skills_empirique.py` (audit empirique read-only)
 
 **Objectif :** créer un script autonome d'analyse empirique des skills sans aucune écriture SQL ni appel API.

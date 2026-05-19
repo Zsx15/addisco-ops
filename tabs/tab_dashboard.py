@@ -10,6 +10,7 @@ from database import (
     classify_skill_mastery,
     compute_and_save_learning_profile,
     get_attempts,
+    get_attempts_count,
     get_chunk_stats,
     get_error_frequency,
     get_learning_profile,
@@ -59,13 +60,32 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    df_all = get_attempts(user_id=st.session_state["user_id"])
+    _uid = st.session_state["user_id"]
+    total_attempts = get_attempts_count(user_id=_uid)
 
-    if len(df_all) < 2:
+    if total_attempts < 2:
         st.info("Effectuez au moins 2 tentatives pour afficher le dashboard.")
         return
 
-    df_topics = get_topic_stats(user_id=st.session_state["user_id"])
+    _WINDOW_OPTIONS = {
+        "100 dernières": 100,
+        "200 dernières": 200,
+        "300 dernières": 300,
+        "Tout l'historique": None,
+    }
+    _window_label = st.selectbox(
+        "Fenêtre d'analyse",
+        options=list(_WINDOW_OPTIONS.keys()),
+        index=1,
+        key="dashboard_window",
+        help="Nombre de tentatives chargées. 'Tout l'historique' peut être lent sur les grands comptes.",
+    )
+    _window_limit = _WINDOW_OPTIONS[_window_label]
+
+    with st.spinner("Chargement du tableau de bord…"):
+        df_all = get_attempts(user_id=_uid, limit=_window_limit)
+
+    df_topics = get_topic_stats(user_id=_uid)
     df_chunks = classify_mastery(get_chunk_stats(user_id=st.session_state["user_id"]))
     df_errors = get_error_frequency(user_id=st.session_state["user_id"])
 
@@ -79,7 +99,7 @@ def render() -> None:
     )
 
     _kc1, _kc2, _kc3, _kc4 = st.columns(4)
-    _kc1.markdown(_kpi_card("📊", "Tentatives", str(len(df_all))), unsafe_allow_html=True)
+    _kc1.markdown(_kpi_card("📊", "Tentatives", str(total_attempts)), unsafe_allow_html=True)
     _kc2.markdown(
         _kpi_card("🎯", "Score moyen",
                   f"{round(scores_all.mean() * 100)} %" if len(scores_all) else "—"),

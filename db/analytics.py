@@ -48,13 +48,22 @@ def save_attempt(
         )
 
 
-def get_attempts(user_id: str = "default") -> pd.DataFrame:
+def get_attempts_count(user_id: str = "default") -> int:
     with sqlite3.connect(_db.DB_PATH) as conn:
-        df = pd.read_sql_query(
-            "SELECT * FROM attempts WHERE user_id = ? ORDER BY created_at DESC",
-            conn,
-            params=(user_id,),
-        )
+        row = conn.execute(
+            "SELECT COUNT(*) FROM attempts WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return int(row[0]) if row else 0
+
+
+def get_attempts(user_id: str = "default", limit: Optional[int] = None) -> pd.DataFrame:
+    sql = "SELECT * FROM attempts WHERE user_id = ? ORDER BY created_at DESC"
+    params: tuple = (user_id,)
+    if limit is not None:
+        sql += " LIMIT ?"
+        params = (user_id, limit)
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        df = pd.read_sql_query(sql, conn, params=params)
     return df
 
 
