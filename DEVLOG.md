@@ -4,6 +4,42 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-20 — TASK-049 — Profil pédagogique enrichi V1
+
+**Contexte :** moteur pédagogique stable (227/227 tests), Docker opérationnel.
+Objectif : ajouter une lecture pédagogique exploitable depuis les données existantes, sans ML, sans appel API, sans diagnostic médical.
+
+**Fichiers créés / modifiés :**
+- `engine/user_profile_insights.py` — fonction pure `compute_profile_insights(data)` → dict d'insights pédagogiques explicables.
+- `tabs/tab_dashboard.py` — Zone 7b "Profil pédagogique enrichi" avec flag diagnostic isolé `_show_enriched_profile`.
+- `test_regression.py` — +11 tests `TestProfileInsights` (218/218 OK).
+
+**Données utilisées :**
+`total_attempts`, `average_score`, `preferred_pedagogy`, scores par groupe pédagogique, `fragile_topics`, `momentum`, `consistency_score`, `error_type_counts`, `avg_response_time`. Aucune requête DB supplémentaire — tout provient des données déjà chargées en dashboard.
+
+**Règles de confiance :**
+- < 10 tentatives → `low` (indicatif)
+- 10–50 → `medium`
+- 50+ → `high`
+
+**Exemple produit (utilisateur 700 tentatives) :**
+- Confiance : Élevée
+- Style dominant : Narratif (71 %)
+- Fragilité : "Réponse trop vague" (107 occ.)
+- Recommandation : reformulations + sessions courtes quotidiennes
+
+**Invariants préservés :**
+- Moteur pédagogique non touché.
+- Schéma DB non modifié.
+- Zéro appel API, zéro ML, aucun diagnostic médical.
+- Formulations prudentes : "tendance observée", "signal faible", "à confirmer".
+
+**Commit :** `95b4e26`
+
+**Verdict :** GO SAFE
+
+---
+
 ## 2026-05-20 — Dockerisation minimale MVP + correction bcrypt
 
 **Contexte :** snapshot `snapshot_pre_docker_readme_visual_v1` posé avant toute modification.
