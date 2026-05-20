@@ -20,6 +20,11 @@ def count_admins() -> int:
         return 0
 
 
+def admin_exists() -> bool:
+    """Vérifie qu'au moins un admin est enregistré en base. Read-only."""
+    return count_admins() > 0
+
+
 def get_all_users() -> list[dict]:
     """Retourne tous les utilisateurs (sans password_hash), triés par rôle puis username."""
     with sqlite3.connect(_db.DB_PATH) as conn:

@@ -4,6 +4,35 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-20 — Gouvernance admin minimale — tools/admin/
+
+**Contexte :** deux comptes admin en base (`admin`/admin123 opérationnel, `G`/mdp inconnu).
+La création admin n'était pas outillée, le mot de passe de `G` irrécupérable sans script.
+
+**Fichiers créés :**
+- `tools/admin/create_admin.py` — CLI pour créer un compte admin (protège contre double création).
+- `tools/admin/reset_password.py` — CLI pour réinitialiser un mot de passe (UPDATE ciblé, jamais DELETE+INSERT).
+- `README_DEV.md` — documentation des comptes de dev/test et des règles de gouvernance admin.
+
+**Fichier modifié :**
+- `db/admin.py` — ajout de `admin_exists()` (wrapper read-only sur `count_admins()`).
+
+**Vérifications :**
+- py_compile OK sur tous les fichiers touchés.
+- admin/admin123 : OK. test/test123 : OK.
+- Double création → exit 1. Reset compte inexistant → exit 1.
+- 227/227 tests OK.
+
+**Invariants préservés :**
+- Moteur pédagogique non touché.
+- Aucune suppression ni modification des attempts.
+- UI publique : inscription limitée à `apprenant` (inchangé).
+- Rollback trivial : supprimer `tools/admin/` et révertir `db/admin.py`.
+
+**Prochain pas :** TASK-049 profil utilisateur enrichi.
+
+---
+
 ## 2026-05-19 — Freeze pré-render identifié et corrigé — tab_history.py
 
 **Symptôme :** dashboard `test` complètement vide — CP-0 n'apparaît pas dans la version diagnostic.
