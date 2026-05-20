@@ -1,9 +1,11 @@
+.venv/
 __pycache__/
 *.pyc
 *.pyo
-.env
-database.db
 *.log
-logs/
+*.tmp
+.env
 .git/
 .gitignore
+backups/
+README.pdf
