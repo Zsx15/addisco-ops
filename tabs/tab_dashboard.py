@@ -396,7 +396,7 @@ def render() -> None:
                 )
                 fig.update_layout(
                     showlegend=False,
-                    xaxis=dict(title="Occurrences", dtick=1),
+                    xaxis=dict(title="Occurrences", nticks=5),
                     yaxis=dict(title=""),
                     margin=dict(l=10, r=10, t=10, b=10),
                 )
