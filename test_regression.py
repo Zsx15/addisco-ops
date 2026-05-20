@@ -2364,6 +2364,97 @@ class TestCorpusSearch(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# TASK-049 — Tests compute_profile_insights (fonction pure)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestProfileInsights(unittest.TestCase):
+    """Tests de la fonction pure compute_profile_insights — TASK-049."""
+
+    def _base(self, **kwargs) -> dict:
+        defaults = {
+            "total_attempts":     20,
+            "avg_score":          0.70,
+            "preferred_pedagogy": "logical",
+            "logical_score":      0.80,
+            "procedural_score":   0.65,
+            "narrative_score":    0.60,
+            "analogy_score":      0.55,
+            "fragile_topics":     [],
+            "momentum":           0.0,
+            "consistency_score":  0.3,
+            "error_type_counts":  {},
+            "avg_response_time":  None,
+        }
+        defaults.update(kwargs)
+        return defaults
+
+    def setUp(self):
+        from engine.user_profile_insights import compute_profile_insights
+        self.fn = compute_profile_insights
+
+    def test_no_attempts_returns_low_confidence(self):
+        r = self.fn(self._base(total_attempts=0))
+        self.assertEqual(r["confidence"], "low")
+        self.assertIsNone(r["dominant_style"])
+        self.assertEqual(r["strengths"], [])
+        self.assertEqual(r["weaknesses"], [])
+        self.assertTrue(len(r["recommendations"]) >= 1)
+
+    def test_low_confidence_threshold(self):
+        r = self.fn(self._base(total_attempts=5))
+        self.assertEqual(r["confidence"], "low")
+
+    def test_medium_confidence_threshold(self):
+        r = self.fn(self._base(total_attempts=25))
+        self.assertEqual(r["confidence"], "medium")
+
+    def test_high_confidence_threshold(self):
+        r = self.fn(self._base(total_attempts=60))
+        self.assertEqual(r["confidence"], "high")
+
+    def test_dominant_style_detected(self):
+        r = self.fn(self._base(preferred_pedagogy="narrative", narrative_score=0.85, avg_score=0.65))
+        self.assertEqual(r["dominant_style"], "Narratif")
+        self.assertIsNotNone(r["dominant_style_key"])
+        self.assertTrue(any("Narratif" in s for s in r["strengths"]))
+
+    def test_fragile_topics_in_weaknesses(self):
+        r = self.fn(self._base(fragile_topics=["Notion A", "Notion B"]))
+        self.assertTrue(any("Notion A" in w for w in r["weaknesses"]))
+
+    def test_dominant_error_in_weaknesses(self):
+        r = self.fn(self._base(error_type_counts={"oubli_etape": 5, "confusion_notion": 2}))
+        self.assertTrue(any("Oubli" in w for w in r["weaknesses"]))
+
+    def test_no_crash_on_partial_data(self):
+        r = self.fn({"total_attempts": 15})
+        self.assertIn("confidence", r)
+        self.assertIn("strengths", r)
+        self.assertIn("weaknesses", r)
+        self.assertIn("recommendations", r)
+
+    def test_correct_error_type_ignored(self):
+        r = self.fn(self._base(error_type_counts={"correct": 10}))
+        self.assertFalse(any("correct" in w.lower() for w in r["weaknesses"]))
+
+    def test_momentum_positive_in_strengths(self):
+        r = self.fn(self._base(momentum=0.15))
+        self.assertTrue(any("Progression" in s or "momentum" in s.lower() for s in r["strengths"]))
+
+    def test_momentum_negative_in_weaknesses(self):
+        r = self.fn(self._base(momentum=-0.12, total_attempts=20))
+        self.assertTrue(any("baisse" in w or "Dégradation" in w for w in r["weaknesses"]))
+
+    def test_output_keys_always_present(self):
+        for total in (0, 5, 20, 60):
+            r = self.fn(self._base(total_attempts=total))
+            for key in ("dominant_style", "dominant_style_key", "dominant_style_label",
+                        "strengths", "weaknesses", "recommendations",
+                        "confidence", "confidence_label", "signals_used"):
+                self.assertIn(key, r, f"Clé manquante '{key}' pour total_attempts={total}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -2395,6 +2486,7 @@ if __name__ == "__main__":
         TestCrossDocuments,
         TestCorpusSearch,
         TestGetChunkById,
+        TestProfileInsights,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

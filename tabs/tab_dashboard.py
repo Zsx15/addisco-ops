@@ -104,18 +104,19 @@ def render() -> None:
                 _show_graphs    = st.checkbox("Graphiques (scores / topics / erreurs)", key="dash_graphs",    value=False)
                 _show_timeline  = st.checkbox("Timeline récente (8 items)",             key="dash_timeline",  value=False)
             with _dc2:
-                _show_retention = st.checkbox("Rétention pédagogique",                 key="dash_retention", value=False)
-                _show_analysis  = st.checkbox("Analyse pédagogique",                   key="dash_analysis",  value=False)
-                _show_profile   = st.checkbox("Profil d'apprentissage",                key="dash_profile",   value=False)
-                _show_skills    = st.checkbox("Compétences détectées",                 key="dash_skills",    value=False)
-                _show_debug     = st.checkbox("Debug pédagogique V1.1",                key="dash_debug",     value=False)
-                _show_export    = st.checkbox("Export rapport",                        key="dash_export",    value=False)
+                _show_retention        = st.checkbox("Rétention pédagogique",                 key="dash_retention",        value=False)
+                _show_analysis         = st.checkbox("Analyse pédagogique",                   key="dash_analysis",         value=False)
+                _show_profile          = st.checkbox("Profil d'apprentissage",                key="dash_profile",          value=False)
+                _show_enriched_profile = st.checkbox("Profil pédagogique enrichi (V1)",       key="dash_enriched_profile", value=False)
+                _show_skills           = st.checkbox("Compétences détectées",                 key="dash_skills",           value=False)
+                _show_debug            = st.checkbox("Debug pédagogique V1.1",                key="dash_debug",            value=False)
+                _show_export           = st.checkbox("Export rapport",                        key="dash_export",           value=False)
         else:
             (
                 _show_recs, _show_priority, _show_plan, _show_sections,
                 _show_graphs, _show_timeline, _show_retention, _show_analysis,
-                _show_profile, _show_skills, _show_debug, _show_export,
-            ) = (True,) * 12
+                _show_profile, _show_enriched_profile, _show_skills, _show_debug, _show_export,
+            ) = (True,) * 13
 
     with st.spinner("Chargement du tableau de bord…"):
         df_all    = get_attempts(user_id=_uid, limit=_window_limit)
@@ -596,6 +597,112 @@ def render() -> None:
             with st.spinner("Calcul du profil…"):
                 compute_and_save_learning_profile(st.session_state["user_id"])
             st.rerun()
+
+        st.divider()
+
+    # ── Zone 7b : Profil pédagogique enrichi V1 (TASK-049) ───────────────
+    if _show_enriched_profile:
+        from engine.user_profile_insights import compute_profile_insights
+
+        st.markdown(
+            "<p style='font-size:12px;font-weight:700;color:#475569;margin:0 0 8px;"
+            "text-transform:uppercase;letter-spacing:.07em'>Profil pédagogique enrichi</p>",
+            unsafe_allow_html=True,
+        )
+
+        _ep_profile = get_learning_profile(st.session_state["user_id"])
+
+        if _ep_profile is None:
+            st.info(
+                "Calculez d'abord le profil d'apprentissage (section ci-dessus) "
+                "pour afficher les insights enrichis."
+            )
+        else:
+            _ep_err_counts: dict = {}
+            if not df_errors.empty and "error_type" in df_errors.columns:
+                for _, _er in df_errors.iterrows():
+                    _etype = _er.get("error_type") or ""
+                    if _etype and _etype != "correct":
+                        _ep_err_counts[_etype] = int(_er.get("count") or 0)
+
+            _ep_avg_rt = None
+            if not df_all.empty and "response_time_seconds" in df_all.columns:
+                _rt_series = df_all["response_time_seconds"].dropna()
+                if len(_rt_series) > 0:
+                    _ep_avg_rt = float(_rt_series.mean())
+
+            _ep_data = {
+                "total_attempts":    total_attempts,
+                "avg_score":         float(_ep_profile.get("average_score") or 0.0),
+                "preferred_pedagogy": _ep_profile.get("preferred_pedagogy"),
+                "logical_score":     float(_ep_profile.get("logical_score") or 0.0),
+                "procedural_score":  float(_ep_profile.get("procedural_score") or 0.0),
+                "narrative_score":   float(_ep_profile.get("narrative_score") or 0.0),
+                "analogy_score":     float(_ep_profile.get("analogy_score") or 0.0),
+                "fragile_topics":    _ep_profile.get("fragile_topics") or [],
+                "momentum":          float(_ep_profile.get("momentum") or 0.0),
+                "consistency_score": float(_ep_profile.get("consistency_score") or 0.0),
+                "error_type_counts": _ep_err_counts,
+                "avg_response_time": _ep_avg_rt,
+            }
+
+            _ins = compute_profile_insights(_ep_data)
+
+            _conf_color = {
+                "high":   "#15803d",
+                "medium": "#b45309",
+                "low":    "#94a3b8",
+            }.get(_ins["confidence"], "#94a3b8")
+
+            st.markdown(
+                f'<span style="font-size:11px;color:{_conf_color};font-weight:600">'
+                f'Confiance : {_ins["confidence_label"]}</span>',
+                unsafe_allow_html=True,
+            )
+
+            if _ins["dominant_style_label"]:
+                st.caption(f"Style : {_ins['dominant_style_label']}")
+
+            _ep_c1, _ep_c2 = st.columns(2)
+
+            with _ep_c1:
+                if _ins["strengths"]:
+                    st.markdown("**Points forts observés**")
+                    for _s in _ins["strengths"]:
+                        st.markdown(
+                            f'<div style="font-size:12.5px;padding:5px 10px;margin-bottom:4px;'
+                            f'background:#f0fdf4;border-left:3px solid #16a34a;border-radius:4px">'
+                            f'✅ {_s}</div>',
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.caption("Pas encore de points forts identifiés.")
+
+            with _ep_c2:
+                if _ins["weaknesses"]:
+                    st.markdown("**Fragilités observées**")
+                    for _w in _ins["weaknesses"]:
+                        st.markdown(
+                            f'<div style="font-size:12.5px;padding:5px 10px;margin-bottom:4px;'
+                            f'background:#fff7ed;border-left:3px solid #d97706;border-radius:4px">'
+                            f'⚠️ {_w}</div>',
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.caption("Aucune fragilité significative détectée.")
+
+            if _ins["recommendations"]:
+                st.markdown("**Recommandations pédagogiques**")
+                for _r in _ins["recommendations"]:
+                    st.markdown(
+                        f'<div style="font-size:12.5px;padding:5px 10px;margin-bottom:4px;'
+                        f'background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px">'
+                        f'💡 {_r}</div>',
+                        unsafe_allow_html=True,
+                    )
+
+            with st.expander("Signaux utilisés", expanded=False):
+                st.json(_ins["signals_used"])
 
         st.divider()
 
