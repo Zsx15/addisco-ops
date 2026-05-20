@@ -4,6 +4,40 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-20 — Dockerisation minimale MVP + correction bcrypt
+
+**Contexte :** snapshot `snapshot_pre_docker_readme_visual_v1` posé avant toute modification.
+Objectif : lancer ADDISCO OPS via `docker compose up --build` sans toucher le moteur.
+
+**Fichiers modifiés :**
+- `Dockerfile` — base `python:3.11-slim`, WORKDIR /app, pip install, EXPOSE 8501, CMD streamlit. Suppression du `mkdir /app/data` inutile.
+- `docker-compose.yml` — service `addisco-ops`, container_name, ports 8501, env_file `.env`, bind mounts `./database.db:/app/database.db` et `./docs:/app/docs`. Suppression du named volume.
+- `.dockerignore` — ajout `.venv/`, `backups/`, `*.tmp`, `README.pdf`. `.env` exclu de l'image, chargé via `env_file`.
+- `requirements.txt` — ajout `bcrypt==5.0.0` (manquant, utilisé par `auth_service.py` — installé localement hors requirements).
+
+**Stratégie database.db :**
+Bind mount direct `./database.db:/app/database.db`. `DB_PATH` défaut = `"database.db"` résout à `/app/database.db` (WORKDIR=/app). Aucun env var supplémentaire requis.
+
+**Vérifications :**
+- `docker compose config` : valide.
+- `docker compose build --no-cache` : OK, image `ai-v2-addisco-ops:latest` 210 MB.
+- `docker compose up` : Streamlit démarre, Uvicorn sur `0.0.0.0:8501`, HTTP 200 OK.
+- `docker compose down` : arrêt propre.
+- `py_compile auth_service.py` : OK.
+
+**Invariants préservés :**
+- Moteur pédagogique non touché (`ai_service.py`, `database.py`, `document_service.py`, `tabs/`).
+- `database.db` non modifié — monté en bind mount, persistance garantie côté host.
+- Fallback mode inchangé.
+
+**Tags Git :**
+- `snapshot_pre_docker_readme_visual_v1` — avant dockerisation.
+- `snapshot_post_docker_v1` — après dockerisation validée.
+
+**Verdict :** GO SAFE
+
+---
+
 ## 2026-05-20 — Gouvernance admin minimale — tools/admin/
 
 **Contexte :** deux comptes admin en base (`admin`/admin123 opérationnel, `G`/mdp inconnu).
