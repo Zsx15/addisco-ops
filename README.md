@@ -359,6 +359,157 @@ affecter le comportement de l'application en production.
 
 ---
 
+## Parcours utilisateur type
+
+```
+Administrateur
+  │  Crée les comptes ou promeut un apprenant en formateur / admin
+  │  (via l'interface admin ou les outils CLI tools/admin/)
+  ▼
+Formateur
+  │  Importe les documents du corpus (PDF, DOCX, TXT)
+  │  Catégorise les documents par domaine métier
+  ▼
+Documents → Chunks → Embeddings
+  │  Le moteur découpe et indexe automatiquement
+  ▼
+Apprenant
+  │  Sélectionne un document ou le corpus complet
+  │  Répond aux questions générées par le moteur RAG
+  ▼
+Moteur pédagogique
+  │  Corrige la réponse, attribue un score et un type d'erreur
+  │  Enregistre la tentative avec le chunk source (répétition espacée)
+  ▼
+Skills / Mastery
+  │  Met à jour la maîtrise par compétence et par chunk
+  │  Calcule le profil pédagogique, le momentum, les fragilités
+  ▼
+Dashboard apprenant + cockpit formateur
+     Analytics, alertes, progression, plan de révision
+```
+
+---
+
+## Ce que montre la démonstration
+
+1. **Transformation documentaire** — un document PDF ou DOCX importé devient en quelques secondes
+   une source de questions contextualisées, sans configuration manuelle.
+
+2. **RAG en action** — chaque question est ancrée dans un passage précis du document,
+   visible par l'apprenant pendant la session d'entraînement.
+
+3. **Correction structurée** — la réponse est évaluée par le LLM avec un score (0–1),
+   un type d'erreur catégorisé et une explication pédagogique.
+
+4. **Répétition espacée** — les passages sur lesquels un apprenant échoue
+   reviennent plus fréquemment ; les passages maîtrisés s'espacent progressivement.
+
+5. **Détection des fragilités** — le moteur identifie automatiquement les notions
+   sur lesquelles le score est systématiquement bas et les signale dans le dashboard.
+
+6. **Analytics pédagogiques** — progression dans le temps, répartition par type d'erreur,
+   dimensions pédagogiques dominantes, momentum sur 7 jours : tout est calculé localement,
+   sans service externe.
+
+7. **Séparation des rôles** — un apprenant voit uniquement son espace ;
+   un formateur voit le cockpit de cohorte ; un admin gère les comptes et les documents.
+
+8. **Outils QA et audit** — le projet inclut un test de robustesse 100 questions simulées
+   et un audit read-only des compétences, exécutables en ligne de commande à tout moment.
+
+---
+
+## Démonstration visuelle
+
+> Les captures ci-dessous seront ajoutées lors des sessions de démonstration.
+> Les emplacements sont prêts — placer les fichiers dans `docs/assets/`.
+
+### Écran de connexion
+
+![Connexion](docs/assets/login.png)
+
+*Formulaire d'authentification — inscription apprenant ou connexion avec compte existant.*
+
+---
+
+### Dashboard apprenant
+
+![Dashboard apprenant](docs/assets/dashboard_apprenant.png)
+
+*Score global, progression dans le temps, notions fragiles, alertes pédagogiques, plan de révision.*
+
+---
+
+### Session d'entraînement
+
+![Entraînement](docs/assets/session_entrainement.png)
+
+*Question générée par RAG, contexte du chunk source affiché, zone de réponse, correction après soumission.*
+
+---
+
+### Dashboard formateur — cockpit pédagogique
+
+![Cockpit formateur](docs/assets/dashboard_formateur.png)
+
+*Vue cohorte : scores moyens, profils dominants, alertes apprenants, indicateurs de progression.*
+
+---
+
+### Import de documents
+
+![Import documents](docs/assets/import_documents.png)
+
+*Upload PDF / DOCX / TXT, catégorisation, lancement de l'indexation (chunking + embeddings).*
+
+---
+
+### Historique des tentatives
+
+![Historique](docs/assets/historique.png)
+
+*Liste paginée des tentatives par apprenant : question, réponse, score, type d'erreur, date.*
+
+---
+
+### Analytics pédagogiques
+
+![Analytics](docs/assets/analytics.png)
+
+*Métriques de rétention J+1/J+7/J+30, répartition error_type, mastery par compétence.*
+
+---
+
+### Gestion des rôles (admin)
+
+![Admin rôles](docs/assets/admin_roles.png)
+
+*Liste des utilisateurs, promotion apprenant → formateur ou admin, visualisation des rôles en place.*
+
+---
+
+## Limites actuelles assumées
+
+- **Interface Streamlit** : l'interface est fonctionnelle et démontrable, mais reste une interface
+  MVP. Elle n'a pas été conçue pour un déploiement multi-utilisateurs concurrent à grande échelle.
+
+- **Base de données SQLite** : la base locale est adaptée au développement, aux démonstrations
+  et aux petites cohortes. La migration vers PostgreSQL est prévue en Phase 17, conditionnée
+  à la disponibilité d'un hébergeur cible.
+
+- **Cockpit formateur** : certains indicateurs de comparaison inter-apprenants s'appuient
+  sur des données simulées tant que la cohorte réelle est inférieure à un seuil significatif.
+
+- **Skills Engine V1.0** : le mapping chunks → compétences est déterministe par mots-clés.
+  Il produit des résultats exploitables sur un corpus structuré, mais ne constitue pas
+  un moteur d'inférence de compétences par apprentissage automatique.
+
+- **Docker / CI/CD / monitoring** : non encore mis en place. L'application se lance
+  localement via `streamlit run app.py`. La conteneurisation est planifiée en Phase 17.
+
+---
+
 ## Lancement local
 
 ### Prérequis
