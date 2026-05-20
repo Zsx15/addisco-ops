@@ -452,6 +452,15 @@ Risques :
 - choix hébergement cloud : coût et lock-in ;
   mitigation : Docker standardisé, pas de services cloud propriétaires.
 
+**Docker livré — 2026-05-20.**
+`docker compose up --build` opérationnel. Image `python:3.11-slim`, bind mounts `database.db` + `docs`, `env_file .env`, HTTP 200 OK validé. Commits `3741e82` + `d6128f3`. Tags : `snapshot_pre_docker_readme_visual_v1` / `snapshot_post_docker_v1`.
+
+Restant Phase 17 :
+- TASK-060 : tests d'intégration complets ;
+- TASK-061 : rate limiting LLM ;
+- TASK-062 : monitoring applicatif (Sentry) ;
+- TASK-063 : CI/CD complet — déploiement automatique sur push `main`.
+
 ---
 
 # Vision produit cible
