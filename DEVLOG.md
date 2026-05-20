@@ -4,6 +4,31 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-20 — QA — Smoke test profil pédagogique enrichi V1
+
+**Fichier créé :** `tools/qa/test_profile_insights_smoke.py`
+
+**Usage :**
+```
+python tools/qa/test_profile_insights_smoke.py --username test
+python tools/qa/test_profile_insights_smoke.py --username admin
+```
+
+**Cas couverts :**
+- Utilisateur avec données réelles (700 tentatives) → confidence=high, insights complets.
+- Utilisateur sans attempts (admin) → profil non calculé, confidence=low, recommandation par défaut, non bloquant.
+- Utilisateur inexistant → exit 1 + message clair.
+
+**Résultats validés :**
+- `test` : GO SAFE — style Narratif détecté, erreur dominante "Réponse trop vague", recommandations cohérentes.
+- `admin` : GO SAFE — données partielles gérées proprement.
+
+**Contraintes respectées :** lecture seule, zéro écriture SQL, zéro appel API.
+
+**Commit :** `09d9134`
+
+---
+
 ## 2026-05-20 — TASK-049 — Profil pédagogique enrichi V1
 
 **Contexte :** moteur pédagogique stable (227/227 tests), Docker opérationnel.
