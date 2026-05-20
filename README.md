@@ -43,6 +43,9 @@ capable de détecter les lacunes individuelles et d'y apporter une réponse péd
 | Catégorisation des documents | Stable |
 | Corpus multi-documents | Stable |
 
+![Gestion des documents](docs/assets/import_documents.png)
+*Upload PDF / DOCX / TXT, catégorisation par domaine, statut de chunking et d'indexation des embeddings.*
+
 ### Moteur pédagogique
 
 | Fonctionnalité | État |
@@ -57,6 +60,9 @@ capable de détecter les lacunes individuelles et d'y apporter une réponse péd
 
 Les 6 types de questions générés : question directe, cas pratique, vrai/faux,
 question pièges, reformulation, question de conséquence.
+
+![Session d'entraînement](docs/assets/session_entrainement.png)
+*Session d'entraînement : question générée par RAG, contexte du chunk source, zone de réponse et correction après soumission.*
 
 ### Profils d'apprentissage et analytics
 
@@ -242,14 +248,23 @@ addisco-ops/
 - Accède au cockpit pédagogique de cohorte.
 - Suit la progression des apprenants (scores, profils, alertes).
 
+![Cockpit formateur](docs/assets/dashboard_formateur.png)
+*Cockpit pédagogique formateur : vue cohorte, alertes pédagogiques par apprenant, scores moyens et indicateurs de progression.*
+
 ### Administrateur
 
 - Gère les comptes utilisateurs et les promotions de rôle.
 - Supervise les documents et les statistiques globales.
 - Accède aux outils CLI d'administration (création de compte, reset de mot de passe).
 
+![Dashboard administrateur](docs/assets/admin_roles.png)
+*Vue administrateur : tableau de bord avec métriques globales de la plateforme et navigation multi-onglets.*
+
 > La création de comptes administrateurs est réservée aux scripts CLI (`tools/admin/`).
 > L'inscription publique est limitée au rôle `apprenant`.
+
+![Écran de connexion](docs/assets/login.png)
+*Formulaire de connexion — onglets Connexion / Créer un compte. L'inscription publique crée automatiquement un compte apprenant.*
 
 ---
 
@@ -266,6 +281,9 @@ addisco-ops/
 - **Learning velocity** : delta de score moyen entre sessions
 - **Consistency score** : régularité des connexions sur 30 jours
 
+![Dashboard apprenant](docs/assets/dashboard_apprenant.png)
+*Tableau de bord apprenant : score global, sections maîtrisées, révisions en retard et recommandations du moteur adaptatif.*
+
 ### Répétition espacée
 
 Les chunks (passages de document) sont classés par niveau de maîtrise :
@@ -273,6 +291,9 @@ Les chunks (passages de document) sont classés par niveau de maîtrise :
 
 Les intervalles de révision s'adaptent automatiquement :
 un chunk fragile est reproposé rapidement, un chunk maîtrisé revient plus tard.
+
+![Historique des tentatives](docs/assets/historique.png)
+*Historique des tentatives : question, réponse, score, type d'erreur et notion — données sources des calculs de répétition espacée.*
 
 ### Métriques de rétention
 
@@ -318,6 +339,9 @@ Le dossier `tools/` contient uniquement des scripts CLI internes.
 Aucun fichier de `tools/` n'est importé par le runtime applicatif.
 Cette séparation garantit que les outils de diagnostic ne peuvent pas
 affecter le comportement de l'application en production.
+
+![Moteur IA — analytics](docs/assets/analytics.png)
+*Onglet Moteur IA : métriques de rétention, répartition des types d'erreurs et mastery par compétence.*
 
 ---
 
@@ -422,70 +446,19 @@ Dashboard apprenant + cockpit formateur
 
 ## Démonstration visuelle
 
-> Les captures ci-dessous seront ajoutées lors des sessions de démonstration.
-> Les emplacements sont prêts — placer les fichiers dans `docs/assets/`.
+Les captures sont intégrées dans les sections correspondantes du document.
+Les fichiers sont disponibles dans [`docs/assets/`](docs/assets/).
 
-### Écran de connexion
-
-![Connexion](docs/assets/login.png)
-
-*Formulaire d'authentification — inscription apprenant ou connexion avec compte existant.*
-
----
-
-### Dashboard apprenant
-
-![Dashboard apprenant](docs/assets/dashboard_apprenant.png)
-
-*Score global, progression dans le temps, notions fragiles, alertes pédagogiques, plan de révision.*
-
----
-
-### Session d'entraînement
-
-![Entraînement](docs/assets/session_entrainement.png)
-
-*Question générée par RAG, contexte du chunk source affiché, zone de réponse, correction après soumission.*
-
----
-
-### Dashboard formateur — cockpit pédagogique
-
-![Cockpit formateur](docs/assets/dashboard_formateur.png)
-
-*Vue cohorte : scores moyens, profils dominants, alertes apprenants, indicateurs de progression.*
-
----
-
-### Import de documents
-
-![Import documents](docs/assets/import_documents.png)
-
-*Upload PDF / DOCX / TXT, catégorisation, lancement de l'indexation (chunking + embeddings).*
-
----
-
-### Historique des tentatives
-
-![Historique](docs/assets/historique.png)
-
-*Liste paginée des tentatives par apprenant : question, réponse, score, type d'erreur, date.*
-
----
-
-### Analytics pédagogiques
-
-![Analytics](docs/assets/analytics.png)
-
-*Métriques de rétention J+1/J+7/J+30, répartition error_type, mastery par compétence.*
-
----
-
-### Gestion des rôles (admin)
-
-![Admin rôles](docs/assets/admin_roles.png)
-
-*Liste des utilisateurs, promotion apprenant → formateur ou admin, visualisation des rôles en place.*
+| Capture | Section | Description |
+|---|---|---|
+| `login.png` | Système de rôles | Formulaire de connexion |
+| `session_entrainement.png` | Moteur pédagogique | Session d'entraînement |
+| `dashboard_apprenant.png` | Analytics pédagogiques | Tableau de bord apprenant |
+| `historique.png` | Répétition espacée | Historique des tentatives |
+| `analytics.png` | Observabilité | Onglet Moteur IA |
+| `import_documents.png` | Gestion documentaire | Import de documents |
+| `dashboard_formateur.png` | Système de rôles / Formateur | Cockpit pédagogique |
+| `admin_roles.png` | Système de rôles / Admin | Dashboard administrateur |
 
 ---
 
