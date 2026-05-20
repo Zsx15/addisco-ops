@@ -2,8 +2,8 @@
 """
 audit_skills_empirique.py — Analyse empirique read-only des skills.
 
-Usage:
-    python audit_skills_empirique.py --username test
+Usage (depuis la racine du projet) :
+    python tools/observability/audit_skills_empirique.py --username test
 
 Read-only strict : aucune écriture SQL, aucun appel API, aucun remap.
 """

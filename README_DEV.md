@@ -1,7 +1,29 @@
-# README_DEV — Comptes de développement et test
+# README_DEV — Développement, test et outils internes
 
-Ce fichier documente les comptes créés pour le développement, les tests locaux, et la démonstration.
+Ce fichier documente les comptes de développement, l'arborescence des outils internes, et les règles de gouvernance.
 **Ne jamais versionner de mots de passe réels en production.**
+
+---
+
+## Arborescence tools/
+
+```
+tools/
+├── admin/          — Gouvernance des comptes administrateurs (CLI uniquement)
+│   ├── create_admin.py
+│   ├── reset_password.py
+│   └── README.md
+├── qa/             — Tests de robustesse pédagogique
+│   ├── test_robustesse_100q.py
+│   └── README.md
+└── observability/  — Audit et analyse read-only
+    ├── audit_skills_empirique.py
+    └── README.md
+```
+
+**Séparation runtime / tooling :**
+- `app.py`, `database.py`, `ai_service.py`, `auth_service.py` : runtime applicatif — ne pas modifier sans validation
+- `tools/` : scripts CLI internes uniquement — jamais importés par le runtime
 
 ---
 
@@ -10,22 +32,49 @@ Ce fichier documente les comptes créés pour le développement, les tests locau
 | Username    | Rôle       | Mot de passe  | Usage                              |
 |-------------|------------|---------------|------------------------------------|
 | `admin`     | admin      | `admin123`    | Compte admin principal — démo      |
-| `G`         | admin      | inconnu       | Ancien compte admin — mdp perdu    |
+| `G`         | admin      | `ggg`         | Compte admin secondaire            |
 | `formateur` | formateur  | (non testé)   | Compte formateur de test           |
 | `test`      | apprenant  | `test123`     | Compte apprenant de test           |
 | `Guilhem`   | apprenant  | (non testé)   | Compte apprenant nominal           |
 | `Romain`    | apprenant  | (non testé)   | Compte apprenant de test           |
 
-> Pour réinitialiser le mdp du compte `G` :
-> ```
-> python tools/admin/reset_password.py --username G --new-password <nouveau_mdp>
-> ```
+---
+
+## Commandes d'usage
+
+### Admin
+
+```bash
+# Créer un compte admin
+python tools/admin/create_admin.py --username <nom> --password <mdp>
+
+# Réinitialiser un mot de passe
+python tools/admin/reset_password.py --username <nom> --new-password <mdp>
+```
+
+### QA
+
+```bash
+# Test robustesse 100 questions — mode rapide (0 API, < 5 s)
+python tools/qa/test_robustesse_100q.py --mock --no-confirm
+
+# Mode corpus complet
+python tools/qa/test_robustesse_100q.py --mock --scope corpus --n 300 --no-confirm
+
+# Nettoyage données test
+python tools/qa/test_robustesse_100q.py --cleanup
+```
+
+### Observability
+
+```bash
+# Audit empirique des skills
+python tools/observability/audit_skills_empirique.py --username test
+```
 
 ---
 
 ## Outils CLI admin
-
-Ces scripts sont dans `tools/admin/` et ne sont jamais exposés dans l'UI publique.
 
 ### Créer un compte admin
 
@@ -45,7 +94,6 @@ python tools/admin/reset_password.py --username <nom> --new-password <mdp>
 
 - UPDATE ciblé — préserve `user_id`, `role`, `created_at`, et toutes les données liées.
 - Vérifie le nouveau hash bcrypt immédiatement après la mise à jour.
-- Fonctionne pour tout rôle (admin, formateur, apprenant).
 
 ### Vérifier l'existence d'un admin (code)
 

@@ -1,15 +1,15 @@
 """
 Test de robustesse pédagogique — 100 questions simulées.
 
-Usage:
-    python test_robustesse_100q.py                         # mode API (200 appels OpenAI)
-    python test_robustesse_100q.py --mock                  # mode MOCK, profil mixed (défaut)
-    python test_robustesse_100q.py --mock --profile good   # profil good
-    python test_robustesse_100q.py --mock --profile weak   # profil weak
-    python test_robustesse_100q.py --mock --profile random # scores aléatoires
-    python test_robustesse_100q.py --mock --no-confirm     # sans confirmation
-    python test_robustesse_100q.py --mock --scope corpus --n 300  # 300 cycles corpus complet
-    python test_robustesse_100q.py --cleanup               # supprime les données du user test
+Usage (depuis la racine du projet) :
+    python tools/qa/test_robustesse_100q.py                         # mode API (200 appels OpenAI)
+    python tools/qa/test_robustesse_100q.py --mock                  # mode MOCK, profil mixed (défaut)
+    python tools/qa/test_robustesse_100q.py --mock --profile good   # profil good
+    python tools/qa/test_robustesse_100q.py --mock --profile weak   # profil weak
+    python tools/qa/test_robustesse_100q.py --mock --profile random # scores aléatoires
+    python tools/qa/test_robustesse_100q.py --mock --no-confirm     # sans confirmation
+    python tools/qa/test_robustesse_100q.py --mock --scope corpus --n 300  # 300 cycles corpus complet
+    python tools/qa/test_robustesse_100q.py --cleanup               # supprime les données du user test
 
 Profils disponibles (--mock uniquement) :
     good   : 80 % bonnes (0.75–1.0), 20 % partielles (0.35–0.65)
@@ -32,7 +32,11 @@ import sqlite3
 import sys
 import time
 from collections import Counter
+from pathlib import Path
 from typing import Optional
+
+# Ajoute la racine du projet au path (tools/qa/ → tools/ → racine).
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -643,7 +647,7 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
     print()
     print(
         "Pour nettoyer les données de test :\n"
-        "  python test_robustesse_100q.py --cleanup"
+        "  python tools/qa/test_robustesse_100q.py --cleanup"
     )
     return verdict
 
@@ -655,12 +659,12 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Exemples :\n"
-            "  python test_robustesse_100q.py --mock --no-confirm\n"
-            "  python test_robustesse_100q.py --mock --profile weak --no-confirm\n"
-            "  python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 300 --no-confirm\n"
-            "  python test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 1000 --no-confirm\n"
-            "  python test_robustesse_100q.py --cleanup\n"
-            "  python test_robustesse_100q.py            # mode API (200 appels OpenAI)\n"
+            "  python tools/qa/test_robustesse_100q.py --mock --no-confirm\n"
+            "  python tools/qa/test_robustesse_100q.py --mock --profile weak --no-confirm\n"
+            "  python tools/qa/test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 300 --no-confirm\n"
+            "  python tools/qa/test_robustesse_100q.py --mock --profile mixed --username test --scope corpus --n 1000 --no-confirm\n"
+            "  python tools/qa/test_robustesse_100q.py --cleanup\n"
+            "  python tools/qa/test_robustesse_100q.py            # mode API (200 appels OpenAI)\n"
         ),
     )
     parser.add_argument(
