@@ -1819,7 +1819,7 @@ class TestGenerateQuestionMocked(unittest.TestCase):
     def test_happy_path_no_rag(self, mock_call, mock_multi, mock_prof):
         """Retourne (str non vide, [], question_type valide) quand le corpus est vide."""
         mock_call.return_value = "Quelle est la règle principale ?"
-        q, ids, qtype = generate_question("Texte source suffisamment long.", document_id=None)
+        q, ids, qtype, *_ = generate_question("Texte source suffisamment long.", document_id=None)
         self.assertEqual(q, "Quelle est la règle principale ?")
         self.assertEqual(ids, [])
         self.assertIn(qtype, QUESTION_TYPES)
@@ -1872,7 +1872,7 @@ class TestGenerateQuestionMocked(unittest.TestCase):
     def test_short_text_no_crash(self, mock_call, mock_prof):
         """Texte très court (< 10 chars) → ne plante pas, retourne la question."""
         mock_call.return_value = "Question courte ?"
-        q, _, _ = generate_question("Oui.", document_id=None)
+        q, *_ = generate_question("Oui.", document_id=None)
         self.assertEqual(q, "Question courte ?")
 
     # ── 7. Clé API absente → ValueError dans le gateway ─────────────────────

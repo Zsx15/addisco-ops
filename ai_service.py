@@ -106,8 +106,9 @@ def generate_question(
     le biais mastery. Absent ou None → comportement inchangé.
     """
     # ── Résolution du contexte ────────────────────────────────────────────────
-    context   = _truncate(source_text)
+    context    = _truncate(source_text)
     chunk_ids: list[int] = []
+    _rag_raw:  list[dict] = []
 
     if document_ids:
         try:
@@ -116,6 +117,7 @@ def generate_question(
             if chunks:
                 context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
                 chunk_ids = [c["id"] for c in chunks]
+                _rag_raw  = chunks
         except Exception:
             logger.warning("generate_question: RAG multi fallback (docs=%s)", document_ids)
     elif document_id is not None:
@@ -125,6 +127,7 @@ def generate_question(
             if chunks:
                 context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
                 chunk_ids = [c["id"] for c in chunks]
+                _rag_raw  = chunks
         except Exception:
             logger.warning("generate_question: RAG fallback (doc=%s)", document_id)
     else:
@@ -135,6 +138,7 @@ def generate_question(
             if chunks:
                 context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
                 chunk_ids = [c["id"] for c in chunks]
+                _rag_raw  = chunks
         except Exception:
             logger.warning("generate_question: RAG corpus fallback")
 
@@ -200,7 +204,12 @@ def generate_question(
             "La génération de question a échoué. Vérifiez votre connexion ou réessayez."
         )
 
-    return content.strip(), chunk_ids, question_type
+    # Expose le contexte RAG (sans embedding) pour l'affichage pédagogique
+    rag_chunks = [
+        {k: v for k, v in c.items() if k != "embedding"}
+        for c in _rag_raw
+    ]
+    return content.strip(), chunk_ids, question_type, rag_chunks
 
 
 _CORRECT_FALLBACK = {

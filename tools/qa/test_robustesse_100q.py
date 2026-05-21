@@ -373,7 +373,7 @@ def run_test(mock: bool = False, profile: str = "mixed", username: str = TEST_US
 
             # 1. Génération de question
             try:
-                question, chunk_ids, question_type = generate_question(
+                question, chunk_ids, question_type, *_ = generate_question(
                     source_text=src_text,
                     document_id=doc_id,
                     user_id=user_id,

@@ -175,7 +175,7 @@ def render() -> None:
             try:
                 _gen_doc_ids = st.session_state.get("active_document_ids") if _is_corpus else None
                 _gen_doc_id  = None if _is_corpus else st.session_state.get("active_document_id")
-                question, chunk_ids, question_type = generate_question(
+                question, chunk_ids, question_type, rag_chunks = generate_question(
                     source_text or " ",
                     document_id=_gen_doc_id,
                     document_ids=_gen_doc_ids,
@@ -189,19 +189,27 @@ def render() -> None:
                 st.session_state["result"]        = None
                 st.session_state["answer_input"]  = ""
                 if chunk_ids:
-                    # Contexte RAG — métadonnées du chunk primaire pour l'affichage UI
+                    # Contexte RAG — enrichissement document_title via get_chunk_by_id
                     try:
-                        _primary = get_chunk_by_id(chunk_ids[0])
-                        if _primary:
-                            _raw = _primary.get("chunk_text") or ""
-                            st.session_state["source_chunk_text"]  = _raw[:300] + ("…" if len(_raw) > 300 else "")
-                            st.session_state["source_chunk_title"] = _primary.get("section_label") or ""
-                            st.session_state["source_doc_title"]   = _primary.get("document_title") or ""
-                        else:
-                            st.session_state["source_chunk_text"]  = None
-                            st.session_state["source_chunk_title"] = None
-                            st.session_state["source_doc_title"]   = None
+                        _enriched = []
+                        for _rc in rag_chunks:
+                            _meta = get_chunk_by_id(_rc["id"])
+                            if _meta:
+                                _rc = {
+                                    **_rc,
+                                    "document_title": _meta.get("document_title") or "—",
+                                    "section_title":  _meta.get("section_label") or _rc.get("section_title") or "—",
+                                }
+                            _enriched.append(_rc)
+                        st.session_state["rag_chunks"] = _enriched
+                        # Compat backward — clés individuelles du chunk primaire
+                        _primary = _enriched[0] if _enriched else {}
+                        _raw = _primary.get("chunk_text") or ""
+                        st.session_state["source_chunk_text"]  = _raw[:300] + ("…" if len(_raw) > 300 else "")
+                        st.session_state["source_chunk_title"] = _primary.get("section_title") or ""
+                        st.session_state["source_doc_title"]   = _primary.get("document_title") or ""
                     except Exception:
+                        st.session_state["rag_chunks"]         = []
                         st.session_state["source_chunk_text"]  = None
                         st.session_state["source_chunk_title"] = None
                         st.session_state["source_doc_title"]   = None
@@ -251,6 +259,7 @@ def render() -> None:
                     st.session_state["question_chunk_status"]     = "—"
                     st.session_state["question_type_reason"]      = None
                     st.session_state["question_profile_pedagogy"] = None
+                    st.session_state["rag_chunks"]                = []
                     st.session_state["source_chunk_text"]         = None
                     st.session_state["source_chunk_title"]        = None
                     st.session_state["source_doc_title"]          = None
@@ -261,20 +270,30 @@ def render() -> None:
     if st.session_state["question"]:
         st.divider()
 
-        _src_doc   = st.session_state.get("source_doc_title")
-        _src_title = st.session_state.get("source_chunk_title")
-        _src_text  = st.session_state.get("source_chunk_text")
-        _src_count = st.session_state.get("source_chunk_count") or 0
-        if _src_doc or _src_title or _src_text:
+        _rag_chunks = st.session_state.get("rag_chunks") or []
+        if _rag_chunks:
+            _n = len(_rag_chunks)
             with st.expander("📄 Contexte RAG utilisé", expanded=False):
-                if _src_count:
-                    st.caption(f"📚 Sources utilisées : {_src_count} chunk{'s' if _src_count > 1 else ''}")
-                if _src_doc:
-                    st.markdown(f"**📄 Document :**  \n{_src_doc}")
-                if _src_title:
-                    st.markdown(f"**🏷 Section :**  \n{_src_title}")
-                if _src_text:
-                    st.markdown(f'**🧠 Extrait :**  \n"{_src_text}"')
+                st.caption(
+                    f"📚 {_n} chunk{'s' if _n > 1 else ''} utilisé{'s' if _n > 1 else ''}"
+                    " — similarité cosinus"
+                )
+                for _i, _rc in enumerate(_rag_chunks):
+                    if _i > 0:
+                        st.divider()
+                    _score   = round((_rc.get("similarity") or 0) * 100)
+                    _doc     = _rc.get("document_title") or "—"
+                    _section = _rc.get("section_title") or ""
+                    _full    = _rc.get("chunk_text") or ""
+                    _excerpt = _full[:200] + ("…" if len(_full) > 200 else "")
+                    _label   = "Source principale" if _i == 0 else f"Source {_i + 1}"
+                    _c1, _c2 = st.columns([4, 1])
+                    _c1.markdown(f"**{_label}** · {_doc}")
+                    _c2.metric("Score RAG", f"{_score} %")
+                    if _section:
+                        st.caption(f"Section : {_section}")
+                    if _excerpt:
+                        st.markdown(f'> "{_excerpt}"')
 
         st.subheader("Question")
         st.info(st.session_state["question"])
@@ -409,6 +428,7 @@ def render() -> None:
             st.session_state["result"]       = None
             st.session_state["question"]     = None
             st.session_state["chunk_ids"]    = None
+            st.session_state["rag_chunks"]   = []
             st.session_state["answer_input"] = ""
 
         st.button("Nouvelle question sur ce texte", on_click=_reset_question)

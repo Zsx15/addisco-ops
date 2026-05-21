@@ -49,7 +49,7 @@ def search_similar_chunks(
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             """
-            SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
+            SELECT id, document_id, chunk_index, section_title, chunk_text, char_count, embedding
             FROM chunks
             WHERE document_id = ? AND embedding IS NOT NULL AND char_count >= 150
             """,
@@ -65,6 +65,7 @@ def search_similar_chunks(
         sim = _cosine_similarity(query_embedding, vec)
         scored.append({
             "id":            row["id"],
+            "document_id":   row["document_id"],
             "chunk_index":   row["chunk_index"],
             "section_title": row["section_title"],
             "chunk_text":    row["chunk_text"],
@@ -99,7 +100,7 @@ def search_similar_chunks_multi(
         if document_ids is None:
             rows = conn.execute(
                 """
-                SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
+                SELECT id, document_id, chunk_index, section_title, chunk_text, char_count, embedding
                 FROM chunks
                 WHERE embedding IS NOT NULL
                   AND char_count >= 150
@@ -109,7 +110,7 @@ def search_similar_chunks_multi(
             placeholders = ",".join("?" * len(document_ids))
             rows = conn.execute(
                 f"""
-                SELECT id, chunk_index, section_title, chunk_text, char_count, embedding
+                SELECT id, document_id, chunk_index, section_title, chunk_text, char_count, embedding
                 FROM chunks
                 WHERE document_id IN ({placeholders})
                   AND embedding IS NOT NULL
@@ -127,6 +128,7 @@ def search_similar_chunks_multi(
         sim = _cosine_similarity(query_embedding, vec)
         scored.append({
             "id":            row["id"],
+            "document_id":   row["document_id"],
             "chunk_index":   row["chunk_index"],
             "section_title": row["section_title"],
             "chunk_text":    row["chunk_text"],
