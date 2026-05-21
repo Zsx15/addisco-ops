@@ -3,6 +3,9 @@
 Suivi automatique des tasks de la phase 2.
 Mis à jour via `python tools/roadmap/update_progress.py` ou `close_task.py`.
 
+Ordre stratégique : moteur → calibration → maintenance → admin → UX.
+Règle : aucune tâche ne démarre sans validation explicite de la précédente.
+
 ---
 
 ## TASK-051 — Sources visibles / contexte pédagogique
@@ -48,18 +51,19 @@ Prochaine : TASK-052
 
 ## TASK-052 — Score de confiance correction V1
 
+STATUS   : DONE
 DATE     : 2026-05-21
 COMMIT   : d56a087
 SNAPSHOT : snapshot_task052_ok
-STATUS   : DONE
 
 ---
 
 ## TASK-053 — Rejet hors sujet / non évaluable
 
-DATE     : 2026-05-21
-COMMIT   : d56a087
 STATUS   : DONE
+DATE     : 2026-05-21
+COMMIT   : 9f98dbb
+SNAPSHOT : snapshot_task053_rerun_fix
 
 ---
 
@@ -69,26 +73,54 @@ STATUS : TODO
 
 ---
 
-## TASK-055 — Adaptive Next Question V1
+## TASK-055 — Skill Graph Engine V1
 
 STATUS : TODO
 
 ---
 
-## TASK-056 — Calibration Engine V1
+## TASK-056 — Adaptive Difficulty Engine V2
 
 STATUS : TODO
 
 ---
 
-## TASK-057 — Maintenance Assistée V1
+## TASK-057 — Error Pattern Memory
 
 STATUS : TODO
 
 ---
 
-## TASK-058 — Health Score Projet
+## TASK-058 — Curriculum Engine V1
 
 STATUS : TODO
 
+---
 
+## TASK-059 — Calibration Engine V1
+
+STATUS : TODO
+
+---
+
+## TASK-060 — Maintenance Assistée V1
+
+STATUS : TODO
+
+---
+
+## TASK-061 — Vue admin
+
+STATUS : TODO
+
+---
+
+## TASK-062 — Rapports HTML/PDF
+
+STATUS : TODO
+
+---
+
+## TASK-063 — UX responsive tablette
+
+STATUS : TODO
