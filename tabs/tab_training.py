@@ -383,6 +383,8 @@ def render() -> None:
                         pass
                 except Exception as exc:
                     st.error(f"Erreur lors de la correction : {exc}")
+                else:
+                    st.rerun()
 
     if st.session_state["result"]:
         result = st.session_state["result"]
