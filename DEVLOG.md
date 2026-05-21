@@ -4,6 +4,29 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-21 — TASK-051 — Sources visibles / contexte pédagogique
+
+**Fichiers modifiés :**
+- `rag_service.py` — ajout `document_id` dans SELECT (2 fonctions)
+- `ai_service.py` — `generate_question` retourne `rag_chunks` en 4e valeur
+- `tabs/tab_training.py` — enrichissement `rag_chunks` via `get_chunk_by_id`, expander top-k avec score RAG
+- `test_regression.py` + `tools/qa/test_robustesse_100q.py` — callers mis à jour (`*_`)
+
+**Comportement :**
+- Expander "📄 Contexte RAG utilisé" affiche les 3 chunks (top-k) avec :
+  - Rang (Source principale / Source 2 / Source 3)
+  - Document source + score RAG (%)
+  - Section + extrait 200 chars
+- Fallback texte brut : expander masqué (rag_chunks vide)
+
+**Invariants préservés :**
+- Aucun changement DB, aucun refactor RAG.
+- Fallback intact. py_compile OK (5 fichiers).
+
+**Prochaine étape :** TASK-052 — Score de confiance correction V1.
+
+---
+
 ## 2026-05-21 — TASK-050 — Guardrails Architecture V1
 
 **Fichiers créés :**
