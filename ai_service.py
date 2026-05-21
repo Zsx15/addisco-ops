@@ -20,6 +20,7 @@ from adaptive_engine import (
     _choose_question_type,
     explain_type_choice,
 )
+from engine.adaptive_difficulty import choose_adaptive_question_type
 
 TEXT_MAX_CHARS = 6000
 
@@ -164,9 +165,16 @@ def generate_question(
     except Exception:
         pass
 
-    used_types    = [h["question_type"] for h in history if h.get("question_type")]
-    question_type = _choose_question_type(
-        used_types, mastery_class=mastery_class, profile_types=profile_types
+    used_types      = [h["question_type"] for h in history if h.get("question_type")]
+    recent_scores   = [float(h["score"]) for h in history if h.get("score") is not None]
+    repeated_errors = [h["error_type"]   for h in history if h.get("error_type")]
+
+    question_type = choose_adaptive_question_type(
+        used_types,
+        mastery_class   = mastery_class,
+        profile_types   = profile_types,
+        recent_scores   = recent_scores,
+        repeated_errors = repeated_errors,
     )
     logger.info(
         "generate_question: type=%s mastery=%s doc=%s user=%s",

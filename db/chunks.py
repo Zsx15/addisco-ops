@@ -169,7 +169,7 @@ def get_chunk_question_history(
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             """
-            SELECT question, pedagogy_type AS question_type
+            SELECT question, pedagogy_type AS question_type, score, error_type
             FROM attempts
             WHERE chunk_id = ? AND user_id = ?
             ORDER BY created_at DESC

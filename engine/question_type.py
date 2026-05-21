@@ -20,11 +20,13 @@ QUESTION_TYPES: list[str] = [
 ]
 
 # Biais mastery sur la sélection des types.
-# Fragile  → compréhension et reformulation avant tout.
-# Maîtrisé → challenge et application en situation complexe.
+# Fragile        → concepts de base, reformulation, vrai/faux.
+# En consolidation → application progressive.
+# Maîtrisé       → challenge et application en situation complexe.
 _MASTERY_BIAS: dict[str, list[str]] = {
-    "Fragile":  ["reformulation", "consequence", "cas_pratique"],
-    "Maîtrisé": ["question_piege", "cas_pratique", "consequence"],
+    "Fragile":          ["vrai_faux", "reformulation", "question_directe"],
+    "En consolidation": ["question_directe", "reformulation", "cas_pratique"],
+    "Maîtrisé":         ["question_piege", "cas_pratique", "consequence"],
 }
 
 
