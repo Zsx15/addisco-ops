@@ -133,3 +133,13 @@ STATUS : TODO
 ## TASK-063 — UX responsive tablette
 
 STATUS : TODO
+
+---
+
+## TASK-057A
+
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : bd2d044
+SNAPSHOT : snapshot_task057a_ok
+
