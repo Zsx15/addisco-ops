@@ -4,6 +4,40 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-21 — TASK-050 — Guardrails Architecture V1
+
+**Fichiers créés :**
+- `tools/guardrails/__init__.py`
+- `tools/guardrails/rules.py` — seuils et constantes
+- `tools/guardrails/architecture_guardrails.py` — moteur d'audit
+- `tools/guardrails/reports/.gitkeep` — répertoire rapports
+
+**Usage :**
+```
+python tools/guardrails/architecture_guardrails.py
+```
+
+**6 règles implémentées :**
+1. Fichiers trop gros (>800 WARNING, >1200 CRITICAL)
+2. Fonctions trop longues via AST (>80 WARNING, >120 CRITICAL)
+3. Imports tools/ dans fichiers runtime critiques (CRITICAL)
+4. SELECT * sans LIMIT — avec/sans WHERE (CRITICAL/WARNING)
+5. Secrets potentiels hardcodés, hors os.getenv (WARNING)
+6. st.dataframe/table dans contexte de boucle (WARNING)
+
+**Invariants préservés :**
+- Lecture seule stricte. Aucun impact runtime, Docker, moteur pédagogique.
+- Aucun import circulaire. Standalone via sys.path injection.
+- py_compile OK. Verdict : FAILED (dérives détectées dans le projet).
+
+**Verdict initial sur la base de code :**
+- CRITICAL : 11 findings (fonctions >120 lignes, test_regression.py >1200 lignes)
+- WARNING : 12 findings (SQL sans LIMIT, secrets QA, tab_dashboard >800 lignes)
+
+**Prochaine étape :** étudier les CRITICALs prioritaires (tabs/tab_dashboard.py render() = 842 lignes).
+
+---
+
 ## 2026-05-20 — QA — Smoke test profil pédagogique enrichi V1
 
 **Fichier créé :** `tools/qa/test_profile_insights_smoke.py`
