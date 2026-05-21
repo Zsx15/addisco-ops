@@ -136,6 +136,12 @@ Validation :
 
 \---
 
+Observation 1 — Profil pédagogique :
+séparer confiance statistique et force du signal pédagogique.
+
+Observation 2 — RAG :
+certains chunks récupérés sont bruités/non pédagogiques.
+Prévoir Chunk Quality Analyzer + filtre anti-bruit.
 
 
 \## TASK-052 — Score de confiance correction V1
@@ -569,4 +575,5 @@ La phase 2 est terminée quand le moteur peut démontrer :
 9\. Une maintenance assistée.
 
 10\. Un rapport santé projet.
+
 

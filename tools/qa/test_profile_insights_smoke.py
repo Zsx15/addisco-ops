@@ -190,7 +190,11 @@ def run_smoke(username: str) -> bool:
 
     # ── 6. Affichage résultats ────────────────────────────────────────────────
     conf_col  = _CONFIDENCE_COLOR.get(ins["confidence"], _GREY)
-    print(f"Confiance : {conf_col}{_BOLD}{ins['confidence_label']}{_RESET}")
+    _ped_colors = {"strong": _GREEN, "moderate": _YELLOW, "weak": _GREY}
+    _ped_col = _ped_colors.get(ins.get("pedagogical_signal") or "", _GREY)
+    print(f"Confiance statistique : {conf_col}{_BOLD}{ins['confidence_label']}{_RESET}")
+    if ins.get("pedagogical_signal"):
+        print(f"Signal pédagogique    : {_ped_col}{_BOLD}{ins['pedagogical_signal_label']}{_RESET}")
 
     if ins["dominant_style_label"]:
         print(f"Style     : {ins['dominant_style_label']}")
@@ -229,6 +233,7 @@ def run_smoke(username: str) -> bool:
         "dominant_style", "dominant_style_key", "dominant_style_label",
         "strengths", "weaknesses", "recommendations",
         "confidence", "confidence_label", "signals_used",
+        "pedagogical_signal", "pedagogical_signal_label",
     )
     for key in required_keys:
         if key not in ins:

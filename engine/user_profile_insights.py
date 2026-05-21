@@ -59,6 +59,15 @@ def _compute_confidence(total_attempts: int) -> tuple[str, str]:
     return "high", "Élevée (plus de 50 tentatives)"
 
 
+def _compute_pedagogical_signal(diff: float) -> tuple[str, str]:
+    """Signal pédagogique basé sur l'écart entre le mode dominant et la moyenne globale."""
+    if diff >= 0.15:
+        return "strong", "Fort (écart marqué entre le mode dominant et la moyenne)"
+    if diff >= 0.08:
+        return "moderate", "Modéré (écart visible mais limité)"
+    return "weak", "Faible (écart peu marqué — profil à confirmer avec plus de données)"
+
+
 def compute_profile_insights(data: dict) -> dict:
     """
     Calcule les insights pédagogiques enrichis V1 depuis des données pré-agrégées.
@@ -97,17 +106,19 @@ def compute_profile_insights(data: dict) -> dict:
 
     if total == 0:
         return {
-            "dominant_style":       None,
-            "dominant_style_key":   None,
-            "dominant_style_label": None,
-            "strengths":            [],
-            "weaknesses":           [],
-            "recommendations":      [
+            "dominant_style":           None,
+            "dominant_style_key":       None,
+            "dominant_style_label":     None,
+            "strengths":                [],
+            "weaknesses":               [],
+            "recommendations":          [
                 "Effectuez des tentatives pour générer un profil pédagogique."
             ],
-            "confidence":           "low",
-            "confidence_label":     "Faible (aucune donnée disponible)",
-            "signals_used":         signals,
+            "confidence":               "low",
+            "confidence_label":         "Faible (aucune donnée disponible)",
+            "signals_used":             signals,
+            "pedagogical_signal":       None,
+            "pedagogical_signal_label": None,
         }
 
     # ── Forces ───────────────────────────────────────────────────────────────
@@ -207,32 +218,31 @@ def compute_profile_insights(data: dict) -> dict:
             "les données sont encore insuffisantes pour des recommandations précises."
         )
 
-    # ── Label style enrichi ───────────────────────────────────────────────────
+    # ── Label style + signal pédagogique ─────────────────────────────────────
     dominant_style_label = None
+    pedagogical_signal = None
+    pedagogical_signal_label = None
     if pref:
         pref_score = float(data.get(f"{pref}_score") or 0.0)
         label_fr   = _PEDAGOGY_FR.get(pref, pref)
         diff       = pref_score - avg_score
-        if diff >= 0.1:
+        if pref_score > 0:
             dominant_style_label = (
                 f"Tendance {label_fr} "
-                f"({round(pref_score * 100)} % vs {round(avg_score * 100)} % globalement — "
-                "probable sur la base des tentatives)"
+                f"({round(pref_score * 100)} % vs {round(avg_score * 100)} % globalement)"
             )
-        elif pref_score > 0:
-            dominant_style_label = (
-                f"Tendance {label_fr} probable "
-                f"({round(pref_score * 100)} % — signal faible, à confirmer)"
-            )
+            pedagogical_signal, pedagogical_signal_label = _compute_pedagogical_signal(diff)
 
     return {
-        "dominant_style":       _PEDAGOGY_FR.get(pref) if pref else None,
-        "dominant_style_key":   pref,
-        "dominant_style_label": dominant_style_label,
-        "strengths":            strengths,
-        "weaknesses":           weaknesses,
-        "recommendations":      recommendations,
-        "confidence":           confidence,
-        "confidence_label":     confidence_label,
-        "signals_used":         signals,
+        "dominant_style":           _PEDAGOGY_FR.get(pref) if pref else None,
+        "dominant_style_key":       pref,
+        "dominant_style_label":     dominant_style_label,
+        "strengths":                strengths,
+        "weaknesses":               weaknesses,
+        "recommendations":          recommendations,
+        "confidence":               confidence,
+        "confidence_label":         confidence_label,
+        "signals_used":             signals,
+        "pedagogical_signal":       pedagogical_signal,
+        "pedagogical_signal_label": pedagogical_signal_label,
     }

@@ -654,11 +654,28 @@ def render() -> None:
                 "low":    "#94a3b8",
             }.get(_ins["confidence"], "#94a3b8")
 
-            st.markdown(
-                f'<span style="font-size:11px;color:{_conf_color};font-weight:600">'
-                f'Confiance : {_ins["confidence_label"]}</span>',
-                unsafe_allow_html=True,
-            )
+            _ped_signal_colors = {
+                "strong":   "#15803d",
+                "moderate": "#b45309",
+                "weak":     "#94a3b8",
+            }
+            _ped_sig   = _ins.get("pedagogical_signal")
+            _ped_color = _ped_signal_colors.get(_ped_sig or "", "#94a3b8")
+
+            _ep_meta_c1, _ep_meta_c2 = st.columns(2)
+            with _ep_meta_c1:
+                st.markdown(
+                    f'<span style="font-size:11px;color:{_conf_color};font-weight:600">'
+                    f'Confiance statistique : {_ins["confidence_label"]}</span>',
+                    unsafe_allow_html=True,
+                )
+            if _ped_sig:
+                with _ep_meta_c2:
+                    st.markdown(
+                        f'<span style="font-size:11px;color:{_ped_color};font-weight:600">'
+                        f'Signal pédagogique : {_ins["pedagogical_signal_label"]}</span>',
+                        unsafe_allow_html=True,
+                    )
 
             if _ins["dominant_style_label"]:
                 st.caption(f"Style : {_ins['dominant_style_label']}")

@@ -4,6 +4,29 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-21 — TASK-051B — Consolidation post sources visibles
+
+**Fichiers modifiés :**
+- `engine/user_profile_insights.py` — ajout `_compute_pedagogical_signal()` ; nouvelles clés `pedagogical_signal` / `pedagogical_signal_label` dans le dict retourné ; nettoyage `dominant_style_label` (suppression "signal faible, à confirmer")
+- `tabs/tab_dashboard.py` — "Confiance" renommé "Confiance statistique" ; affichage séparé "Signal pédagogique" (fort / modéré / faible)
+- `tools/qa/test_profile_insights_smoke.py` — `required_keys` mis à jour, affichage des deux nouvelles métriques
+
+**Logique :**
+- `confidence_label` (volume-based) ≠ `pedagogical_signal_label` (gap-based)
+- Signal fort si diff ≥ 0,15 ; modéré si diff ≥ 0,08 ; faible sinon
+- L'UI affiche deux lignes distinctes côte à côte — plus d'ambiguïté
+
+**Observation post TASK-051 — chunks bruités :**
+Certains chunks techniquement proches du contexte sont pédagogiquement bruités (chiffres, listes de noms, montants financiers, texte tabulaire). Aucune correction RAG effectuée ici. À traiter dans TASK-054 Chunk Quality Analyzer.
+
+**Invariants préservés :**
+- Aucun changement DB, aucun refactor RAG, aucun appel API.
+- Fallback intact. py_compile OK (3 fichiers).
+
+**Prochaine étape :** TASK-052 — Score de confiance correction V1.
+
+---
+
 ## 2026-05-21 — TASK-051 — Sources visibles / contexte pédagogique
 
 **Fichiers modifiés :**
