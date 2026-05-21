@@ -48,13 +48,18 @@ Prochaine : TASK-052
 
 ## TASK-052 — Score de confiance correction V1
 
-STATUS : TODO
+DATE     : 2026-05-21
+COMMIT   : d56a087
+SNAPSHOT : snapshot_task052_ok
+STATUS   : DONE
 
 ---
 
 ## TASK-053 — Rejet hors sujet / non évaluable
 
-STATUS : TODO
+DATE     : 2026-05-21
+COMMIT   : d56a087
+STATUS   : DONE
 
 ---
 

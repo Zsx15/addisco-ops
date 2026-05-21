@@ -1924,7 +1924,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
     def test_happy_path_valid_json(self, mock_call):
         """JSON valide → dict complet avec tous les champs."""
         mock_call.return_value = self._valid_json()
-        result = correct_answer("Question ?", "Ma réponse.", "Texte source.")
+        result = correct_answer("Question ?", "La procédure décrit les étapes à respecter.", "Texte source.")
         self.assertAlmostEqual(result["score"], 0.8)
         self.assertEqual(result["error_type"], "correct")
         self.assertIn("correction", result)
@@ -1937,7 +1937,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
     def test_invalid_json_returns_fallback(self, mock_call):
         """JSON malformé → fallback avec score 0.0, message utilisateur propre."""
         mock_call.return_value = "pas du JSON {invalide}"
-        result = correct_answer("Q ?", "R.", "T.")
+        result = correct_answer("Q ?", "La procédure décrit les étapes à respecter.", "T.")
         self.assertEqual(result["score"], 0.0)
         self.assertEqual(result["error_type"], "hors_sujet")
         self.assertIn("correction", result)
@@ -1948,7 +1948,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
     def test_api_exception_returns_fallback_no_leak(self, mock_call):
         """Échec gateway (None) → fallback dict, message sans détail technique."""
         mock_call.return_value = None
-        result = correct_answer("Q ?", "R.", "T.")
+        result = correct_answer("Q ?", "La procédure décrit les étapes à respecter.", "T.")
         self.assertEqual(result["score"], 0.0)
         self.assertNotIn("sk-", result.get("correction", ""))
         self.assertNotIn("sk-", result.get("expected_answer", ""))
@@ -1959,7 +1959,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
     def test_empty_choices_returns_fallback(self, mock_call):
         """Gateway retourne None (choices=[]) → fallback, pas d'IndexError."""
         mock_call.return_value = None
-        result = correct_answer("Q ?", "R.", "T.")
+        result = correct_answer("Q ?", "La procédure décrit les étapes à respecter.", "T.")
         self.assertEqual(result["score"], 0.0)
 
     # ── 5. JSON partiel → champs manquants remplacés par défaut ──────────────
@@ -1968,7 +1968,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
     def test_partial_json_gets_defaults(self, mock_call):
         """JSON avec seulement 'score' → autres champs avec valeurs par défaut."""
         mock_call.return_value = json.dumps({"score": 0.5})
-        result = correct_answer("Q ?", "R.", "T.")
+        result = correct_answer("Q ?", "La procédure décrit les étapes à respecter.", "T.")
         self.assertAlmostEqual(result["score"], 0.5)
         self.assertIn("correction", result)
         self.assertIn("error_type", result)
@@ -1983,7 +1983,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
             "score": 1, "correction": "OK",
             "error_type": "correct", "topic": "x", "expected_answer": "y",
         })
-        result = correct_answer("Q ?", "R.", "T.")
+        result = correct_answer("Q ?", "La procédure décrit les étapes à respecter.", "T.")
         self.assertIsInstance(result["score"], float)
 
     # ── 7. Réponse vide → fallback ────────────────────────────────────────────
@@ -1992,7 +1992,7 @@ class TestCorrectAnswerMocked(unittest.TestCase):
     def test_empty_content_returns_fallback(self, mock_call):
         """Gateway retourne None pour contenu vide → fallback, pas de JSONDecodeError non gérée."""
         mock_call.return_value = None
-        result = correct_answer("Q ?", "R.", "T.")
+        result = correct_answer("Q ?", "La procédure décrit les étapes à respecter.", "T.")
         self.assertEqual(result["score"], 0.0)
 
     # ── 8. Inputs vides → pas de crash ───────────────────────────────────────
@@ -2452,6 +2452,58 @@ class TestProfileInsights(unittest.TestCase):
                         "strengths", "weaknesses", "recommendations",
                         "confidence", "confidence_label", "signals_used"):
                 self.assertIn(key, r, f"Clé manquante '{key}' pour total_attempts={total}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestAnswerValidation(unittest.TestCase):
+    """Pré-validation des réponses avant appel LLM — TASK-053."""
+
+    def setUp(self):
+        from ai_service import _check_answer_evaluable
+        self.fn = _check_answer_evaluable
+
+    def test_empty_answer_rejected(self):
+        r = self.fn("")
+        self.assertIsNotNone(r)
+        self.assertEqual(r["score"], 0.0)
+        self.assertEqual(r["error_type"], "non_evaluable")
+        self.assertEqual(r["rejection_reason"], "empty")
+
+    def test_whitespace_only_rejected(self):
+        r = self.fn("   ")
+        self.assertIsNotNone(r)
+        self.assertEqual(r["rejection_reason"], "empty")
+
+    def test_too_short_rejected(self):
+        r = self.fn("oui")
+        self.assertIsNotNone(r)
+        self.assertEqual(r["rejection_reason"], "too_short")
+
+    def test_two_words_rejected(self):
+        r = self.fn("je réponds")
+        self.assertIsNotNone(r)
+        self.assertEqual(r["rejection_reason"], "too_short")
+
+    def test_non_knowledge_rejected(self):
+        r = self.fn("je ne sais pas")
+        self.assertIsNotNone(r)
+        self.assertEqual(r["rejection_reason"], "non_knowledge")
+        self.assertEqual(r["error_type"], "non_evaluable")
+
+    def test_non_knowledge_with_period_rejected(self):
+        r = self.fn("Je ne sais pas.")
+        self.assertIsNotNone(r)
+        self.assertEqual(r["rejection_reason"], "non_knowledge")
+
+    def test_valid_answer_passes(self):
+        r = self.fn("La procédure d'accueil doit respecter les délais réglementaires définis.")
+        self.assertIsNone(r)
+
+    def test_rejection_dict_has_required_keys(self):
+        r = self.fn("")
+        for key in ("score", "expected_answer", "correction", "error_type", "topic", "rejection_reason"):
+            self.assertIn(key, r, f"Clé manquante dans le dict de rejet : {key}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

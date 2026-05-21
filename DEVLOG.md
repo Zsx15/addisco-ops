@@ -4,6 +4,31 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-21 — TASK-053 — Rejet hors sujet / non évaluable
+
+**Fichiers modifiés :**
+- `ai_service.py` — `_NON_KNOWLEDGE_PHRASES` + `_check_answer_evaluable()` + appel en tête de `correct_answer()`
+- `tabs/tab_training.py` — branche `rejection_reason` dans le bloc affichage correction
+- `test_regression.py` — `TestAnswerValidation` (8 tests) + callers `TestCorrectAnswerMocked` mis à jour
+
+**Logique :**
+- Pré-validation déterministe, zéro appel API supplémentaire
+- Trois cas de rejet : `empty` / `too_short` (< 3 mots ou < 10 chars) / `non_knowledge` (phrases de non-savoir)
+- Dict de rejet compatible `correct_answer()` : `score=0.0`, `error_type="non_evaluable"`, `rejection_reason`
+- `rejection_reason` runtime-only — non persisté en DB
+- `error_type="non_evaluable"` stocké normalement → analytics non cassées
+- Détection `hors_sujet` réelle reste déléguée au LLM (error_type existant)
+- UI : `st.warning()` + caption "Non évaluable" au lieu de `st.error()` standard
+
+**Invariants préservés :**
+- Aucun changement DB, aucun refactor RAG.
+- `save_attempt()` appelé normalement (score 0.0 enregistré).
+- Fallback intact. py_compile OK (3 fichiers). 226/226 tests.
+
+**Prochaine étape :** TASK-054 — Chunk Quality Analyzer V1.
+
+---
+
 ## 2026-05-21 — TASK-051B — Consolidation post sources visibles
 
 **Fichiers modifiés :**

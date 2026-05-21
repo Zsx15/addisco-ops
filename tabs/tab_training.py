@@ -395,22 +395,35 @@ def render() -> None:
         st.divider()
         st.subheader("Correction")
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Score", f"{round(score * 100)} %")
-        col2.metric("Notion", result.get("topic") or "—")
-        col3.metric("Temps de réponse", f"{round(response_time)} s")
-
-        correction_text = result.get("correction", "")
-        if score >= 0.8:
-            st.success(correction_text)
-        elif score >= 0.5:
-            st.warning(correction_text)
+        _rejection_reason = result.get("rejection_reason")
+        if _rejection_reason:
+            _REJECTION_LABELS = {
+                "empty":         "Réponse vide",
+                "too_short":     "Réponse trop courte",
+                "non_knowledge": "Réponse de non-savoir",
+            }
+            st.warning(result.get("correction", "Réponse non évaluable."))
+            st.caption(
+                f"Non évaluable · {_REJECTION_LABELS.get(_rejection_reason, _rejection_reason)}"
+                " · Score 0 enregistré."
+            )
         else:
-            st.error(correction_text)
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Score", f"{round(score * 100)} %")
+            col2.metric("Notion", result.get("topic") or "—")
+            col3.metric("Temps de réponse", f"{round(response_time)} s")
 
-        if result.get("expected_answer"):
-            with st.expander("Voir la réponse attendue"):
-                st.write(result["expected_answer"])
+            correction_text = result.get("correction", "")
+            if score >= 0.8:
+                st.success(correction_text)
+            elif score >= 0.5:
+                st.warning(correction_text)
+            else:
+                st.error(correction_text)
+
+            if result.get("expected_answer"):
+                with st.expander("Voir la réponse attendue"):
+                    st.write(result["expected_answer"])
 
         _chunk_ids_res = st.session_state.get("chunk_ids") or []
         _topic_res     = result.get("topic") or "—"

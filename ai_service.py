@@ -220,8 +220,74 @@ _CORRECT_FALLBACK = {
     "topic": "",
 }
 
+_NON_KNOWLEDGE_PHRASES = frozenset({
+    "je ne sais pas",
+    "je sais pas",
+    "j'en sais rien",
+    "j en sais rien",
+    "aucune idée",
+    "aucune idee",
+    "pas de réponse",
+    "pas de reponse",
+    "pas d'idée",
+    "pas d idee",
+    "sais pas",
+    "je ne sais",
+    "rien",
+    "non",
+    "?",
+    "...",
+})
+
+
+def _check_answer_evaluable(user_answer: str) -> Optional[dict]:
+    """
+    Pré-validation déterministe avant appel LLM.
+    Retourne un dict de rejet compatible avec correct_answer(), ou None si évaluable.
+    Le dict de rejet contient rejection_reason en plus des champs standard.
+    """
+    stripped = user_answer.strip()
+
+    if not stripped:
+        return {
+            "score":            0.0,
+            "expected_answer":  "",
+            "correction":       "Réponse vide — formulez une réponse avant de valider.",
+            "error_type":       "non_evaluable",
+            "topic":            "",
+            "rejection_reason": "empty",
+        }
+
+    words = stripped.split()
+    if len(stripped) < 10 or len(words) < 3:
+        return {
+            "score":            0.0,
+            "expected_answer":  "",
+            "correction":       "Réponse trop courte — reformulez en au moins une phrase complète.",
+            "error_type":       "non_evaluable",
+            "topic":            "",
+            "rejection_reason": "too_short",
+        }
+
+    normalized = stripped.lower().rstrip(".!? ")
+    if normalized in _NON_KNOWLEDGE_PHRASES:
+        return {
+            "score":            0.0,
+            "expected_answer":  "",
+            "correction":       "Réponse non évaluable — indiquez ce que vous savez sur le sujet, même partiellement.",
+            "error_type":       "non_evaluable",
+            "topic":            "",
+            "rejection_reason": "non_knowledge",
+        }
+
+    return None
+
 
 def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
+    rejection = _check_answer_evaluable(user_answer)
+    if rejection is not None:
+        return rejection
+
     content = call_chat_completion(
         messages=[
             {
