@@ -285,6 +285,41 @@ Prochaine : TASK-065 — Rate limiting LLM
 
 ---
 
+## TASK-064C — SQLite Connection Audit
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `tools/qa/audit_sqlite_connections.py` — script read-only, scan AST complet
+- 99 fichiers .py scannés (hors .venv, backups, __pycache__, .git)
+- Détecte : with sqlite3.connect() as conn + conn = sqlite3.connect()
+- Vérifie : conn.close() présent après la fin du bloc dans le même scope
+- Sortie   : OK / WARNING / UNKNOWN + verdict GO SAFE / [!!] WARNING
+- Exit code 0 (GO SAFE) ou 1 (WARNING) — intégrable CI
+
+Résultat de l'audit :
+  Total sqlite3.connect : 101
+  OK                    : 56   (pipeline core + tests unitaires)
+  WARNING               : 45   (hors scope TASK-064B — voir ci-dessous)
+  UNKNOWN               : 0
+
+Fichiers avec WARNING (non corrigés — rapport seul, selon spec) :
+  - app.py (1) — _count_users
+  - auth_service.py (2) — register_user, get_user_by_username
+  - db/admin.py (6) — count_admins, get_all_users, set_user_role, set_user_active,
+                       get_platform_stats, get_document_admin_stats, get_system_alerts
+  - engine/skill_analytics.py (6) — get_skill_frequency, get_skill_collisions, ...
+  - engine/skill_debug.py (1) — explain_chunk_skills
+  - seed_demo_attempts.py (1) — seed
+  - test_auth_service.py (1) — test_verify_null_hash_returns_none
+  - tools/* (28) — scripts utilitaires, scripts de vérification, tools/qa/*.py
+
+Prochaine : TASK-064D (optionnel — fermer les connexions restantes)
+         ou TASK-065 — Rate limiting LLM (si TASK-064C validé)
+
+---
+
 ## TASK-065 — Rate limiting LLM
 
 STATUS : TODO
