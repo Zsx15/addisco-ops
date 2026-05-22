@@ -12,7 +12,7 @@ from document_service import seed_demo_document
 from seed_demo_attempts import seed as _seed_demo_attempts
 from auth_service import register_user, verify_password
 from ui_helpers import check_app_password, sanitize_user_id
-from tabs.styles import APP_CSS, APP_HEADER
+from tabs.styles import APP_CSS, APP_HEADER, RESPONSIVE_CSS, PRESENTATION_CSS, PRESENTATION_BANNER
 from tabs.tab_training import render as render_training
 from tabs.tab_history import render as render_history
 from tabs.tab_dashboard import render as render_dashboard
@@ -202,7 +202,13 @@ if not _is_authed:
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
+_pres_mode = st.session_state.get("presentation_mode", False)
+
 st.markdown(APP_CSS, unsafe_allow_html=True)
+st.markdown(RESPONSIVE_CSS, unsafe_allow_html=True)
+if _pres_mode:
+    st.markdown(PRESENTATION_CSS, unsafe_allow_html=True)
+    st.markdown(PRESENTATION_BANNER, unsafe_allow_html=True)
 st.markdown(APP_HEADER, unsafe_allow_html=True)
 
 for key in (
@@ -222,6 +228,10 @@ if "user_id" not in st.session_state:
 st.session_state["user_id"] = sanitize_user_id(st.session_state["user_id"])
 
 with st.sidebar:
+    _pres_mode = st.toggle("🎯 Mode présentation", key="presentation_mode", value=False)
+    if _pres_mode:
+        st.caption("Onglets réduits · F11 = plein écran")
+    st.divider()
     if st.session_state.get("authenticated") and st.session_state.get("username"):
         st.markdown(f"**👤 {st.session_state['username']}**")
         st.caption(f"Rôle : {st.session_state.get('role', 'apprenant')}")
@@ -259,39 +269,53 @@ _role           = st.session_state.get("role")
 _is_privileged  = not st.session_state.get("authenticated") or _role in ("formateur", "admin")
 _is_admin       = _role == "admin"
 
-if _is_admin:
-    (tab_train, tab_history, tab_dashboard,
-     tab_docs, tab_engine, tab_formateur, tab_admin) = st.tabs(
-        ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur", "Admin"]
+if _pres_mode:
+    # ── Mode présentation : navigation réduite aux 3 onglets essentiels ────
+    tab_train, tab_dashboard, tab_engine = st.tabs(
+        ["🎯 Entraînement", "📊 Dashboard", "🤖 Moteur IA"]
     )
-elif _is_privileged:
-    (tab_train, tab_history, tab_dashboard,
-     tab_docs, tab_engine, tab_formateur) = st.tabs(
-        ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur"]
-    )
+    with tab_train:
+        render_training()
+    with tab_dashboard:
+        render_dashboard()
+    with tab_engine:
+        render_engine()
+
 else:
-    tab_train, tab_history, tab_dashboard, tab_engine = st.tabs(
-        ["Entraînement", "Historique", "Dashboard", "Moteur IA"]
-    )
+    # ── Navigation complète selon le rôle ──────────────────────────────────
+    if _is_admin:
+        (tab_train, tab_history, tab_dashboard,
+         tab_docs, tab_engine, tab_formateur, tab_admin) = st.tabs(
+            ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur", "Admin"]
+        )
+    elif _is_privileged:
+        (tab_train, tab_history, tab_dashboard,
+         tab_docs, tab_engine, tab_formateur) = st.tabs(
+            ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur"]
+        )
+    else:
+        tab_train, tab_history, tab_dashboard, tab_engine = st.tabs(
+            ["Entraînement", "Historique", "Dashboard", "Moteur IA"]
+        )
 
-with tab_train:
-    render_training()
+    with tab_train:
+        render_training()
 
-with tab_history:
-    render_history()
+    with tab_history:
+        render_history()
 
-with tab_dashboard:
-    render_dashboard()
+    with tab_dashboard:
+        render_dashboard()
 
-with tab_engine:
-    render_engine()
+    with tab_engine:
+        render_engine()
 
-if _is_privileged:
-    with tab_docs:
-        render_documents()
-    with tab_formateur:
-        render_trainer()
+    if _is_privileged:
+        with tab_docs:
+            render_documents()
+        with tab_formateur:
+            render_trainer()
 
-if _is_admin:
-    with tab_admin:
-        render_admin()
+    if _is_admin:
+        with tab_admin:
+            render_admin()

@@ -84,6 +84,63 @@ hr {
 </style>
 """
 
+RESPONSIVE_CSS = """
+<style>
+/* ── Tablette (≤ 900px) ── */
+@media (max-width: 900px) {
+    .main .block-container {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        min-width: calc(50% - 8px) !important;
+        flex: 0 0 calc(50% - 8px) !important;
+    }
+    .pipeline-pills-row {
+        display: none !important;
+    }
+    [data-testid="stMetricValue"] > div {
+        font-size: 1.3rem !important;
+    }
+}
+/* ── Mobile (≤ 600px) ── */
+@media (max-width: 600px) {
+    [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        min-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+}
+</style>
+"""
+
+PRESENTATION_CSS = """
+<style>
+/* ── Mode présentation ── */
+.main .block-container {
+    max-width: 100% !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+}
+.pipeline-pills-row {
+    display: none !important;
+}
+section[data-testid="stSidebar"] > div:first-child {
+    padding-top: 0.5rem !important;
+}
+</style>
+"""
+
+PRESENTATION_BANNER = """
+<div style="background:#4f46e5;color:#fff;padding:7px 18px;border-radius:8px;
+            font-size:12px;font-weight:700;letter-spacing:.08em;text-align:center;
+            margin-bottom:10px;text-transform:uppercase">
+    🎯 MODE PRÉSENTATION &nbsp;·&nbsp; F11 pour plein écran navigateur
+</div>
+"""
+
 APP_HEADER = """
 <div style="padding:6px 0 16px;border-bottom:2px solid #e2e8f0;margin-bottom:8px;background:#f5f6fa">
   <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:9px">
@@ -98,7 +155,7 @@ APP_HEADER = """
       </div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-left:18px">
+  <div class="pipeline-pills-row" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-left:18px">
     <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">&#128196; Document</span>
     <span style="color:#c7d2fe;font-size:12px;font-weight:700">&rarr;</span>
     <span style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:11px;color:#475569;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.04)">&#128269; RAG</span>
