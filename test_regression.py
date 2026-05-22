@@ -306,7 +306,7 @@ class TestDatabaseChunkMastery(_DbTestCase):
 
     def test_chunk_mastery_maitrise(self):
         _, chunk_id = self._add_doc_and_chunk()
-        self._attempts_for_chunk(chunk_id, [0.9, 0.85, 0.88])
+        self._attempts_for_chunk(chunk_id, [0.9, 0.85, 0.88, 0.91, 0.87])
         result = self.db.get_chunk_mastery(chunk_id, "default")
         self.assertEqual(result, "Maîtrisé")
 
@@ -318,8 +318,8 @@ class TestDatabaseChunkMastery(_DbTestCase):
 
     def test_chunk_mastery_user_isolation(self):
         _, chunk_id = self._add_doc_and_chunk()
-        self._attempts_for_chunk(chunk_id, [0.9, 0.9, 0.9], "alice")   # Maîtrisé pour alice
-        self._attempts_for_chunk(chunk_id, [0.2, 0.3, 0.2], "bob")     # Fragile pour bob
+        self._attempts_for_chunk(chunk_id, [0.9, 0.9, 0.9, 0.9, 0.9], "alice")   # Maîtrisé pour alice
+        self._attempts_for_chunk(chunk_id, [0.2, 0.3, 0.2], "bob")                # Fragile pour bob
         self.assertEqual(self.db.get_chunk_mastery(chunk_id, "alice"), "Maîtrisé")
         self.assertEqual(self.db.get_chunk_mastery(chunk_id, "bob"),   "Fragile")
 
@@ -364,7 +364,7 @@ class TestClassifyMastery(unittest.TestCase):
         self.assertEqual(result.iloc[0]["mastery_class"], "Fragile")
 
     def test_maitrise_classification(self):
-        df = pd.DataFrame([self._row(0.85, 4)])
+        df = pd.DataFrame([self._row(0.85, 5)])
         result = self.fn(df)
         self.assertEqual(result.iloc[0]["mastery_class"], "Maîtrisé")
 

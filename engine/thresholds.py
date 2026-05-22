@@ -13,7 +13,7 @@ Note SQL : db/chunks.get_revision_suggestion utilise ces valeurs via f-string.
 # ── Maîtrise par chunk / skill ────────────────────────────────────────────────
 MASTERY_FRAGILE:      float = 0.60  # avg_score < seuil → Fragile
 MASTERY_MASTERED:     float = 0.80  # avg_score ≥ seuil ET n ≥ MIN_ATTEMPTS → Maîtrisé / Acquis
-MASTERY_MIN_ATTEMPTS: int   = 3     # nombre minimum de tentatives pour valider la maîtrise
+MASTERY_MIN_ATTEMPTS: int   = 5     # nombre minimum de tentatives pour valider la maîtrise
 
 # ── Difficulté adaptative (engine/adaptive_difficulty.py) ─────────────────────
 ADAPTIVE_FORCE_EASY: float = 0.40  # avg récent < seuil → forcer easy quelle que soit mastery
