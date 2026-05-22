@@ -96,19 +96,22 @@ STATUS   : DONE
 
 ## TASK-057 — Error Pattern Memory
 
-STATUS : TODO
+STATUS : DONE — 2026-05-22
+Mémoire persistante d'erreurs pédagogiques. 5 tendances (critique/chronique/récent/en_amelioration/stabilisé). Injection non-bloquante dans generate_question(). 10/10 tests simulation, 239→246 tests regression.
 
 ---
 
 ## TASK-058 — Curriculum Engine V1
 
-STATUS : TODO
+STATUS : DONE — 2026-05-22
+Moteur curriculum déterministe (Phase 1 observation). build_learning_queue() : 3 sources (error_pattern/skill_mastery/revision), rotation anti-saturation, déduplication. Observer CLI. 14/14 tests simulation, 246/246 regression. generate_question() non modifié en Phase 1.
 
 ---
 
-## TASK-059 — Calibration Engine V1
+## TASK-059 — Runtime Curriculum Arbitration
 
-STATUS : TODO
+STATUS : DONE — 2026-05-22
+Intégration curriculum dans generate_question() comme arbitre prioritaire. Override question_type si skill Fragile ou priorité >= 0.80. Fallback garanti. Validation 20Q : 5% → 70% alignement curriculum. 246/246 tests.
 
 ---
 
