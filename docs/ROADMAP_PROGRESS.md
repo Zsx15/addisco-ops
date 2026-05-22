@@ -167,7 +167,20 @@ Intégration curriculum dans generate_question() comme arbitre prioritaire. Over
 
 ## TASK-060 — Maintenance Assistée V1
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : (en cours)
+
+Livré :
+- `tools/maintenance/maintenance_report.py` — script standalone read-only
+- 6 sections : chunks (WEAK/ORPHAN/NOISY), skills (morts/surchargés), documents
+  problématiques, dérive de scores (7j vs global), anomalies attempts (non-évaluable
+  / réponses rapides / streaks score=0), guardrails architecture
+- verdict GO SAFE / WARNING / FAILED
+- import direct de chunk_quality_analyzer et architecture_guardrails (sans duplication)
+- 254/254 tests régression OK
+
+Prochaine : TASK-061 — Vue admin
 
 ---
 
