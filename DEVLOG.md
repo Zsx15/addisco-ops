@@ -4,6 +4,39 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-056B — Centralisation seuils mastery + filtre non_evaluable
+
+**Fichiers modifiés :**
+- `engine/thresholds.py` — **nouveau** — source unique de vérité pour tous les seuils
+- `engine/spaced_rep.py` — REVIEW_INTERVALS + seuils classify_mastery
+- `engine/skill_engine.py` — seuils classify_skill_mastery
+- `engine/skill_graph.py` — MASTERY_THRESHOLD (0.70 → 0.80 via MASTERY_MASTERED)
+- `engine/adaptive_difficulty.py` — SCORE_FORCE_EASY / SCORE_ALLOW_HARD
+- `db/chunks.py` — get_chunk_mastery + get_revision_suggestion (f-string SQL) + dominant_error_type
+- `db/analytics.py` — get_error_frequency
+- `ai_service.py` — repeated_errors
+
+**Correction 1 — Centralisation thresholds :**
+- `engine/thresholds.py` créé : MASTERY_FRAGILE=0.60 / MASTERY_MASTERED=0.80 / MASTERY_MIN_ATTEMPTS=3 / ADAPTIVE_FORCE_EASY=0.40 / ADAPTIVE_ALLOW_HARD=0.65 / REVIEW_INTERVALS
+- Divergence critique résolue : `engine/skill_graph.py` utilisait 0.70 → aligné sur 0.80 via MASTERY_MASTERED
+- `get_revision_suggestion` convertie en f-string SQL — les intervalles se propagent automatiquement depuis REVIEW_INTERVALS
+- Chaîne d'import : `engine/thresholds` → `engine/*` → `adaptive_engine` → `database` — aucun import circulaire
+
+**Correction 2 — Filtre non_evaluable :**
+- `get_error_frequency()` : `AND error_type != 'non_evaluable'` ajouté
+- `get_chunk_stats()` dominant_error_type subquery : même filtre ajouté
+- `ai_service.repeated_errors` : filtre inline ajouté
+
+**Invariants préservés :**
+- `save_attempt()` non modifié — non_evaluable reste enregistré en DB (historique intact)
+- Aucun changement comportemental ni DB ni API
+- Re-exports database.py et adaptive_engine.py inchangés
+- 226/226 tests passés — zéro régression
+
+**Prochaine étape :** TASK-057 — Error Pattern Memory (attente validation).
+
+---
+
 ## 2026-05-21 — TASK-053 — Rejet hors sujet / non évaluable
 
 **Fichiers modifiés :**
