@@ -8,6 +8,12 @@ from typing import Optional
 
 import database as _db
 import pandas as pd
+from engine.thresholds import (
+    MASTERY_FRAGILE,
+    MASTERY_MASTERED,
+    MASTERY_MIN_ATTEMPTS,
+    REVIEW_INTERVALS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +138,7 @@ def get_chunk_stats(user_id: str = "default") -> pd.DataFrame:
                       AND a2.error_type IS NOT NULL
                       AND a2.error_type != ''
                       AND a2.error_type != 'correct'
+                      AND a2.error_type != 'non_evaluable'
                     GROUP BY a2.error_type
                     ORDER BY COUNT(*) DESC
                     LIMIT 1
@@ -193,18 +200,23 @@ def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> Optional[str]:
     if not row or row[1] < 1:
         return None
     avg, n = row
-    if avg < 0.6:
+    if avg < MASTERY_FRAGILE:
         return "Fragile"
-    if avg >= 0.8 and n >= 3:
+    if avg >= MASTERY_MASTERED and n >= MASTERY_MIN_ATTEMPTS:
         return "Maîtrisé"
     return "En consolidation"
 
 
 def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
+    _frag        = MASTERY_FRAGILE
+    _mast        = MASTERY_MASTERED
+    _mast_n      = MASTERY_MIN_ATTEMPTS
+    _frag_days   = REVIEW_INTERVALS["Fragile"]
+    _consol_days = REVIEW_INTERVALS["En consolidation"]
     with sqlite3.connect(_db.DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            """
+            f"""
             SELECT
                 c.id       AS chunk_id,
                 c.chunk_text,
@@ -221,16 +233,16 @@ def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
               AND a.score    IS NOT NULL
               AND a.user_id  = ?
             GROUP BY a.chunk_id
-            HAVING NOT (ROUND(AVG(a.score), 2) >= 0.8 AND COUNT(*) >= 3)
+            HAVING NOT (ROUND(AVG(a.score), 2) >= {_mast} AND COUNT(*) >= {_mast_n})
             ORDER BY
                 CASE
-                    WHEN ROUND(AVG(a.score), 2) < 0.6
-                         AND datetime(MAX(a.created_at), '+1 day')  <= datetime('now') THEN 0
-                    WHEN ROUND(AVG(a.score), 2) >= 0.6
-                         AND datetime(MAX(a.created_at), '+3 days') <= datetime('now') THEN 0
+                    WHEN ROUND(AVG(a.score), 2) < {_frag}
+                         AND datetime(MAX(a.created_at), '+{_frag_days} days') <= datetime('now') THEN 0
+                    WHEN ROUND(AVG(a.score), 2) >= {_frag}
+                         AND datetime(MAX(a.created_at), '+{_consol_days} days') <= datetime('now') THEN 0
                     ELSE 1
                 END ASC,
-                CASE WHEN ROUND(AVG(a.score), 2) < 0.6 THEN 0 ELSE 1 END ASC,
+                CASE WHEN ROUND(AVG(a.score), 2) < {_frag} THEN 0 ELSE 1 END ASC,
                 MAX(a.created_at) ASC,
                 ROUND(AVG(a.score), 2) ASC
             LIMIT 1

@@ -167,7 +167,8 @@ def generate_question(
 
     used_types      = [h["question_type"] for h in history if h.get("question_type")]
     recent_scores   = [float(h["score"]) for h in history if h.get("score") is not None]
-    repeated_errors = [h["error_type"]   for h in history if h.get("error_type")]
+    repeated_errors = [h["error_type"] for h in history
+                       if h.get("error_type") and h["error_type"] != "non_evaluable"]
 
     question_type = choose_adaptive_question_type(
         used_types,

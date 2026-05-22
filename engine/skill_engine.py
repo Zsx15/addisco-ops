@@ -1,4 +1,5 @@
 """Calcul de maîtrise par skill — logique pure, sans accès base de données."""
+from engine.thresholds import MASTERY_FRAGILE, MASTERY_MASTERED, MASTERY_MIN_ATTEMPTS
 
 
 def compute_skill_mastery(scores: list[float]) -> float:
@@ -16,8 +17,8 @@ def classify_skill_mastery(mastery_score: float, attempts_count: int = 0) -> str
     - Fragile : score < 0.6
     - En cours : reste
     """
-    if mastery_score < 0.6:
+    if mastery_score < MASTERY_FRAGILE:
         return "Fragile"
-    if mastery_score >= 0.8 and attempts_count >= 3:
+    if mastery_score >= MASTERY_MASTERED and attempts_count >= MASTERY_MIN_ATTEMPTS:
         return "Acquis"
     return "En cours"

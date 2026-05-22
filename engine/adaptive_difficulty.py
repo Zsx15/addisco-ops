@@ -15,6 +15,7 @@ from collections import Counter
 from typing import Optional
 
 from engine.question_type import QUESTION_TYPES, _MASTERY_BIAS
+from engine.thresholds import ADAPTIVE_FORCE_EASY, ADAPTIVE_ALLOW_HARD
 
 # ── Buckets de difficulté ─────────────────────────────────────────────────────
 DIFFICULTY_EASY   = frozenset(["vrai_faux", "question_directe"])
@@ -22,9 +23,9 @@ DIFFICULTY_MEDIUM = frozenset(["reformulation", "question_directe", "cas_pratiqu
 DIFFICULTY_HARD   = frozenset(["cas_pratique", "consequence", "question_piege"])
 
 # ── Paramètres ────────────────────────────────────────────────────────────────
-RECENT_N         = 5     # fenêtre de scores récents
-SCORE_FORCE_EASY = 0.40  # avg récent < seuil → forcer easy quelle que soit mastery
-SCORE_ALLOW_HARD = 0.65  # avg récent ≥ seuil → autoriser hard (si Maîtrisé)
+RECENT_N         = 5                  # fenêtre de scores récents
+SCORE_FORCE_EASY = ADAPTIVE_FORCE_EASY  # avg récent < seuil → forcer easy quelle que soit mastery
+SCORE_ALLOW_HARD = ADAPTIVE_ALLOW_HARD  # avg récent ≥ seuil → autoriser hard (si Maîtrisé)
 
 # ── Correction par type d'erreur dominant ─────────────────────────────────────
 # Type de question recommandé selon le pattern d'erreur le plus fréquent.

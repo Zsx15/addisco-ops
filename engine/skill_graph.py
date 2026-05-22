@@ -15,9 +15,11 @@ Hiérarchie (inspirée taxonomie de Bloom adaptée au domaine) :
 from collections import deque
 from typing import Optional
 
+from engine.thresholds import MASTERY_MASTERED
+
 # ── Seuil de maîtrise ─────────────────────────────────────────────────────────
 # Score minimum pour considérer un prérequis comme "acquis"
-MASTERY_THRESHOLD: float = 0.70
+MASTERY_THRESHOLD: float = MASTERY_MASTERED
 
 # ── Graphe déclaratif ─────────────────────────────────────────────────────────
 # Format : "slug" -> [liste des slugs prérequis]

@@ -93,6 +93,7 @@ def get_error_frequency(user_id: str = "default") -> pd.DataFrame:
             WHERE error_type IS NOT NULL
               AND error_type != ''
               AND error_type != 'correct'
+              AND error_type != 'non_evaluable'
               AND user_id = ?
             GROUP BY error_type
             ORDER BY count DESC

@@ -4,13 +4,12 @@ from typing import Optional
 
 import pandas as pd
 
-# Intervalles de base par classe (en jours).
-# Les valeurs brutes (1j/3j) sont dupliquées dans db/chunks.py ORDER BY.
-REVIEW_INTERVALS: dict[str, int] = {
-    "Fragile":          1,
-    "En consolidation": 3,
-    "Maîtrisé":         7,
-}
+from engine.thresholds import (
+    MASTERY_FRAGILE,
+    MASTERY_MASTERED,
+    MASTERY_MIN_ATTEMPTS,
+    REVIEW_INTERVALS,
+)
 
 
 def _adaptive_interval(mastery_class: str, trend: str) -> int:
@@ -48,9 +47,9 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
     - En consolidation : reste
     """
     def _class(row):
-        if row["avg_score"] < 0.6:
+        if row["avg_score"] < MASTERY_FRAGILE:
             return "Fragile"
-        if row["avg_score"] >= 0.8 and row["attempts_count"] >= 3:
+        if row["avg_score"] >= MASTERY_MASTERED and row["attempts_count"] >= MASTERY_MIN_ATTEMPTS:
             return "Maîtrisé"
         return "En consolidation"
 
