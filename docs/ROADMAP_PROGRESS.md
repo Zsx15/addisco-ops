@@ -206,7 +206,20 @@ Prochaine : TASK-062 — Rapports HTML/PDF
 
 ## TASK-062 — Rapports HTML/PDF
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 56f3981
+
+Livré :
+- `tools/reports/generate_learning_report.py` — standalone, read-only, aucun appel API
+- 7 sections HTML : résumé exécutif, KPIs, maîtrise par section, profil d'apprentissage,
+  patterns d'erreurs, plan de session, sections à réviser
+- CSS inline · compatible impression → PDF (Ctrl+P)
+- sortie : `reports/rapport_<user_id>_<YYYYMMDD>.html`
+- rapports exclus du git via .gitignore
+- py_compile OK · 254/254 tests régression OK
+
+Prochaine : TASK-063 — UX responsive tablette
 
 ---
 
