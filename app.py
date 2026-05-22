@@ -19,6 +19,7 @@ from tabs.tab_dashboard import render as render_dashboard
 from tabs.tab_documents import render as render_documents
 from tabs.tab_engine import render as render_engine
 from tabs.tab_trainer import render as render_trainer
+from tabs.tab_admin import render as render_admin
 
 init_db()
 seed_demo_document()
@@ -254,12 +255,16 @@ with st.sidebar:
     _n_docs = len(get_documents())
     st.caption(f"📄 {_n_docs} document{'s' if _n_docs > 1 else ''} chargé{'s' if _n_docs > 1 else ''}")
 
-_show_privileged = (
-    not st.session_state.get("authenticated")
-    or st.session_state.get("role") in ("formateur", "admin")
-)
+_role           = st.session_state.get("role")
+_is_privileged  = not st.session_state.get("authenticated") or _role in ("formateur", "admin")
+_is_admin       = _role == "admin"
 
-if _show_privileged:
+if _is_admin:
+    (tab_train, tab_history, tab_dashboard,
+     tab_docs, tab_engine, tab_formateur, tab_admin) = st.tabs(
+        ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur", "Admin"]
+    )
+elif _is_privileged:
     (tab_train, tab_history, tab_dashboard,
      tab_docs, tab_engine, tab_formateur) = st.tabs(
         ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur"]
@@ -281,8 +286,12 @@ with tab_dashboard:
 with tab_engine:
     render_engine()
 
-if _show_privileged:
+if _is_privileged:
     with tab_docs:
         render_documents()
     with tab_formateur:
         render_trainer()
+
+if _is_admin:
+    with tab_admin:
+        render_admin()

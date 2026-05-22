@@ -109,6 +109,12 @@ def init_db():
             conn.execute("ALTER TABLE documents ADD COLUMN category TEXT")
         except sqlite3.OperationalError:
             pass
+        try:
+            conn.execute(
+                "ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
+            )
+        except sqlite3.OperationalError:
+            pass
         # ── Skills Engine V1.0 — tables additives ────────────────────────
         conn.execute("""
             CREATE TABLE IF NOT EXISTS skills (
@@ -185,7 +191,10 @@ from db.profile import (                                            # noqa: E402
     get_next_session_plan,
     get_retention_metrics,
 )
-from db.admin import count_admins, get_all_users, set_user_role    # noqa: E402
+from db.admin import (                                              # noqa: E402
+    count_admins, get_all_users, set_user_role, set_user_active,
+    get_platform_stats, get_document_admin_stats, get_system_alerts,
+)
 from db.skills import (                                             # noqa: E402
     seed_skills,
     get_all_skills,
@@ -217,7 +226,8 @@ __all__ = [
     "get_learning_profile", "compute_and_save_learning_profile",
     "get_next_session_plan", "get_retention_metrics",
     # Admin
-    "count_admins", "get_all_users", "set_user_role",
+    "count_admins", "get_all_users", "set_user_role", "set_user_active",
+    "get_platform_stats", "get_document_admin_stats", "get_system_alerts",
     # Skills Engine V1.0
     "seed_skills", "get_all_skills", "get_skill_by_slug",
     "get_chunk_skills", "classify_and_save_document_skills",
