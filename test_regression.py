@@ -750,7 +750,8 @@ class TestChooseQuestionType(unittest.TestCase):
     def test_no_profile_unchanged_behavior(self):
         # Sans profile_types, comportement identique à avant TASK-024
         result = self.fn([], mastery_class="Fragile", profile_types=None)
-        self.assertIn(result, ["reformulation", "consequence", "cas_pratique"])
+        # _MASTERY_BIAS["Fragile"] = ["vrai_faux", "reformulation", "question_directe"]
+        self.assertIn(result, ["vrai_faux", "reformulation", "question_directe"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2506,6 +2507,133 @@ class TestAnswerValidation(unittest.TestCase):
             self.assertIn(key, r, f"Clé manquante dans le dict de rejet : {key}")
 
 
+class TestErrorPatternMemory(unittest.TestCase):
+    """Error Pattern Memory V1 — logique pure (TASK-057)."""
+
+    def setUp(self):
+        from engine.error_pattern_memory import (
+            compute_error_patterns,
+            get_persistent_error_types,
+            _EXCLUDED_ERRORS,
+        )
+        self.compute  = compute_error_patterns
+        self.get_types = get_persistent_error_types
+        self.excluded = _EXCLUDED_ERRORS
+        from datetime import datetime, timedelta, timezone
+        self._now = datetime.now(timezone.utc)
+
+    def _iso(self, days_ago: float) -> str:
+        from datetime import timedelta
+        return (self._now - timedelta(days=days_ago)).isoformat()
+
+    def _rows(self, *specs):
+        return [(e, s, self._iso(d), None) for e, s, d in specs]
+
+    # ── exclusions ─────────────────────────────────────────────────────────────
+
+    def test_empty_rows_returns_empty_list(self):
+        self.assertEqual(self.compute([]), [])
+
+    def test_non_evaluable_excluded(self):
+        rows = self._rows(("non_evaluable", 0.0, 1), ("non_evaluable", 0.0, 2),
+                          ("non_evaluable", 0.0, 3))
+        patterns = self.compute(rows)
+        types = [p["error_type"] for p in patterns]
+        self.assertNotIn("non_evaluable", types)
+
+    def test_correct_excluded(self):
+        rows = self._rows(("correct", 1.0, 1), ("correct", 1.0, 2), ("correct", 1.0, 3))
+        patterns = self.compute(rows)
+        self.assertNotIn("correct", [p["error_type"] for p in patterns])
+
+    def test_single_occurrence_below_min_count_ignored(self):
+        rows = self._rows(("reponse_vague", 0.30, 5))
+        patterns = self.compute(rows)
+        self.assertEqual(patterns, [])
+
+    # ── classifications ────────────────────────────────────────────────────────
+
+    def test_stale_pattern_classified_stabilise(self):
+        rows = self._rows(("erreur_ordre", 0.30, 40), ("erreur_ordre", 0.35, 35),
+                          ("erreur_ordre", 0.28, 30))
+        patterns = self.compute(rows)
+        p = next(x for x in patterns if x["error_type"] == "erreur_ordre")
+        self.assertEqual(p["trend"], "stabilisé")
+
+    def test_recent_pattern_classified_recent(self):
+        rows = self._rows(("hors_sujet", 0.40, 4), ("hors_sujet", 0.35, 3))
+        patterns = self.compute(rows)
+        p = next(x for x in patterns if x["error_type"] == "hors_sujet")
+        self.assertEqual(p["trend"], "récent")
+
+    def test_chronic_pattern_classified(self):
+        rows = self._rows(("reponse_vague", 0.30, 30), ("reponse_vague", 0.35, 20),
+                          ("reponse_vague", 0.28, 15), ("reponse_vague", 0.40, 3))
+        patterns = self.compute(rows)
+        p = next(x for x in patterns if x["error_type"] == "reponse_vague")
+        self.assertIn(p["trend"], ("chronique", "critique"))
+
+    def test_critical_pattern_classified_critique(self):
+        rows = self._rows(
+            ("oubli_etape", 0.20, 60), ("oubli_etape", 0.22, 50),
+            ("oubli_etape", 0.18, 40), ("oubli_etape", 0.25, 30),
+            ("oubli_etape", 0.22, 20), ("oubli_etape", 0.19, 5),
+            ("oubli_etape", 0.21, 2),
+        )
+        patterns = self.compute(rows)
+        p = next(x for x in patterns if x["error_type"] == "oubli_etape")
+        self.assertEqual(p["trend"], "critique")
+
+    def test_improvement_pattern_classified(self):
+        rows = self._rows(("confusion_notion", 0.20, 40), ("confusion_notion", 0.25, 35),
+                          ("confusion_notion", 0.60, 5), ("confusion_notion", 0.72, 3),
+                          ("confusion_notion", 0.70, 1))
+        patterns = self.compute(rows)
+        p = next(x for x in patterns if x["error_type"] == "confusion_notion")
+        self.assertEqual(p["trend"], "en_amelioration")
+
+    # ── structure du résultat ──────────────────────────────────────────────────
+
+    def test_pattern_has_required_keys(self):
+        rows = self._rows(("hors_sujet", 0.40, 3), ("hors_sujet", 0.35, 1))
+        patterns = self.compute(rows)
+        self.assertTrue(patterns)
+        for key in ("error_type", "count", "avg_score", "trend", "last_seen_days",
+                    "first_seen_days", "recent_count"):
+            self.assertIn(key, patterns[0], f"Clé manquante : {key}")
+
+    def test_severity_sort_order(self):
+        rows = self._rows(
+            ("hors_sujet",   0.40, 3),  ("hors_sujet",   0.35, 1),
+            ("reponse_vague", 0.30, 40), ("reponse_vague", 0.35, 20),
+            ("reponse_vague", 0.28, 15), ("reponse_vague", 0.40, 3),
+        )
+        patterns = self.compute(rows)
+        _sev = {"critique": 0, "chronique": 1, "récent": 2, "en_amelioration": 3, "stabilisé": 4}
+        sevs = [_sev[p["trend"]] for p in patterns]
+        self.assertEqual(sevs, sorted(sevs), "Patterns doivent être triés par sévérité")
+
+    # ── get_persistent_error_types ─────────────────────────────────────────────
+
+    def test_get_persistent_excludes_stabilise(self):
+        patterns = [
+            {"error_type": "reponse_vague", "trend": "chronique", "count": 3},
+            {"error_type": "erreur_ordre",  "trend": "stabilisé", "count": 2},
+        ]
+        types = self.get_types(patterns)
+        self.assertIn("reponse_vague", types)
+        self.assertNotIn("erreur_ordre", types)
+
+    def test_get_persistent_custom_trends(self):
+        patterns = [
+            {"error_type": "confusion_notion", "trend": "en_amelioration", "count": 4},
+            {"error_type": "hors_sujet",       "trend": "critique",        "count": 6},
+        ]
+        types = self.get_types(patterns, include_trends=["en_amelioration"])
+        self.assertIn("confusion_notion", types)
+        self.assertNotIn("hors_sujet", types)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -2539,6 +2667,7 @@ if __name__ == "__main__":
         TestCorpusSearch,
         TestGetChunkById,
         TestProfileInsights,
+        TestErrorPatternMemory,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

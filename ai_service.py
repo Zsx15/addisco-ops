@@ -170,6 +170,19 @@ def generate_question(
     repeated_errors = [h["error_type"] for h in history
                        if h.get("error_type") and h["error_type"] != "non_evaluable"]
 
+    # Injection mémoire persistante d'erreurs (TASK-057) — non-bloquant
+    try:
+        from engine.error_pattern_memory import detect_persistent_error_patterns as _detect_ep
+        _mem = _detect_ep(user_id)
+        for _p in _mem["patterns"]:
+            if _p["trend"] in ("critique", "chronique"):
+                # Poids 2 pour dépasser le seuil top_count >= 2 dans get_error_correction_type
+                repeated_errors = repeated_errors + [_p["error_type"], _p["error_type"]]
+            elif _p["trend"] == "récent":
+                repeated_errors = repeated_errors + [_p["error_type"]]
+    except Exception:
+        pass
+
     question_type = choose_adaptive_question_type(
         used_types,
         mastery_class   = mastery_class,
