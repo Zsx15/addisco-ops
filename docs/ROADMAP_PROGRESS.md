@@ -186,7 +186,21 @@ Prochaine : TASK-061 — Vue admin
 
 ## TASK-061 — Vue admin
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : bc8f50f
+
+Livré :
+- migration douce `users.is_active INTEGER DEFAULT 1` dans `init_db()`
+- `db/admin.py` : `set_user_active()`, `get_platform_stats()`, `get_document_admin_stats()`,
+  `get_system_alerts()` (read-only, aucun appel API)
+- `get_all_users()` enrichi : `is_active`, `n_attempts`, `last_attempt`
+- `tabs/tab_admin.py` : 4 zones (KPIs globaux, alertes système, gestion utilisateurs
+  activation/désactivation + promotion rôle, documents avec stats)
+- `app.py` : tab "Admin" visible uniquement `role == "admin"`
+- py_compile 4/4 OK · 254/254 tests régression OK
+
+Prochaine : TASK-062 — Rapports HTML/PDF
 
 ---
 
