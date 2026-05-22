@@ -4,6 +4,33 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-057B — Script verification session 30Q
+
+**Fichier créé :**
+- `tools/testing/verify_error_pattern_effect_30q.py` — script standalone de vérification comportementale
+
+**Fonctionnement :**
+- CLI : `--user Guilhem --n 30 --seed 42 --no-confirm --dry-run`
+- Mesure état AVANT (patterns, avg_score, error_dist, qtype_dist)
+- Session N questions : génération réelle (`generate_question`) + correction réelle (`correct_answer`) + save_attempt
+- Profils de réponses simulées : 40% correct, 25% medium, 15% vague, 10% hors_sujet, 10% non_evaluable
+- Mesure état APRÈS (mêmes métriques)
+- Rapport sections A–G : config, avant, tableau session, après, delta, verdict, bloc COPY_FOR_ANALYSIS
+- Verdict automatique : IMPROVEMENT / STABLE / REGRESSION / INCONCLUSIVE
+- Dry-run validé : 0.4s, 30 lignes, rapport complet, aucun appel API
+
+**Contraintes respectées :**
+- Aucun mock, appels API réels en mode normal
+- Aucune modification moteur ou DB
+- Encodage Windows-safe (reconfigure utf-8 + errors=replace)
+- Seed reproductible pour comparaisons entre runs
+
+**Snapshot :** `backups/snapshot_task057b_ok.zip`
+
+**Prochaine étape :** TASK-058 (attente validation).
+
+---
+
 ## 2026-05-22 — TASK-057 — Error Pattern Memory V1
 
 **Fichiers créés :**
