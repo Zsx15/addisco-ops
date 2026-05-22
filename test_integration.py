@@ -97,6 +97,7 @@ class TestIngestionPipeline(_IntegrationTestCase):
             n_chunks = conn.execute(
                 "SELECT COUNT(*) FROM chunks WHERE document_id = ?", (doc_id,)
             ).fetchone()[0]
+        conn.close()
 
         self.assertEqual(n_docs, 1)
         self.assertGreater(n_chunks, 0)
@@ -116,6 +117,7 @@ class TestIngestionPipeline(_IntegrationTestCase):
                 "SELECT COUNT(*) FROM chunks WHERE document_id = ? AND embedding IS NOT NULL",
                 (doc_id,),
             ).fetchone()[0]
+        conn.close()
 
         self.assertGreater(n_with_emb, 0)
         self.assertGreater(self.mock_embed.call_count, 0)
@@ -165,6 +167,7 @@ class TestQuestionGenerationPipeline(_IntegrationTestCase):
                 (doc_id, FAKE_EMBEDDING_BYTES),
             )
             chunk_id = cur2.lastrowid
+        conn.close()
         return doc_id, chunk_id
 
     def test_generate_returns_four_tuple(self):
@@ -358,6 +361,7 @@ class TestAnalyticsPipeline(_IntegrationTestCase):
                 "VALUES (?, 0, 'chunk text', 10)", (doc_id,)
             )
             chunk_id = cur2.lastrowid
+        conn.close()
 
         self.db.save_attempt(
             question="Q chunk",

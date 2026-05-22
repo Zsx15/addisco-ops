@@ -247,6 +247,7 @@ def _gather_context(user_id: str) -> dict:
                 "ORDER BY created_at DESC LIMIT 5",
                 (user_id,),
             ).fetchall()
+        conn.close()
         scores = [float(r[0]) for r in score_rows]
         ctx["recent_avg"]  = round(sum(scores) / len(scores), 3) if scores else None
         ctx["used_types"]  = [r[0] for r in type_rows]

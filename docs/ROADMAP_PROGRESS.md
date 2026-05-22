@@ -263,6 +263,28 @@ Prochaine : TASK-065 — Rate limiting LLM
 
 ---
 
+## TASK-064B — Fix ResourceWarning SQLite
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- Ajout de `conn.close()` explicite après chaque bloc `with sqlite3.connect()` dans tous les modules
+- Fichiers corrigés : `database.py`, `db/analytics.py`, `db/chunks.py`, `db/profile.py`,
+  `db/skills.py`, `engine/curriculum_engine.py`, `engine/error_pattern_memory.py`,
+  `rag_service.py`, `test_integration.py`, `test_regression.py`
+- Résultat : 0 ResourceWarning depuis notre code (warnings résiduels = `python-docx` tiers, hors périmètre)
+- 254/254 régression + 24/24 intégration OK, 0 régression
+
+Observations :
+- Python 3.14 : `with sqlite3.connect() as conn:` gère la transaction uniquement,
+  pas la fermeture — `conn.close()` obligatoire.
+- Warnings `docx/shared.py` non corrigibles sans patcher la lib tierce.
+
+Prochaine : TASK-065 — Rate limiting LLM
+
+---
+
 ## TASK-065 — Rate limiting LLM
 
 STATUS : TODO

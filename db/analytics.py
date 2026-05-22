@@ -46,6 +46,7 @@ def save_attempt(
              response_time_seconds, error_type, topic, pedagogy_type,
              document_id, chunk_id),
         )
+    conn.close()
 
 
 def get_attempts_count(user_id: str = "default") -> int:
@@ -53,6 +54,7 @@ def get_attempts_count(user_id: str = "default") -> int:
         row = conn.execute(
             "SELECT COUNT(*) FROM attempts WHERE user_id = ?", (user_id,)
         ).fetchone()
+    conn.close()
     return int(row[0]) if row else 0
 
 
@@ -64,6 +66,7 @@ def get_attempts(user_id: str = "default", limit: Optional[int] = None) -> pd.Da
         params = (user_id, limit)
     with sqlite3.connect(_db.DB_PATH) as conn:
         df = pd.read_sql_query(sql, conn, params=params)
+    conn.close()
     return df
 
 
@@ -81,6 +84,7 @@ def get_score_evolution(limit: int = 20, user_id: str = "default") -> pd.DataFra
             conn,
             params=(user_id, limit),
         )
+    conn.close()
     return df.iloc[::-1].reset_index(drop=True)
 
 
@@ -101,6 +105,7 @@ def get_error_frequency(user_id: str = "default") -> pd.DataFrame:
             conn,
             params=(user_id,),
         )
+    conn.close()
     return df
 
 
@@ -122,4 +127,5 @@ def get_topic_stats(user_id: str = "default") -> pd.DataFrame:
             conn,
             params=(user_id,),
         )
+    conn.close()
     return df

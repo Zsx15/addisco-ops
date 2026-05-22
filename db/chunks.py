@@ -37,6 +37,7 @@ def save_document(
             (title, source_type, filename, raw_text, cleaned_text, len(cleaned_text), _cat),
         )
         doc_id = cur.lastrowid
+    conn.close()
     logger.info("save_document: id=%d title=%r source=%s category=%r", doc_id, title, source_type, _cat)
     return doc_id
 
@@ -63,6 +64,7 @@ def save_chunks(document_id: int, chunks: list[dict]) -> None:
             """,
             rows,
         )
+    conn.close()
 
 
 def update_chunk_embedding(chunk_id: int, embedding: bytes) -> None:
@@ -72,6 +74,7 @@ def update_chunk_embedding(chunk_id: int, embedding: bytes) -> None:
             "UPDATE chunks SET embedding = ? WHERE id = ?",
             (embedding, chunk_id),
         )
+    conn.close()
 
 
 def get_chunks_for_reindex(document_id: int) -> list[dict]:
@@ -86,12 +89,14 @@ def get_chunks_for_reindex(document_id: int) -> list[dict]:
             """,
             (document_id,),
         ).fetchall()
+    conn.close()
     return [dict(r) for r in rows]
 
 
 def has_documents() -> bool:
     with sqlite3.connect(_db.DB_PATH) as conn:
         count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+    conn.close()
     return count > 0
 
 
@@ -116,6 +121,7 @@ def get_documents() -> pd.DataFrame:
             """,
             conn,
         )
+    conn.close()
     return df
 
 
@@ -165,6 +171,7 @@ def get_chunk_stats(user_id: str = "default") -> pd.DataFrame:
             conn,
             params=(user_id,),
         )
+    conn.close()
     return df
 
 
@@ -184,6 +191,7 @@ def get_chunk_question_history(
             """,
             (chunk_id, user_id, limit),
         ).fetchall()
+    conn.close()
     return [dict(r) for r in rows]
 
 
@@ -197,6 +205,7 @@ def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> Optional[str]:
             """,
             (chunk_id, user_id),
         ).fetchone()
+    conn.close()
     if not row or row[1] < 1:
         return None
     avg, n = row
@@ -249,6 +258,7 @@ def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
             """,
             (user_id,),
         ).fetchone()
+    conn.close()
     return dict(row) if row else None
 
 
@@ -258,6 +268,7 @@ def get_document_by_id(doc_id: int) -> Optional[dict]:
         row = conn.execute(
             "SELECT * FROM documents WHERE id = ?", (doc_id,)
         ).fetchone()
+    conn.close()
     return dict(row) if row else None
 
 
@@ -282,4 +293,5 @@ def get_chunk_by_id(chunk_id: int) -> Optional[dict]:
             """,
             (chunk_id,),
         ).fetchone()
+    conn.close()
     return dict(row) if row else None

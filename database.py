@@ -153,6 +153,7 @@ def init_db():
                 UNIQUE(user_id, skill_id)
             )
         """)
+    conn.close()
     # Seed des 10 skills V1.0 — idempotent
     from db.skills import seed_skills as _seed_skills
     _seed_skills()

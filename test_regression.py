@@ -79,6 +79,7 @@ class _DbTestCase(unittest.TestCase):
                 (doc_id,),
             )
             chunk_id = cur2.lastrowid
+        conn.close()
         return doc_id, chunk_id
 
 
@@ -213,6 +214,7 @@ class TestDatabaseInit(_DbTestCase):
             tables = {r[0] for r in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             ).fetchall()}
+        conn.close()
         expected = {"attempts", "documents", "chunks", "user_learning_profile"}
         self.assertTrue(expected.issubset(tables), f"Tables manquantes : {expected - tables}")
 
@@ -267,6 +269,7 @@ class TestDatabaseAttempts(_DbTestCase):
                     "correction, score, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     ("default", "Q", "A", "E", "C", sc, ts),
                 )
+        conn.close()
         df = self.db.get_score_evolution(limit=10, user_id="default")
         scores = list(df["score"])
         self.assertEqual(scores, sorted(scores))
@@ -769,6 +772,7 @@ class TestDatabaseAdminFunctions(_DbTestCase):
                 "INSERT INTO users (user_id, username, password_hash, role) VALUES (?, ?, ?, ?)",
                 (uid, username, "hash", role),
             )
+        conn.close()
         return uid
 
     def test_count_admins_zero_when_none(self):
@@ -1107,6 +1111,7 @@ class TestGetNextSessionPlanDb(_DbTestCase):
                     (doc_id, i, f"Sec {i}", f"Texte {i}", 10),
                 )
                 chunk_ids.append(c2.lastrowid)
+        conn.close()
         for cid in chunk_ids:
             for _ in range(2):
                 self._add_attempt(score=0.4, chunk_id=cid)
@@ -1248,6 +1253,7 @@ class TestProfileWithNewMetrics(_DbTestCase):
             cols = {row[1] for row in conn.execute(
                 "PRAGMA table_info(user_learning_profile)"
             ).fetchall()}
+        conn.close()
         for col in ("momentum", "learning_velocity", "consistency_score"):
             self.assertIn(col, cols, f"Colonne manquante : {col}")
 
@@ -1444,6 +1450,7 @@ class TestGetRetentionMetricsDb(_DbTestCase):
                 """,
                 (user_id, "Q?", "A", "EA", "C", score, chunk_id, ts_iso),
             )
+        conn.close()
 
     def test_no_history_all_none(self):
         """Aucun historique → les 3 métriques sont None."""
@@ -2052,6 +2059,7 @@ class TestCrossDocuments(unittest.TestCase):
                         (doc_id, i, "S", "x" * 200, 200, blob),
                     )
                 conn.commit()
+            conn.close()
             result = rag_service.search_similar_chunks_multi(vec, [doc_id], top_k=3)
             self.assertLessEqual(len(result), 3)
             self.assertGreater(len(result), 0)
@@ -2095,6 +2103,7 @@ class TestCrossDocuments(unittest.TestCase):
                         (doc_id, i, "S", "y" * 200, 200, blob),
                     )
                 conn.commit()
+            conn.close()
             r_multi  = rag_service.search_similar_chunks_multi(vec, [doc_id], top_k=3)
             r_single = rag_service.search_similar_chunks(vec, doc_id, top_k=3)
             self.assertEqual([r["id"] for r in r_multi], [r["id"] for r in r_single])
@@ -2164,6 +2173,7 @@ class TestGetChunkById(unittest.TestCase):
                 )
                 chunk_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
                 conn.commit()
+            conn.close()
             result = get_chunk_by_id(chunk_id)
             self.assertIsNotNone(result)
             self.assertEqual(result["document_title"], "MonDoc")
@@ -2232,6 +2242,7 @@ class TestGetChunkById(unittest.TestCase):
                 )
                 chunk_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
                 conn.commit()
+            conn.close()
             result = get_chunk_by_id(chunk_id)
             self.assertIsNotNone(result)
             self.assertEqual(result["section_label"], "Section 3")
@@ -2282,6 +2293,7 @@ class TestCorpusSearch(unittest.TestCase):
                         (doc_id, j, "S", "z" * 200, 200, blob),
                     )
             conn.commit()
+        conn.close()
         return orig, doc_ids, vec
 
     def test_none_returns_all_corpus_chunks(self):
@@ -2303,6 +2315,7 @@ class TestCorpusSearch(unittest.TestCase):
                     row = conn.execute("SELECT document_id FROM chunks WHERE id=?", (r["id"],)).fetchone()
                     if row:
                         result_doc_ids.add(row[0])
+            conn.close()
             self.assertEqual(result_doc_ids, set(doc_ids))
         finally:
             db.DB_PATH = orig

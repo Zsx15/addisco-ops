@@ -28,6 +28,7 @@ def get_learning_profile(user_id: str = "default") -> Optional[dict]:
         row = conn.execute(
             "SELECT * FROM user_learning_profile WHERE user_id = ?", (user_id,)
         ).fetchone()
+    conn.close()
     if row is None:
         return None
     d = dict(row)
@@ -59,6 +60,7 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
             """,
             (user_id,),
         ).fetchall()
+    conn.close()
 
     score_time_rows       = [(r[3], r[2]) for r in rows]
     momentum_val          = compute_momentum(score_time_rows)
@@ -142,6 +144,7 @@ def compute_and_save_learning_profile(user_id: str = "default") -> dict:
                 profile["consistency_score"],
             ),
         )
+    conn.close()
 
     # Mise à jour skill mastery — non bloquante
     try:
@@ -178,4 +181,5 @@ def get_retention_metrics(user_id: str = "default") -> dict[str, Optional[float]
             """,
             (user_id,),
         ).fetchall()
+    conn.close()
     return compute_retention_metrics([(r[0], r[1], r[2]) for r in rows_raw])

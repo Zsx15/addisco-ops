@@ -77,6 +77,7 @@ def seed_skills() -> None:
                 "INSERT OR IGNORE INTO skills (slug, label_fr, description) VALUES (?, ?, ?)",
                 (slug, label_fr, description),
             )
+    conn.close()
     logger.info("seed_skills: %d skills disponibles", len(_SKILLS_SEED))
 
 
@@ -90,6 +91,7 @@ def get_all_skills() -> list[dict]:
         rows = conn.execute(
             "SELECT id, slug, label_fr, description FROM skills WHERE is_active = 1 ORDER BY id"
         ).fetchall()
+    conn.close()
     return [dict(r) for r in rows]
 
 
@@ -100,6 +102,7 @@ def get_skill_by_slug(slug: str) -> Optional[dict]:
             "SELECT id, slug, label_fr, description, is_active FROM skills WHERE slug = ?",
             (slug,),
         ).fetchone()
+    conn.close()
     return dict(row) if row else None
 
 
@@ -122,6 +125,7 @@ def _upsert_chunk_skill(
             """,
             (chunk_id, skill_id, weight, source),
         )
+    conn.close()
 
 
 def get_chunk_skills(chunk_id: int) -> list[dict]:
@@ -138,6 +142,7 @@ def get_chunk_skills(chunk_id: int) -> list[dict]:
             """,
             (chunk_id,),
         ).fetchall()
+    conn.close()
     return [dict(r) for r in rows]
 
 
@@ -156,6 +161,7 @@ def classify_and_save_document_skills(document_id: int) -> dict:
             "SELECT id, chunk_text FROM chunks WHERE document_id = ? AND char_count >= 50",
             (document_id,),
         ).fetchall()
+    conn.close()
 
     if not rows:
         logger.info("classify_and_save_document_skills: doc %d — aucun chunk éligible", document_id)
@@ -226,6 +232,7 @@ def get_user_skill_mastery(user_id: str = "default") -> list[dict]:
             """,
             (user_id,),
         ).fetchall()
+    conn.close()
     return [dict(r) for r in rows]
 
 
@@ -251,6 +258,7 @@ def update_user_skill_mastery(user_id: str = "default") -> None:
             """,
             (user_id,),
         ).fetchall()
+    conn.close()
 
     if not rows:
         return
@@ -283,6 +291,7 @@ def update_user_skill_mastery(user_id: str = "default") -> None:
                 """,
                 (mastery_score, attempts_count, user_id, skill_id),
             )
+    conn.close()
 
     logger.info(
         "update_user_skill_mastery: user=%s — %d skill(s) mis à jour",
@@ -353,6 +362,7 @@ def remap_document_skills(document_id: int) -> dict:
                     """,
                     (chunk_id,),
                 ).fetchall()
+            conn.close()
 
             existing_by_skill = {r["skill_id"]: dict(r) for r in existing}
 
@@ -399,6 +409,7 @@ def remap_document_skills(document_id: int) -> dict:
                         updated += 1
                     else:
                         deactivated += 1
+            conn.close()
 
             if detected_skill_ids:
                 remapped += 1
@@ -430,6 +441,7 @@ def remap_all_documents() -> dict:
     """
     with sqlite3.connect(_db.DB_PATH) as conn:
         doc_ids = [r[0] for r in conn.execute("SELECT id FROM documents ORDER BY id").fetchall()]
+    conn.close()
 
     agg = {"documents": 0, "total_chunks": 0, "inserted": 0, "updated": 0, "deactivated": 0}
 

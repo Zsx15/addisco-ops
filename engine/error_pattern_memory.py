@@ -209,6 +209,7 @@ def detect_persistent_error_patterns(user_id: str = "default") -> dict:
             """,
             (user_id,),
         ).fetchall()
+    conn.close()
 
     patterns        = compute_error_patterns(rows)
     persistent_types = get_persistent_error_types(patterns)

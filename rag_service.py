@@ -55,6 +55,7 @@ def search_similar_chunks(
             """,
             (document_id,),
         ).fetchall()
+    conn.close()
 
     if not rows:
         return []
@@ -118,6 +119,7 @@ def search_similar_chunks_multi(
                 """,
                 document_ids,
             ).fetchall()
+    conn.close()
 
     if not rows:
         return []
