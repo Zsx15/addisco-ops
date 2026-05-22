@@ -198,3 +198,58 @@ def get_metrics_summary(hours: int = 24) -> dict:
     except Exception as exc:
         logger.warning("runtime_metrics.get_metrics_summary: %s", exc)
     return empty
+
+
+def get_timeseries(hours: int = 24, bucket: str = "hour") -> dict:
+    """
+    Agrégats temporels pour graphiques Plotly.
+
+    bucket = "hour"  → strftime('%Y-%m-%d %H:00', timestamp)
+    bucket = "day"   → strftime('%Y-%m-%d', timestamp)
+
+    Retourne :
+    {
+        "labels":       list[str],   # buckets ISO
+        "calls":        list[int],
+        "avg_latency":  list[float],
+        "cost":         list[float],
+        "fallback_pct": list[float],
+        "success_pct":  list[float],
+    }
+    """
+    empty: dict = {
+        "labels": [], "calls": [], "avg_latency": [],
+        "cost": [], "fallback_pct": [], "success_pct": [],
+    }
+    try:
+        interval = f"-{hours} hours"
+        fmt = "%Y-%m-%d %H:00" if bucket == "hour" else "%Y-%m-%d"
+        with sqlite3.connect(_db.DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                f"""
+                SELECT
+                    strftime('{fmt}', timestamp)       AS bucket,
+                    COUNT(*)                           AS calls,
+                    ROUND(AVG(latency_ms), 1)          AS avg_latency,
+                    ROUND(SUM(COALESCE(estimated_cost, 0)), 6) AS cost,
+                    ROUND(AVG(fallback_used) * 100, 1) AS fallback_pct,
+                    ROUND(AVG(success) * 100, 1)       AS success_pct
+                FROM runtime_metrics
+                WHERE timestamp >= datetime('now', ?)
+                GROUP BY bucket
+                ORDER BY bucket ASC
+                """,
+                (interval,),
+            ).fetchall()
+        conn.close()
+        for r in rows:
+            empty["labels"].append(r["bucket"])
+            empty["calls"].append(r["calls"] or 0)
+            empty["avg_latency"].append(r["avg_latency"] or 0.0)
+            empty["cost"].append(r["cost"] or 0.0)
+            empty["fallback_pct"].append(r["fallback_pct"] or 0.0)
+            empty["success_pct"].append(r["success_pct"] or 100.0)
+    except Exception as exc:
+        logger.warning("runtime_metrics.get_timeseries: %s", exc)
+    return empty

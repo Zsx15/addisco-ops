@@ -14,7 +14,7 @@ from db.admin import (
     get_document_admin_stats,
     get_system_alerts,
 )
-from db.runtime_metrics import get_metrics_summary
+from db.runtime_metrics import get_metrics_summary, get_timeseries
 
 _ROLES = ["apprenant", "formateur", "admin"]
 
@@ -228,8 +228,169 @@ def render() -> None:
             st.info("Aucun appel LLM instrumenté dans les dernières 24h.")
         else:
             st.caption(
-                f"Analyse via `python tools/observability/runtime_analytics.py --hours 24`"
+                "Analyse via `python tools/observability/runtime_analytics.py --hours 24`"
             )
+
+    # ── Zone 2c : Tendances historiques ──────────────────────────────────────
+    with st.expander("📈 Tendances historiques", expanded=False):
+        try:
+            import plotly.graph_objects as go
+
+            tab_24h, tab_7j = st.tabs(["Dernières 24h (par heure)", "Derniers 7j (par jour)"])
+
+            with tab_24h:
+                ts24 = get_timeseries(hours=24, bucket="hour")
+                if not ts24["labels"]:
+                    st.info("Aucune donnée disponible pour les dernières 24h.")
+                else:
+                    ch1, ch2 = st.columns(2)
+
+                    with ch1:
+                        fig = go.Figure(go.Bar(
+                            x=ts24["labels"], y=ts24["calls"],
+                            marker_color="#4f46e5", name="Appels",
+                        ))
+                        fig.update_layout(
+                            title="Appels LLM / heure",
+                            xaxis_title=None, yaxis_title="Appels",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                    with ch2:
+                        fig2 = go.Figure(go.Scatter(
+                            x=ts24["labels"], y=ts24["avg_latency"],
+                            mode="lines+markers", line=dict(color="#0ea5e9", width=2),
+                            name="Latence moy.",
+                        ))
+                        fig2.add_hline(y=2000, line_dash="dash", line_color="#d97706",
+                                       annotation_text="seuil WARNING")
+                        fig2.add_hline(y=4000, line_dash="dash", line_color="#dc2626",
+                                       annotation_text="seuil CRITICAL")
+                        fig2.update_layout(
+                            title="Latence moyenne (ms) / heure",
+                            xaxis_title=None, yaxis_title="ms",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                        )
+                        st.plotly_chart(fig2, use_container_width=True)
+
+                    ch3, ch4 = st.columns(2)
+
+                    with ch3:
+                        fig3 = go.Figure(go.Scatter(
+                            x=ts24["labels"], y=ts24["fallback_pct"],
+                            mode="lines+markers", line=dict(color="#dc2626", width=2),
+                            fill="tozeroy", fillcolor="rgba(220,38,38,0.08)",
+                            name="Fallback %",
+                        ))
+                        fig3.add_hline(y=10, line_dash="dash", line_color="#d97706",
+                                       annotation_text="seuil 10%")
+                        fig3.update_layout(
+                            title="Taux fallback (%) / heure",
+                            xaxis_title=None, yaxis_title="%",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                            yaxis=dict(range=[0, max(max(ts24["fallback_pct"]) * 1.3, 15)]),
+                        )
+                        st.plotly_chart(fig3, use_container_width=True)
+
+                    with ch4:
+                        fig4 = go.Figure(go.Bar(
+                            x=ts24["labels"], y=ts24["cost"],
+                            marker_color="#16a34a", name="Coût ($)",
+                        ))
+                        fig4.update_layout(
+                            title="Coût estimé ($) / heure",
+                            xaxis_title=None, yaxis_title="USD",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                        )
+                        st.plotly_chart(fig4, use_container_width=True)
+
+            with tab_7j:
+                ts7 = get_timeseries(hours=168, bucket="day")
+                if not ts7["labels"]:
+                    st.info("Aucune donnée disponible pour les 7 derniers jours.")
+                else:
+                    ch5, ch6 = st.columns(2)
+
+                    with ch5:
+                        fig5 = go.Figure(go.Bar(
+                            x=ts7["labels"], y=ts7["calls"],
+                            marker_color="#4f46e5", name="Appels / jour",
+                        ))
+                        fig5.update_layout(
+                            title="Appels LLM / jour (7j)",
+                            xaxis_title=None, yaxis_title="Appels",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                        )
+                        st.plotly_chart(fig5, use_container_width=True)
+
+                    with ch6:
+                        fig6 = go.Figure()
+                        fig6.add_trace(go.Scatter(
+                            x=ts7["labels"], y=ts7["avg_latency"],
+                            mode="lines+markers", name="Latence moy. (ms)",
+                            line=dict(color="#0ea5e9", width=2),
+                        ))
+                        fig6.add_trace(go.Scatter(
+                            x=ts7["labels"], y=ts7["fallback_pct"],
+                            mode="lines+markers", name="Fallback (%)",
+                            line=dict(color="#dc2626", width=2, dash="dot"),
+                            yaxis="y2",
+                        ))
+                        fig6.update_layout(
+                            title="Latence & fallback / jour (7j)",
+                            xaxis_title=None,
+                            yaxis=dict(title="ms", side="left"),
+                            yaxis2=dict(title="%", side="right", overlaying="y"),
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                            legend=dict(orientation="h", y=-0.2),
+                        )
+                        st.plotly_chart(fig6, use_container_width=True)
+
+                    ch7, ch8 = st.columns(2)
+
+                    with ch7:
+                        fig7 = go.Figure(go.Bar(
+                            x=ts7["labels"], y=ts7["cost"],
+                            marker_color="#16a34a", name="Coût ($)",
+                        ))
+                        fig7.update_layout(
+                            title="Coût estimé ($) / jour (7j)",
+                            xaxis_title=None, yaxis_title="USD",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                        )
+                        st.plotly_chart(fig7, use_container_width=True)
+
+                    with ch8:
+                        fig8 = go.Figure(go.Scatter(
+                            x=ts7["labels"], y=ts7["success_pct"],
+                            mode="lines+markers",
+                            line=dict(color="#16a34a", width=2),
+                            fill="tozeroy", fillcolor="rgba(22,163,74,0.08)",
+                            name="Taux succès (%)",
+                        ))
+                        fig8.add_hline(y=90, line_dash="dash", line_color="#d97706",
+                                       annotation_text="seuil 90%")
+                        fig8.update_layout(
+                            title="Taux de succès (%) / jour (7j)",
+                            xaxis_title=None, yaxis_title="%",
+                            height=280, margin=dict(l=20, r=20, t=40, b=20),
+                            plot_bgcolor="#fafafa", paper_bgcolor="#ffffff",
+                            yaxis=dict(range=[0, 105]),
+                        )
+                        st.plotly_chart(fig8, use_container_width=True)
+
+        except ImportError:
+            st.warning("plotly non disponible — `pip install plotly`")
+        except Exception as exc:
+            st.error(f"Erreur graphique : {exc}")
 
     st.divider()
 
