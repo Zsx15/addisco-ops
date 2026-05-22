@@ -225,7 +225,16 @@ Prochaine : TASK-063 — UX responsive tablette
 
 ## TASK-063 — UX responsive tablette
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 079298a
+
+Livré :
+- `tabs/styles.py` : `RESPONSIVE_CSS` (media 900px/600px), `PRESENTATION_CSS`,
+  `PRESENTATION_BANNER`, classe `pipeline-pills-row` sur header pills
+- `app.py` : toggle sidebar "Mode présentation", injection CSS conditionnelle,
+  navigation réduite à 3 tabs essentiels en mode présentation
+- py_compile 2/2 OK · 254/254 tests régression OK
 
 ---
 
