@@ -2634,6 +2634,102 @@ class TestErrorPatternMemory(unittest.TestCase):
         self.assertNotIn("hors_sujet", types)
 
 
+class TestCurriculumEngine(unittest.TestCase):
+    """Curriculum Engine V1 — logique pure (TASK-058)."""
+
+    def setUp(self):
+        from engine.curriculum_engine import (
+            compute_learning_priority,
+            _pick_question_type,
+            _classify_difficulty,
+            _TREND_WEIGHT,
+            _MASTERY_WEIGHT,
+        )
+        from engine.question_type import QUESTION_TYPES
+        self.compute_priority = compute_learning_priority
+        self.pick_type        = _pick_question_type
+        self.classify_diff    = _classify_difficulty
+        self.trend_weight     = _TREND_WEIGHT
+        self.mastery_weight   = _MASTERY_WEIGHT
+        self.all_types        = QUESTION_TYPES
+
+    # ── compute_learning_priority ─────────────────────────────────────────────
+
+    def test_baseline_priority(self):
+        p = self.compute_priority()
+        self.assertEqual(p, 0.50)
+
+    def test_fragile_critique_priority_high(self):
+        p = self.compute_priority("Fragile", "critique", 0.30, is_blocking=True)
+        self.assertGreater(p, 0.90)
+
+    def test_acquis_priority_low(self):
+        p = self.compute_priority("Acquis", None, 0.85)
+        self.assertLess(p, 0.45)
+
+    def test_priority_clamped_0_1(self):
+        high = self.compute_priority("Fragile", "critique", 0.10, True, True)
+        low  = self.compute_priority("Acquis", "stabilisé", 0.95)
+        self.assertLessEqual(high, 1.0)
+        self.assertGreaterEqual(low, 0.0)
+
+    def test_trend_weight_ordering(self):
+        """critique > chronique > recent > base."""
+        p_crit = self.compute_priority(error_trend="critique")
+        p_chro = self.compute_priority(error_trend="chronique")
+        p_rec  = self.compute_priority(error_trend="récent")
+        p_base = self.compute_priority()
+        self.assertGreater(p_crit, p_chro)
+        self.assertGreater(p_chro, p_rec)
+        self.assertGreater(p_rec,  p_base)
+
+    def test_needs_revision_adds_priority(self):
+        without = self.compute_priority("En cours")
+        with_r  = self.compute_priority("En cours", needs_revision=True)
+        self.assertGreater(with_r, without)
+
+    # ── _pick_question_type ───────────────────────────────────────────────────
+
+    def test_error_maps_to_correct_type(self):
+        qt = self.pick_type("reponse_vague", None, "En cours", [])
+        self.assertEqual(qt, "reformulation")
+
+    def test_error_fragile_uses_simpler_type(self):
+        qt = self.pick_type("reponse_vague", None, "Fragile", [])
+        self.assertEqual(qt, "question_directe")
+
+    def test_rotation_avoids_saturated_type(self):
+        used = ["reformulation", "reformulation", "cas_pratique"]
+        qt = self.pick_type("reponse_vague", None, "En cours", used)
+        self.assertNotEqual(qt, "reformulation")
+        self.assertIn(qt, self.all_types)
+
+    def test_no_saturation_if_different_last_two(self):
+        used = ["reformulation", "cas_pratique"]
+        qt = self.pick_type("reponse_vague", None, "En cours", used)
+        self.assertEqual(qt, "reformulation")
+
+    def test_result_always_valid_type(self):
+        for et in ("reponse_vague", "hors_sujet", "oubli_etape", "confusion_notion",
+                   "erreur_ordre", None):
+            qt = self.pick_type(et, "memorisation_faits", "En cours", [])
+            self.assertIn(qt, self.all_types, f"Type invalide pour error_type={et}: {qt}")
+
+    # ── _classify_difficulty ──────────────────────────────────────────────────
+
+    def test_fragile_gives_easy(self):
+        self.assertEqual(self.classify_diff("Fragile"), "easy")
+
+    def test_low_score_gives_easy(self):
+        self.assertEqual(self.classify_diff("En cours", recent_avg=0.30), "easy")
+
+    def test_acquis_high_score_gives_hard(self):
+        self.assertEqual(self.classify_diff("Acquis", recent_avg=0.80), "hard")
+
+    def test_en_cours_gives_medium(self):
+        self.assertEqual(self.classify_diff("En cours", recent_avg=0.65), "medium")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -2668,6 +2764,7 @@ if __name__ == "__main__":
         TestGetChunkById,
         TestProfileInsights,
         TestErrorPatternMemory,
+        TestCurriculumEngine,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
