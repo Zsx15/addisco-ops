@@ -6,6 +6,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from ai_gateway.rate_limiter import check_rate_limit
 from ai_gateway.request_logger import log_request
 
 load_dotenv()
@@ -25,11 +26,21 @@ def _get_gateway_client() -> OpenAI:
     return _client
 
 
-def call_embedding_api(text: str, model: str = "text-embedding-3-small") -> Optional[list[float]]:
+def call_embedding_api(
+    text: str,
+    model: str = "text-embedding-3-small",
+    user_id: str = "default",
+) -> Optional[list[float]]:
     """
     Appel embeddings API. Retourne le vecteur float32 ou None en cas d'échec.
     La troncature du texte reste à la charge du caller (logique métier).
+    user_id : identifiant pour le rate limiting par utilisateur.
     """
+    allowed, reason = check_rate_limit(user_id, "embedding")
+    if not allowed:
+        logger.warning("gateway.call_embedding_api: rate limit [%s] %s", user_id, reason)
+        return None
+
     client = _get_gateway_client()
     start = time.monotonic()
     success = False
@@ -53,12 +64,19 @@ def call_chat_completion(
     temperature: float = 0.7,
     response_format: Optional[dict] = None,
     timeout: int = 30,
+    user_id: str = "default",
 ) -> Optional[str]:
     """
     Point d'entrée unique pour les appels chat completions.
     Retourne le contenu texte de la réponse, ou None en cas d'échec.
     Le caller reste responsable de la logique métier (fallback, parsing JSON, etc.).
+    user_id : identifiant pour le rate limiting par utilisateur.
     """
+    allowed, reason = check_rate_limit(user_id, "chat")
+    if not allowed:
+        logger.warning("gateway.call_chat_completion [%s]: rate limit [%s] %s", task_type, user_id, reason)
+        return None
+
     client = _get_gateway_client()
     start = time.monotonic()
     success = False

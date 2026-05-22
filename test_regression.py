@@ -2744,6 +2744,102 @@ class TestCurriculumEngine(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tests Rate Limiter — TASK-065
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestRateLimiter(unittest.TestCase):
+    """Tests unitaires du rate limiter (in-memory, sans DB ni API)."""
+
+    def setUp(self):
+        from ai_gateway.rate_limiter import reset_rate_limiter
+        reset_rate_limiter()  # état propre avant chaque test
+
+    def tearDown(self):
+        from ai_gateway.rate_limiter import reset_rate_limiter
+        reset_rate_limiter()
+
+    def test_first_call_allowed(self):
+        """Le premier appel est toujours autorisé."""
+        from ai_gateway.rate_limiter import check_rate_limit
+        allowed, reason = check_rate_limit("user_a", "chat")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "")
+
+    def test_embedding_call_allowed(self):
+        """Le type 'embedding' est également autorisé sur le premier appel."""
+        from ai_gateway.rate_limiter import check_rate_limit
+        allowed, _ = check_rate_limit("user_b", "embedding")
+        self.assertTrue(allowed)
+
+    def test_minute_limit_blocks(self):
+        """Dépasser RATE_CHAT_PER_MINUTE appels retourne False."""
+        from ai_gateway.rate_limiter import check_rate_limit, get_rate_limit_window
+        import os
+        limit = int(os.getenv("RATE_CHAT_PER_MINUTE", "20"))
+        # Sature le compteur
+        for _ in range(limit):
+            check_rate_limit("user_limit", "chat")
+        allowed, reason = check_rate_limit("user_limit", "chat")
+        self.assertFalse(allowed)
+        self.assertIn("limite/minute", reason)
+
+    def test_reset_clears_counter(self):
+        """reset_rate_limiter vide les compteurs — un appel redevient possible."""
+        from ai_gateway.rate_limiter import check_rate_limit, reset_rate_limiter
+        import os
+        limit = int(os.getenv("RATE_CHAT_PER_MINUTE", "20"))
+        for _ in range(limit):
+            check_rate_limit("user_reset", "chat")
+        allowed_before, _ = check_rate_limit("user_reset", "chat")
+        self.assertFalse(allowed_before)
+
+        reset_rate_limiter(user_id="user_reset", call_type="chat")
+        allowed_after, _ = check_rate_limit("user_reset", "chat")
+        self.assertTrue(allowed_after)
+
+    def test_users_tracked_independently(self):
+        """Les compteurs de deux utilisateurs sont indépendants."""
+        from ai_gateway.rate_limiter import check_rate_limit
+        import os
+        limit = int(os.getenv("RATE_CHAT_PER_MINUTE", "20"))
+        for _ in range(limit):
+            check_rate_limit("alice", "chat")
+        # alice est bloquée — bob est libre
+        allowed_alice, _ = check_rate_limit("alice", "chat")
+        allowed_bob, _   = check_rate_limit("bob",   "chat")
+        self.assertFalse(allowed_alice)
+        self.assertTrue(allowed_bob)
+
+    def test_call_types_tracked_independently(self):
+        """Les compteurs 'chat' et 'embedding' sont indépendants par utilisateur."""
+        from ai_gateway.rate_limiter import check_rate_limit
+        import os
+        chat_limit = int(os.getenv("RATE_CHAT_PER_MINUTE", "20"))
+        for _ in range(chat_limit):
+            check_rate_limit("user_types", "chat")
+        blocked_chat, _      = check_rate_limit("user_types", "chat")
+        allowed_embedding, _ = check_rate_limit("user_types", "embedding")
+        self.assertFalse(blocked_chat)
+        self.assertTrue(allowed_embedding)
+
+    def test_window_count_after_calls(self):
+        """call_count_last_minute reflète le nombre d'appels enregistrés."""
+        from ai_gateway.rate_limiter import check_rate_limit, get_rate_limit_window
+        n = 5
+        for _ in range(n):
+            check_rate_limit("user_count", "chat")
+        window = get_rate_limit_window("user_count", "chat")
+        self.assertEqual(window.call_count_last_minute, n)
+
+    def test_unknown_call_type_uses_chat_limits(self):
+        """Un call_type inconnu utilise les limites 'chat' sans lever d'exception."""
+        from ai_gateway.rate_limiter import check_rate_limit
+        allowed, _ = check_rate_limit("user_x", "unknown_type")
+        self.assertTrue(allowed)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader  = unittest.TestLoader()
@@ -2778,6 +2874,7 @@ if __name__ == "__main__":
         TestProfileInsights,
         TestErrorPatternMemory,
         TestCurriculumEngine,
+        TestRateLimiter,
     ):
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

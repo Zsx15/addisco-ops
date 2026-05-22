@@ -322,7 +322,37 @@ Prochaine : TASK-064D (optionnel — fermer les connexions restantes)
 
 ## TASK-065 — Rate limiting LLM
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `ai_gateway/rate_limiter.py` — sliding window in-memory, par utilisateur + call_type
+  - Thread-safe (threading.Lock), stdlib pur (threading, time, collections.deque)
+  - Deux fenêtres : par minute + par heure
+  - API : check_rate_limit(user_id, call_type) → (bool, reason_str)
+  - reset_rate_limiter() pour tests/admin
+  - Configurable : RATE_CHAT_PER_MINUTE, RATE_CHAT_PER_HOUR,
+                   RATE_EMBED_PER_MINUTE, RATE_EMBED_PER_HOUR
+- `ai_gateway/gateway.py` — user_id: str = "default" sur les 2 fonctions publiques
+  - Gate avant chaque appel API : if not allowed → log WARNING + return None
+  - Backward-compatible (paramètre optionnel, callers existants non modifiés)
+- `.env.example` — 4 nouvelles vars documentées avec valeurs par défaut
+- `test_regression.py` — 8 nouveaux tests (TestRateLimiter)
+  : first_call_allowed, minute_limit_blocks, reset_clears_counter,
+    users_tracked_independently, call_types_tracked_independently,
+    window_count_after_calls, unknown_call_type_uses_chat_limits
+
+Résultats :
+  - 262/262 régression OK (254 + 8 nouveaux)
+  - 24/24 intégration OK
+  - Limites par défaut : chat 20/min 200/h — embed 30/min 500/h
+
+Observations :
+  - Tests existants mockent call_chat_completion → rate limiter bypassé → aucun impact
+  - En production : Streamlit passe user_id via session_state pour limiter par utilisateur réel
+  - Redémarrage app = reset des compteurs (acceptable MVP)
+
+Prochaine : TASK-066 — Monitoring applicatif (Sentry)
 
 ---
 
