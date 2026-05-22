@@ -324,6 +324,7 @@ Prochaine : TASK-064D (optionnel — fermer les connexions restantes)
 
 STATUS   : DONE
 DATE     : 2026-05-22
+SNAPSHOT : snapshot_task65_ok
 
 Livré :
 - `ai_gateway/rate_limiter.py` — sliding window in-memory, par utilisateur + call_type
