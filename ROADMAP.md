@@ -375,73 +375,68 @@ Risques :
 
 ---
 
-## Phase 16 — UX professionnelle finale  ← PHASE ACTUELLE
+## Phase 16 — Consolidation pédagogique / Analytics / UX  ← PHASE ACTUELLE
 
-Objectif : interface indiscernable d'un vrai SaaS B2B.
+Objectif : moteur pédagogique explicable, robuste et calibrable.
+Chaque livrable renforce la confiance dans les décisions du moteur.
 
-Dépendance : Phase 12 (rôles), Phase 14 (métriques enrichies), Phase 15 (corpus).
+Dépendance : Phase 15 complète (corpus multi-documents opérationnel).
 
-Tâches planifiées à l'origine :
-- TASK-056 : dashboard formateur avancé — graphiques de cohorte, comparaison
-  inter-apprenants, export PDF du rapport ;
-- TASK-057 : vue admin — gestion des utilisateurs (activation/désactivation),
-  gestion des documents, stats globales de la plateforme ;
-- TASK-058 : rapport automatique — génération d'un bilan PDF hebdomadaire
-  par apprenant, envoyable par email ;
-- TASK-059 : UX responsive — layout optimisé tablette, mode présentation plein écran.
+### Historique réel — TASK-051 à TASK-059 DONE
 
-Critère de sortie :
-- un formateur peut gérer ses apprenants sans accès technique ;
-- un admin peut superviser la plateforme entière ;
-- un rapport PDF est générable en un clic.
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-051 | Sources visibles / contexte pédagogique | `8aebae7` | DONE |
+| TASK-051B | Consolidation UX profil pédagogique | `f31f117` | DONE |
+| TASK-052 | Score de confiance correction V1 | `d56a087` | DONE |
+| TASK-053 | Rejet hors sujet / non évaluable | `9f98dbb` | DONE |
+| TASK-054 | Chunk Quality Analyzer V1 | `b39bc6e` | DONE |
+| TASK-055 | Skill Graph Engine V1 | `3eaf9b4` | DONE |
+| TASK-056A | Simulateur session pédagogique réelle | `2909343` | DONE |
+| TASK-056 | Adaptive Difficulty Engine V2 | `412101e` | DONE |
+| TASK-056B | Centralisation seuils mastery + filtre non_evaluable | `f556673` | DONE |
+| TASK-057A | Correction Map observabilité | `bd2d044` | DONE |
+| TASK-057 | Error Pattern Memory V1 | `4a6c69c` | DONE |
+| TASK-057B | Script vérification session 30Q | `7413854` | DONE |
+| TASK-058 | Curriculum Engine V1 | `0c750cc` | DONE |
+| TASK-058B | Script vérification alignement Curriculum Engine | `8f7b5e3` | DONE |
+| TASK-059 | Runtime Curriculum Arbitration | `ce5e88b` | DONE |
 
-Risques :
-- génération PDF en Python (reportlab / weasyprint) : dépendance lourde ;
-  mitigation : export HTML en premier, PDF en second.
+### Restant Phase 16 — TASK-060 à TASK-063
 
-**Phase 16 — EN COURS.**
+| Task | Titre | Statut |
+|------|-------|--------|
+| TASK-060 | Maintenance Assistée V1 | TODO |
+| TASK-061 | Vue admin | TODO |
+| TASK-062 | Rapports HTML/PDF | TODO |
+| TASK-063 | UX responsive tablette | TODO |
 
-Réalisé (avec numérotation effective des tâches exécutées) :
-- TASK-056 (`ff45c02`) : cockpit pédagogique formateur — Dashboard premium, métriques
-  apprenant, zones de progression, cohorte simulée ;
-- TASK-056B (`c1a42b0`) : UX polish cockpit — densification visuelle, layout compact,
-  colonnes uniformisées ;
-- TASK-057* (`380b661`) : Skills Engine V1.0 + V1.1 — tables `skills` / `chunk_skills` /
-  `user_skill_mastery`, mapping keyword déterministe, debug analytics, remap non-destructif ;
-- TASK-058* (`a5d9dbf`) : test robustesse 100 questions simulées — script
-  `test_robustesse_100q.py`, verdict GO SAFE / GO WITH WARNING / FAILED ;
-- TASK-058B* (`2f1d901`) : mode mock `--mock` / `--profile good|mixed|weak|random` —
-  simulation locale sans appels API, 0,3 s pour 100 cycles ;
-- TASK-059* (`eed38d5`) : remap skills V1.1 sur documents de démo — 20 chunk_skills
-  actifs, `user_skill_mastery` peuplée, analytics validés.
-
-Note : les TASK-057/058/059 ci-dessus correspondent aux tâches réellement exécutées.
-Elles ne coïncident pas avec les TASK-057/058/059 planifiés à l'origine (vue admin,
-rapport PDF, UX responsive), qui restent à faire.
-
-Restant à réaliser :
-- vue admin — gestion des utilisateurs (activation/désactivation),
-  gestion des documents, stats globales de la plateforme ;
-- rapport automatique — génération d'un bilan PDF hebdomadaire par apprenant ;
-- UX responsive — layout optimisé tablette, mode présentation plein écran.
+Critère de sortie Phase 16 :
+- moteur calibré, documenté et auditable ;
+- vue admin fonctionnelle ;
+- rapport pédagogique exportable ;
+- interface responsive.
 
 ---
 
-## Phase 17 — Production industrielle
+## Phase 17 — Production Readiness
 
 Objectif : déploiement zéro-friction, monitoring, résilience, CI/CD complet.
 
-Dépendance : toutes les phases précédentes.
+Dépendance : Phase 16 complète.
 
-Tâches :
-- TASK-060 : tests d'intégration complets — pipeline upload → ingest → generate →
-  correct → analytics, sans mocks, sur base de test dédiée ;
-- TASK-061 : rate limiting — protection des appels LLM (max N/minute/user),
-  feedback utilisateur clair ;
-- TASK-062 : monitoring applicatif — Sentry pour les erreurs, métriques d'usage
-  (appels API, latence, taux d'erreur) ;
-- TASK-063 : CI/CD complet — déploiement automatique sur push `main`
-  vers serveur Docker (Railway, Render ou VPS).
+Note de numérotation : les tâches Phase 17 commencent à TASK-064 pour éviter
+toute collision avec les tâches Phase 16 restantes (TASK-060 à TASK-063).
+
+| Task | Titre | Statut |
+|------|-------|--------|
+| TASK-064 | Tests d'intégration complets | TODO |
+| TASK-065 | Rate limiting LLM | TODO |
+| TASK-066 | Monitoring applicatif (Sentry) | TODO |
+| TASK-067 | CI/CD complet | TODO |
+
+**Docker livré — 2026-05-20.**
+`docker compose up --build` opérationnel. Image `python:3.11-slim`, bind mounts `database.db` + `docs`, `env_file .env`, HTTP 200 OK validé. Commits `3741e82` + `d6128f3`.
 
 Critère de sortie :
 - déploiement reproductible en une commande ;
@@ -451,15 +446,6 @@ Critère de sortie :
 Risques :
 - choix hébergement cloud : coût et lock-in ;
   mitigation : Docker standardisé, pas de services cloud propriétaires.
-
-**Docker livré — 2026-05-20.**
-`docker compose up --build` opérationnel. Image `python:3.11-slim`, bind mounts `database.db` + `docs`, `env_file .env`, HTTP 200 OK validé. Commits `3741e82` + `d6128f3`. Tags : `snapshot_pre_docker_readme_visual_v1` / `snapshot_post_docker_v1`.
-
-Restant Phase 17 :
-- TASK-060 : tests d'intégration complets ;
-- TASK-061 : rate limiting LLM ;
-- TASK-062 : monitoring applicatif (Sentry) ;
-- TASK-063 : CI/CD complet — déploiement automatique sur push `main`.
 
 ---
 

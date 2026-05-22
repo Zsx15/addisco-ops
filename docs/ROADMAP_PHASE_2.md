@@ -62,16 +62,21 @@ Priorité : moteur pédagogique → calibration → maintenance → admin → UX
 | 2 | TASK-051B | Consolidation profil pédagogique | DONE |
 | 3 | TASK-052 | Score de confiance correction V1 | DONE |
 | 4 | TASK-053 | Rejet hors sujet / non évaluable | DONE |
-| 5 | TASK-054 | Chunk Quality Analyzer V1 | TODO |
-| 6 | TASK-055 | Skill Graph Engine V1 | TODO |
-| 7 | TASK-056 | Adaptive Difficulty Engine V2 | TODO |
-| 8 | TASK-057 | Error Pattern Memory | TODO |
-| 9 | TASK-058 | Curriculum Engine V1 | TODO |
-| 10 | TASK-059 | Calibration Engine V1 | TODO |
-| 11 | TASK-060 | Maintenance Assistée V1 | TODO |
-| 12 | TASK-061 | Vue admin | TODO |
-| 13 | TASK-062 | Rapports HTML/PDF | TODO |
-| 14 | TASK-063 | UX responsive tablette | TODO |
+| 5 | TASK-054 | Chunk Quality Analyzer V1 | DONE |
+| 6 | TASK-055 | Skill Graph Engine V1 | DONE |
+| 7 | TASK-056A | Simulateur session pédagogique réelle | DONE |
+| 8 | TASK-056 | Adaptive Difficulty Engine V2 | DONE |
+| 9 | TASK-056B | Centralisation seuils mastery + filtre non_evaluable | DONE |
+| 10 | TASK-057A | Correction Map observabilité | DONE |
+| 11 | TASK-057 | Error Pattern Memory V1 | DONE |
+| 12 | TASK-057B | Script vérification session 30Q | DONE |
+| 13 | TASK-058 | Curriculum Engine V1 | DONE |
+| 14 | TASK-058B | Script vérification alignement Curriculum Engine | DONE |
+| 15 | TASK-059 | Runtime Curriculum Arbitration | DONE |
+| 16 | TASK-060 | Maintenance Assistée V1 | TODO |
+| 17 | TASK-061 | Vue admin | TODO |
+| 18 | TASK-062 | Rapports HTML/PDF | TODO |
+| 19 | TASK-063 | UX responsive tablette | TODO |
 
 ---
 
@@ -138,7 +143,7 @@ Livré :
 
 ## TASK-054 — Chunk Quality Analyzer V1
 
-STATUS : TODO
+STATUS : DONE — Commit `b39bc6e` — Snapshot `snapshot_task054_ok`
 
 Objectif :
 Auditer la qualité documentaire.
@@ -171,7 +176,7 @@ Validation :
 
 ## TASK-055 — Skill Graph Engine V1
 
-STATUS : TODO
+STATUS : DONE — Commit `3eaf9b4` — Snapshot `snapshot_task055_ok`
 
 Objectif :
 Transformer les skills isolés en graphe de dépendances pédagogiques.
@@ -195,9 +200,18 @@ Validation :
 
 ---
 
+## TASK-056A — Simulateur session pédagogique réelle
+
+STATUS : DONE — Commit `2909343`
+
+Objectif :
+Simuler une session réelle pour valider le comportement du moteur avant déploiement.
+
+---
+
 ## TASK-056 — Adaptive Difficulty Engine V2
 
-STATUS : TODO
+STATUS : DONE — Commit `412101e` — Snapshot `snapshot_task056_ok`
 
 Objectif :
 Adapter la difficulté des questions selon le profil récent de l'apprenant.
@@ -224,9 +238,27 @@ Validation :
 
 ---
 
+## TASK-056B — Centralisation seuils mastery + filtre non_evaluable
+
+STATUS : DONE — Commit `f556673`
+
+Objectif :
+Centraliser les seuils de mastery et filtrer les tentatives non évaluables pour éviter les biais analytics.
+
+---
+
+## TASK-057A — Correction Map observabilité
+
+STATUS : DONE — Commit `bd2d044` — Snapshot `snapshot_task057a_ok`
+
+Objectif :
+Ajouter une carte d'observabilité des corrections moteur pour auditer les décisions du pipeline.
+
+---
+
 ## TASK-057 — Error Pattern Memory
 
-STATUS : TODO
+STATUS : DONE — Commit `4a6c69c`
 
 Objectif :
 Mémoriser les patterns d'erreurs récurrents et les utiliser pour adapter les futures questions.
@@ -250,9 +282,18 @@ Validation :
 
 ---
 
+## TASK-057B — Script vérification session 30Q Error Pattern Memory
+
+STATUS : DONE — Commit `7413854`
+
+Objectif :
+Valider le comportement d'Error Pattern Memory sur une session simulée de 30 questions.
+
+---
+
 ## TASK-058 — Curriculum Engine V1
 
-STATUS : TODO
+STATUS : DONE — Commit `0c750cc`
 
 Objectif :
 Construire une progression logique par notion : fondation → entraînement → validation → révision.
@@ -276,30 +317,27 @@ Validation :
 
 ---
 
-## TASK-059 — Calibration Engine V1
+## TASK-058B — Script vérification alignement Curriculum Engine
 
-STATUS : TODO
+STATUS : DONE — Commit `8f7b5e3`
 
 Objectif :
-Tester le moteur avec utilisateurs simulés, attempts synthétiques, profils attendus vs profils détectés.
+Vérifier l'alignement entre les décisions du Curriculum Engine et le comportement réel de generate_question().
 
-Créer :
-- utilisateurs simulés ;
-- attempts synthétiques selon différents profils ;
-- profils attendus en entrée ;
-- rapport attendu vs détecté.
+---
 
-Contraintes :
-- environnement de test isolé ;
-- pas de pollution utilisateurs réels ;
-- option dry-run obligatoire ;
-- backup recommandé avant exécution.
+## TASK-059 — Runtime Curriculum Arbitration
 
-Validation :
-- 5 profils simulés minimum ;
-- comparaison profil attendu/détecté ;
-- rapport calibration clair ;
-- tests + py_compile OK.
+STATUS : DONE — Commit `ce5e88b`
+
+Objectif :
+Intégrer le Curriculum Engine comme arbitre prioritaire dans generate_question().
+
+Livré :
+- override question_type si skill Fragile ou priorité >= 0.80 ;
+- fallback garanti si curriculum indisponible ;
+- validation 20Q : 5% → 70% alignement curriculum ;
+- 246/246 tests régression OK.
 
 ---
 
@@ -405,6 +443,29 @@ Validation :
 - rendu tablette testé ;
 - mode présentation opérationnel ;
 - tests + py_compile OK.
+
+---
+
+---
+
+## Phase 17 — Production Readiness
+
+Objectif : déploiement zéro-friction, monitoring, résilience, CI/CD complet.
+
+Dépendance : Phase 16 complète (TASK-063 terminée).
+
+Note de numérotation : Phase 17 commence à TASK-064 pour éviter toute collision
+avec les tâches Phase 16 restantes (TASK-060 à TASK-063).
+
+| Task | Titre | Statut |
+|------|-------|--------|
+| TASK-064 | Tests d'intégration complets | TODO |
+| TASK-065 | Rate limiting LLM | TODO |
+| TASK-066 | Monitoring applicatif (Sentry) | TODO |
+| TASK-067 | CI/CD complet | TODO |
+
+**Docker livré — 2026-05-20.** `docker compose up --build` opérationnel.
+Commits `3741e82` + `d6128f3`.
 
 ---
 

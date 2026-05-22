@@ -85,6 +85,14 @@ STATUS   : DONE
 
 ---
 
+## TASK-056A — Simulateur session pédagogique réelle
+
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 2909343
+
+---
+
 ## TASK-056 — Adaptive Difficulty Engine V2
 
 DATE     : 2026-05-22
@@ -94,23 +102,65 @@ STATUS   : DONE
 
 ---
 
+## TASK-056B — Centralisation seuils mastery + filtre non_evaluable
+
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : f556673
+
+---
+
+## TASK-057A — Correction Map observabilité
+
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : bd2d044
+SNAPSHOT : snapshot_task057a_ok
+
+---
+
 ## TASK-057 — Error Pattern Memory
 
-STATUS : DONE — 2026-05-22
-Mémoire persistante d'erreurs pédagogiques. 5 tendances (critique/chronique/récent/en_amelioration/stabilisé). Injection non-bloquante dans generate_question(). 10/10 tests simulation, 239→246 tests regression.
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 4a6c69c
+
+Mémoire persistante d'erreurs pédagogiques. 5 tendances (critique/chronique/récent/en_amelioration/stabilisé). Injection non-bloquante dans generate_question(). 10/10 tests simulation, 239→246 tests régression.
+
+---
+
+## TASK-057B — Script vérification session 30Q Error Pattern Memory
+
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 7413854
 
 ---
 
 ## TASK-058 — Curriculum Engine V1
 
-STATUS : DONE — 2026-05-22
-Moteur curriculum déterministe (Phase 1 observation). build_learning_queue() : 3 sources (error_pattern/skill_mastery/revision), rotation anti-saturation, déduplication. Observer CLI. 14/14 tests simulation, 246/246 regression. generate_question() non modifié en Phase 1.
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 0c750cc
+
+Moteur curriculum déterministe (Phase 1 observation). build_learning_queue() : 3 sources (error_pattern/skill_mastery/revision), rotation anti-saturation, déduplication. Observer CLI. 14/14 tests simulation, 246/246 régression. generate_question() non modifié en Phase 1.
+
+---
+
+## TASK-058B — Script vérification alignement Curriculum Engine
+
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 8f7b5e3
 
 ---
 
 ## TASK-059 — Runtime Curriculum Arbitration
 
-STATUS : DONE — 2026-05-22
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : ce5e88b
+
 Intégration curriculum dans generate_question() comme arbitre prioritaire. Override question_type si skill Fragile ou priorité >= 0.80. Fallback garanti. Validation 20Q : 5% → 70% alignement curriculum. 246/246 tests.
 
 ---
@@ -139,10 +189,29 @@ STATUS : TODO
 
 ---
 
-## TASK-057A
+# Phase 17 — Production Readiness
 
-STATUS   : DONE
-DATE     : 2026-05-22
-COMMIT   : bd2d044
-SNAPSHOT : snapshot_task057a_ok
+Note : Phase 17 commence à TASK-064 pour éviter toute collision avec Phase 16 (TASK-060 à TASK-063).
+
+## TASK-064 — Tests d'intégration complets
+
+STATUS : TODO
+
+---
+
+## TASK-065 — Rate limiting LLM
+
+STATUS : TODO
+
+---
+
+## TASK-066 — Monitoring applicatif (Sentry)
+
+STATUS : TODO
+
+---
+
+## TASK-067 — CI/CD complet
+
+STATUS : TODO
 
