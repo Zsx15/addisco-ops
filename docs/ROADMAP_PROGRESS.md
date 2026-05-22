@@ -361,6 +361,7 @@ Prochaine : TASK-066 — Monitoring applicatif (Sentry)
 
 STATUS   : DONE
 DATE     : 2026-05-22
+SNAPSHOT : snapshot_task67_ok
 
 Livré :
 - `requirements.txt` : ajout de `numpy>=1.26.0` (dépendance directe de rag_service.py,
