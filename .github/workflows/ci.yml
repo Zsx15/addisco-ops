@@ -31,5 +31,8 @@ jobs:
             fi
           done
 
-      - name: Run tests
+      - name: Run regression tests
         run: python -m unittest test_regression.py -v
+
+      - name: Run integration tests
+        run: python -m unittest test_integration.py -v

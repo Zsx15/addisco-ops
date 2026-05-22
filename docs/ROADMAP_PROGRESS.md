@@ -244,7 +244,22 @@ Note : Phase 17 commence à TASK-064 pour éviter toute collision avec Phase 16 
 
 ## TASK-064 — Tests d'intégration complets
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `test_integration.py` — 24 tests, pipeline complet sans appel API réel
+- 4 classes : TestIngestionPipeline, TestQuestionGenerationPipeline,
+  TestCorrectionPipeline, TestAnalyticsPipeline, TestFullSessionPipeline
+- Mocks : `ai_service.call_embedding_api` + `ai_service.call_chat_completion`
+- Cas couverts : ingest (doc/chunks/embeddings, vide, trop large), génération
+  (avec/sans document_id, fallback, panne LLM), correction (JSON valide/invalide,
+  réponse vide/courte, panne LLM), analytics (save/retrieve, compteur, évolution),
+  session bout-en-bout (ingest→generate→correct→save→analytics)
+- `.github/workflows/ci.yml` : step `Run integration tests` ajouté
+- 254/254 régression + 24/24 intégration OK
+
+Prochaine : TASK-065 — Rate limiting LLM
 
 ---
 
