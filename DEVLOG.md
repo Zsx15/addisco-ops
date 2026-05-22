@@ -4,6 +4,39 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-057 — Error Pattern Memory V1
+
+**Fichiers créés :**
+- `engine/error_pattern_memory.py` — module pur, zéro UI, logique déterministe
+- `tools/observability/error_pattern_observer.py` — observateur CLI standalone
+- `tools/testing/test_error_pattern_memory.py` — 10 tests de simulation
+
+**Fichiers modifiés :**
+- `ai_service.py` — injection mémoire persistante dans `generate_question()` (non-bloquant)
+- `test_regression.py` — `TestErrorPatternMemory` (13 tests) + correction test flaky pré-existant
+
+**Logique :**
+- 5 tendances déterministes : `critique` / `chronique` / `récent` / `en_amelioration` / `stabilisé`
+- Paramètres centralisés : MIN_COUNT_PATTERN=2, MIN_COUNT_CRITICAL=5, CHRONIC_MIN_AGE=14j, RECENT_WINDOW_DAYS=7j, STALE_DAYS=21j, IMPROVEMENT_DELTA=0.15
+- `non_evaluable` et `correct` exclus de toute agrégation (invariant TASK-056B préservé)
+- Injection dans adaptive difficulty : `critique`/`chronique` → poids 2 (dépasse seuil top_count≥2), `récent` → poids 1
+- `detect_persistent_error_patterns()` accède à la DB via monkey-patchable `database.DB_PATH`
+
+**Invariants préservés :**
+- `save_attempt()` non modifié — aucun changement DB
+- Fallback non-bloquant : `try/except Exception: pass` autour de l'injection
+- Compatibilité future TASK-059 Calibration Engine (interface propre)
+- 239/239 tests passés — zéro régression
+
+**Snapshot :** `backups/snapshot_task057_ok.zip`
+
+**Correction bonus :** `TestChooseQuestionType.test_no_profile_unchanged_behavior` corrigé —
+attendait `consequence`/`cas_pratique` (Maîtrisé bias) au lieu de `["vrai_faux", "reformulation", "question_directe"]` (Fragile bias réel).
+
+**Prochaine étape :** TASK-058 (attente validation).
+
+---
+
 ## 2026-05-22 — TASK-056B — Centralisation seuils mastery + filtre non_evaluable
 
 **Fichiers modifiés :**
