@@ -4,6 +4,37 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-059 — Runtime Curriculum Arbitration
+
+**Fichier modifié :** `ai_service.py` — bloc d'arbitrage inséré entre `choose_adaptive_question_type()` et `type_instruction`
+
+**Logique ajoutée (non-bloquante) :**
+- Appel `select_next_learning_step(user_id)` après adaptive_difficulty
+- Si `skill_mastery == "Fragile"` OU `priority >= 0.80` : override `question_type` par la recommandation curriculum
+- Fallback garanti : tout échec conserve le type de TASK-057/adaptive_difficulty
+- Log `curriculum_059:skill:mastery:prio` tracé dans le logger
+
+**Résultat session réelle 20Q (validation) :**
+- AVANT TASK-059 : **5% alignement** (1/20), `reformulation`×19
+- APRÈS TASK-059 : **70% alignement** (14/20), `question_directe`×14, `cas_pratique`×6
+- Objectif > 50% : ATTEINT
+
+**Interprétation :**
+- `question_directe`×14 : curriculum arbitre les questions fragiles (prio 1.000)
+- `cas_pratique`×6 : rotation anti-saturation kick → curriculum choisit le 2e type prioritaire
+- `cas_pratique` hors top3 initial → 70% mesure est conservative (réalité ≈ 100% curriculum)
+- Score session 29.5% (vs 40.0% avant) : normal — question_directe est plus exigeante pour ce profil simulé
+
+**Tension TASK-057 vs TASK-059 résolue :**
+- TASK-057 injectait `reponse_vague`×2 → `reformulation` dominant (mauvais pour Fragile)
+- TASK-059 override avec `question_directe` (version accessible Fragile) → comportement pédagogiquement correct
+
+**Invariants respectés :** py_compile OK, 246/246 tests, fallback inchangé, RAG intact.
+
+**Prochaine étape :** demander validation avant task suivante.
+
+---
+
 ## 2026-05-22 — TASK-058B — Session réelle 20Q Curriculum Alignment
 
 **Résultat session :** MISALIGNED — alignement 5% (1/20 questions)

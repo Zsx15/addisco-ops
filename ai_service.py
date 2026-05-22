@@ -190,9 +190,32 @@ def generate_question(
         recent_scores   = recent_scores,
         repeated_errors = repeated_errors,
     )
+
+    # Arbitrage curriculum (TASK-059) — non-bloquant
+    # Prioritaire quand skill fragile (Fragile) ou priorité curriculum >= 0.80.
+    # Fallback garanti : tout échec conserve question_type de choose_adaptive.
+    _curriculum_reason: str = ""
+    try:
+        from engine.curriculum_engine import select_next_learning_step as _curr_next
+        _curr_step = _curr_next(user_id)
+        if _curr_step:
+            _curr_prio = _curr_step.get("priority", 0.0)
+            _curr_ctx  = _curr_step.get("context", {})
+            _curr_mcls = _curr_ctx.get("skill_mastery") or _curr_ctx.get("mastery_class")
+            _curr_qt   = _curr_step.get("question_type")
+            if _curr_qt and (_curr_mcls == "Fragile" or _curr_prio >= 0.80):
+                _curriculum_reason = (
+                    f"curriculum_059:{_curr_step.get('target_skill')}"
+                    f":{_curr_mcls or 'highprio'}:{_curr_prio:.2f}"
+                )
+                question_type = _curr_qt
+    except Exception:
+        pass  # comportement TASK-057/adaptive_difficulty conservé
+
     logger.info(
-        "generate_question: type=%s mastery=%s doc=%s user=%s",
+        "generate_question: type=%s mastery=%s doc=%s user=%s curriculum=%s",
         question_type, mastery_class, document_id, user_id,
+        _curriculum_reason or "adaptive",
     )
     type_instruction = _TYPE_PROMPTS[question_type]
 
