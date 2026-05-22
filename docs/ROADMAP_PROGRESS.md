@@ -387,11 +387,33 @@ Prochaine : TASK-066 — Monitoring applicatif (Sentry)
 
 ## TASK-066 — Monitoring applicatif (Sentry)
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : (voir git log)
+SNAPSHOT : snapshot_task66_ok
+
+Livré :
+- `sentry-sdk>=2.0.0` ajouté à `requirements.txt`
+- `logger.py` : `_init_sentry()` appelé en fin de `setup_logging()`
+  - Sans SENTRY_DSN : retour immédiat, zéro import, zéro overhead
+  - Avec SENTRY_DSN : LoggingIntegration — WARNING+ → breadcrumb, ERROR+ → événement Sentry
+  - Non-bloquant : toute erreur d'init loggée et ignorée
+- `.env.example` : SENTRY_DSN=, APP_ENV=production, APP_VERSION=1.0.0 documentés
+- 286/286 tests OK (262 régression + 24 intégration)
 
 ---
 
 ## TASK-067 — CI/CD complet
 
-STATUS : TODO
+STATUS   : DONE
+DATE     : 2026-05-22
+COMMIT   : 690fa07
+SNAPSHOT : snapshot_task67_ok
+
+Livré :
+- `requirements.txt` : ajout de `numpy>=1.26.0`
+- `.github/workflows/ci.yml` : refonte complète
+  - Bloc `env` global : PYTHONDONTWRITEBYTECODE, PYTHONUNBUFFERED, OPENAI_API_KEY fictive
+  - py_compile auto-maintenu (find … | xargs) : 100 fichiers couverts
+  - 286/286 tests OK
 
