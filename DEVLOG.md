@@ -4,6 +4,40 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-058 — Curriculum Engine V1 OBSERVABLE FIRST
+
+**Fichiers créés :**
+- `engine/curriculum_engine.py` — moteur pur déterministe (~280 lignes)
+- `tools/observability/curriculum_observer.py` — CLI observer
+- `tools/testing/test_curriculum_engine.py` — 14/14 tests passés
+
+**Fichier modifié :**
+- `test_regression.py` — +15 tests `TestCurriculumEngine` → 246/246 OK
+
+**Fonctionnement du moteur :**
+- `compute_learning_priority()` — score 0.0–1.0 multi-facteurs (mastery, trend erreur, score récent, révision, blocking)
+- `build_learning_queue()` — 3 sources : error_pattern / skill_mastery / revision ; déduplication + rotation saturation
+- `_pick_question_type()` — erreur dominante > skill cible > générique ; évite saturation si 2 derniers identiques
+- `_classify_difficulty()` — easy/medium/hard selon mastery + score récent
+- `get_curriculum_recommendation()` — rapport complet pour observer/tests uniquement
+
+**Invariants respectés :**
+- Phase 1 = OBSERVATION ONLY — `generate_question()` non modifié
+- Tous les appels DB non-bloquants (try/except)
+- Logique déterministe pure, zéro ML/embedding
+- py_compile + 14/14 simulation + 246/246 regression : PASS
+
+**Observer en action :**
+- Identifie `identification_concepts` (level 0, débloque 4 skills) comme priorité 0.920
+- Topologie correcte : skills fondamentaux avant avancés
+- Raisons lisibles pour chaque item de queue
+
+**Snapshot :** `backups/snapshot_task058_ok.zip` (à créer si besoin)
+
+**Prochaine étape :** TASK-058B ou TASK-059 — demander validation avant intégration runtime.
+
+---
+
 ## 2026-05-22 — TASK-057B — Script verification session 30Q
 
 **Fichier créé :**
