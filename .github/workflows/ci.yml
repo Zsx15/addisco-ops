@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  # Clé fictive — les tests mockent tous les appels LLM, aucun appel réel en CI
+  OPENAI_API_KEY: "ci-dummy-key"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,13 +29,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Compile Python files
+      - name: Compile all Python files
         run: |
-          for f in app.py ai_service.py database.py document_service.py ui_helpers.py; do
-            if [ -f "$f" ]; then
-              python -m py_compile "$f" && echo "OK: $f" || exit 1
-            fi
-          done
+          find . -name "*.py" \
+            -not -path "./.venv/*" \
+            -not -path "./__pycache__/*" \
+            -not -path "./backups/*" \
+            -not -path "./.git/*" \
+            -print0 | xargs -0 python -m py_compile
+          echo "py_compile OK"
 
       - name: Run regression tests
         run: python -m unittest test_regression.py -v

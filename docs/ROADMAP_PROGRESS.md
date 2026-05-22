@@ -357,6 +357,33 @@ Prochaine : TASK-066 — Monitoring applicatif (Sentry)
 
 ---
 
+## TASK-067 — CI/CD complet
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `requirements.txt` : ajout de `numpy>=1.26.0` (dépendance directe de rag_service.py,
+  absente jusqu'ici — installée implicitement via pandas, risque si pandas change ses deps)
+- `.github/workflows/ci.yml` : refonte du pipeline
+  - Bloc `env` global : PYTHONDONTWRITEBYTECODE, PYTHONUNBUFFERED, OPENAI_API_KEY fictive
+  - `Compile all Python files` : find . -name "*.py" | xargs -0 python -m py_compile
+    → couvre 100 fichiers au lieu des 5 hardcodés précédemment (auto-maintenu)
+  - Tests inchangés : test_regression.py + test_integration.py
+- Validation locale : 100 fichiers py_compile OK + 286/286 tests OK
+
+Résultats :
+  - py_compile : 100 fichiers (était 5)
+  - Régression : 262/262
+  - Intégration : 24/24
+  - Total : 286 tests
+
+Critère de sortie Phase 17 atteint : CI green à chaque commit.
+
+Prochaine : TASK-066 — Monitoring applicatif (Sentry)
+
+---
+
 ## TASK-066 — Monitoring applicatif (Sentry)
 
 STATUS : TODO
