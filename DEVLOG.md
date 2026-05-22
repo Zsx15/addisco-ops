@@ -4,6 +4,33 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-058B — Session réelle 20Q Curriculum Alignment
+
+**Résultat session :** MISALIGNED — alignement 5% (1/20 questions)
+
+**Observations clés :**
+- `generate_question()` génère `reformulation` sur 19/20 questions
+- Cause : TASK-057 (Error Pattern Memory) injecte `reponse_vague` ×2
+  → `adaptive_difficulty` sélectionne `reformulation` presque systématiquement
+- Curriculum recommande `question_directe` (approche fondations-first, Fragile)
+  → GAP confirmé entre correction directe (TASK-057) et approche pédagogique (TASK-058)
+
+**Métriques :**
+- Score avant : 27.5% → après : 40.0% (+12.5%) — amélioration malgré le misalignment
+- Types générés : `reformulation`×19, `vrai_faux`×1
+- Types recommandés manquants : `question_directe`
+
+**Tension architecture identifiée :**
+- TASK-057 : `reponse_vague` → `reformulation` (correction directe de l'erreur)
+- TASK-058 : skill `synthese_reformulation` Fragile → `question_directe` (version accessible)
+- TASK-059 devra arbitrer : curriculum prioritaire sur l'injection TASK-057 quand skill = Fragile
+
+**Invariants respectés :** Phase 1 = observation uniquement, `generate_question()` non modifié.
+
+**Prochaine étape :** TASK-059 (intégration runtime) — demander validation avant GO.
+
+---
+
 ## 2026-05-22 — TASK-058 — Curriculum Engine V1 OBSERVABLE FIRST
 
 **Fichiers créés :**
