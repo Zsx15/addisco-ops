@@ -14,6 +14,7 @@ from db.admin import (
     get_document_admin_stats,
     get_system_alerts,
 )
+from db.runtime_metrics import get_metrics_summary
 
 _ROLES = ["apprenant", "formateur", "admin"]
 
@@ -109,6 +110,125 @@ def render() -> None:
         if has_alert:
             st.caption(
                 "Pour le détail complet : `python tools/maintenance/maintenance_report.py`"
+            )
+
+    st.divider()
+
+    # ── Zone 2b : Observabilité Runtime ──────────────────────────────────────
+    rm = get_metrics_summary(hours=24)
+
+    fallback_pct  = rm.get("fallback_rate", 0.0)
+    success_pct   = rm.get("success_rate", 100.0)
+    avg_latency   = rm.get("avg_latency_ms", 0.0)
+    total_calls   = rm.get("total_calls", 0)
+    cost_total    = rm.get("estimated_cost_total", 0.0)
+    slow_calls    = rm.get("slow_calls", 0)
+    by_endpoint   = rm.get("by_endpoint", {})
+    error_types   = rm.get("error_types", {})
+    by_user       = rm.get("by_user", {})
+
+    has_runtime_alert = (
+        fallback_pct >= 10.0
+        or success_pct <= 90.0
+        or avg_latency >= 2_000
+        or slow_calls > 5
+    )
+
+    with st.expander("📡 Observabilité Runtime (24h)", expanded=has_runtime_alert):
+        # KPIs ligne 1
+        r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+
+        lat_color = "#dc2626" if avg_latency >= 4000 else "#d97706" if avg_latency >= 2000 else "#16a34a"
+        fb_color  = "#dc2626" if fallback_pct >= 25 else "#d97706" if fallback_pct >= 10 else "#16a34a"
+        ok_color  = "#dc2626" if success_pct <= 75 else "#d97706" if success_pct <= 90 else "#16a34a"
+        cost_color = "#4f46e5"
+
+        with r1c1:
+            st.markdown(
+                _kpi("Appels LLM (24h)", str(total_calls)),
+                unsafe_allow_html=True,
+            )
+        with r1c2:
+            st.markdown(
+                _kpi("Latence moy.", f"{avg_latency:.0f} ms", lat_color),
+                unsafe_allow_html=True,
+            )
+        with r1c3:
+            st.markdown(
+                _kpi("Taux succès", f"{success_pct:.1f}%", ok_color),
+                unsafe_allow_html=True,
+            )
+        with r1c4:
+            st.markdown(
+                _kpi("Fallback %", f"{fallback_pct:.1f}%", fb_color),
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # KPIs ligne 2
+        r2c1, r2c2, r2c3, r2c4 = st.columns(4)
+        slow_color = "#dc2626" if slow_calls > 10 else "#d97706" if slow_calls > 2 else "#16a34a"
+        with r2c1:
+            st.markdown(
+                _kpi("Coût estimé (24h)", f"${cost_total:.5f}", cost_color),
+                unsafe_allow_html=True,
+            )
+        with r2c2:
+            st.markdown(
+                _kpi("Appels lents (>3s)", str(slow_calls), slow_color),
+                unsafe_allow_html=True,
+            )
+        with r2c3:
+            top_err = list(error_types.keys())[0] if error_types else "—"
+            st.markdown(
+                _kpi("Erreur #1", top_err, "#dc2626" if error_types else "#16a34a"),
+                unsafe_allow_html=True,
+            )
+        with r2c4:
+            n_err_types = len(error_types)
+            err_color = "#dc2626" if n_err_types > 3 else "#d97706" if n_err_types > 0 else "#16a34a"
+            st.markdown(
+                _kpi("Types d'erreurs", str(n_err_types), err_color),
+                unsafe_allow_html=True,
+            )
+
+        # Détail par endpoint
+        if by_endpoint:
+            st.markdown("<br>**Performance par endpoint**", unsafe_allow_html=True)
+            ep_cols = st.columns(min(len(by_endpoint), 4))
+            for i, (ep, info) in enumerate(list(by_endpoint.items())[:4]):
+                avg_ms = info.get("avg_ms") or 0
+                ep_color = "#dc2626" if avg_ms >= 4000 else "#d97706" if avg_ms >= 2000 else "#16a34a"
+                with ep_cols[i % 4]:
+                    st.markdown(
+                        _kpi(ep, f"{avg_ms:.0f}ms", ep_color),
+                        unsafe_allow_html=True,
+                    )
+
+        # Top users consommation
+        if by_user:
+            st.markdown("<br>**Top utilisateurs (appels API)**", unsafe_allow_html=True)
+            user_data = [
+                {"Utilisateur": uid, "Appels": info.get("calls", 0), "Coût": f"${info.get('cost', 0):.5f}"}
+                for uid, info in list(by_user.items())[:5]
+            ]
+            st.dataframe(user_data, use_container_width=True, hide_index=True)
+
+        # Top erreurs
+        if error_types:
+            st.markdown("<br>**Top erreurs runtime**", unsafe_allow_html=True)
+            err_data = [
+                {"Type d'erreur": k, "Occurrences": v}
+                for k, v in sorted(error_types.items(), key=lambda x: -x[1])[:8]
+            ]
+            st.dataframe(err_data, use_container_width=True, hide_index=True)
+
+        if total_calls == 0:
+            st.info("Aucun appel LLM instrumenté dans les dernières 24h.")
+        else:
+            st.caption(
+                f"Analyse via `python tools/observability/runtime_analytics.py --hours 24`"
             )
 
     st.divider()

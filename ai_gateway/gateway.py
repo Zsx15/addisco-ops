@@ -8,6 +8,7 @@ from openai import OpenAI
 
 from ai_gateway.rate_limiter import check_rate_limit
 from ai_gateway.request_logger import log_request
+from db.runtime_metrics import record_metric
 
 load_dotenv()
 
@@ -44,16 +45,37 @@ def call_embedding_api(
     client = _get_gateway_client()
     start = time.monotonic()
     success = False
+    tokens_in: Optional[int] = None
+    error_type: Optional[str] = None
+    cost: Optional[float] = None
+
     try:
         response = client.embeddings.create(model=model, input=text)
         vector = response.data[0].embedding
         success = True
+        if response.usage:
+            tokens_in = response.usage.total_tokens
+            # text-embedding-3-small : $0.02 / 1M tokens
+            cost = round(tokens_in * 0.00000002, 8)
         return vector
     except Exception as exc:
-        logger.error("gateway.call_embedding_api: %s", type(exc).__name__)
+        error_type = type(exc).__name__
+        logger.error("gateway.call_embedding_api: %s", error_type)
         return None
     finally:
-        log_request(task_type="embedding", duration=time.monotonic() - start, success=success)
+        elapsed = time.monotonic() - start
+        log_request(task_type="embedding", duration=elapsed, success=success)
+        record_metric(
+            metric_type="embedding",
+            endpoint="call_embedding_api",
+            latency_ms=round(elapsed * 1000),
+            estimated_cost=cost,
+            tokens_input=tokens_in,
+            success=success,
+            fallback_used=False,
+            error_type=error_type,
+            user_id=user_id,
+        )
 
 
 def call_chat_completion(
@@ -80,6 +102,11 @@ def call_chat_completion(
     client = _get_gateway_client()
     start = time.monotonic()
     success = False
+    fallback_used = False
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
+    error_type: Optional[str] = None
+    cost: Optional[float] = None
 
     try:
         kwargs: dict = dict(
@@ -102,17 +129,37 @@ def call_chat_completion(
         if not content:
             content = None
         success = content is not None
+        # Réponse vide sans exception = fallback implicite
+        fallback_used = not success
+
+        if getattr(response, "usage", None):
+            tokens_in = response.usage.prompt_tokens
+            tokens_out = response.usage.completion_tokens
+            # gpt-4o-mini : $0.15/1M input + $0.60/1M output
+            cost = round(tokens_in * 0.00000015 + tokens_out * 0.0000006, 8)
+
         return content
 
     except Exception as exc:
+        error_type = type(exc).__name__
+        fallback_used = True
         logger.error(
-            "gateway.call_chat_completion [%s]: %s", task_type, type(exc).__name__
+            "gateway.call_chat_completion [%s]: %s", task_type, error_type
         )
         return None
 
     finally:
-        log_request(
-            task_type=task_type,
-            duration=time.monotonic() - start,
+        elapsed = time.monotonic() - start
+        log_request(task_type=task_type, duration=elapsed, success=success)
+        record_metric(
+            metric_type="chat",
+            endpoint=task_type,
+            latency_ms=round(elapsed * 1000),
+            estimated_cost=cost,
+            tokens_input=tokens_in,
+            tokens_output=tokens_out,
             success=success,
+            fallback_used=fallback_used,
+            error_type=error_type,
+            user_id=user_id,
         )

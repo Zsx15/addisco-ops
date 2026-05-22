@@ -417,3 +417,69 @@ Livré :
   - py_compile auto-maintenu (find … | xargs) : 100 fichiers couverts
   - 286/286 tests OK
 
+
+---
+
+# Phase 18A — Observabilité LLM Avancée
+
+## TASK-068 — Runtime Metrics Engine
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `db/runtime_metrics.py` : table SQLite `runtime_metrics` (15 colonnes)
+  - `record_metric()` : insertion non-bloquante, try/except défensif
+  - `get_metrics()` : lecture filtrée par user/type/fenêtre temporelle
+  - `get_metrics_summary()` : agrégats SQL complets (latence, coût, P95, by_endpoint, by_user, error_types)
+- `database.py` : CREATE TABLE + 2 index dans `init_db()` (idempotent)
+- Zéro import circulaire : `db.runtime_metrics` n'est PAS re-exporté depuis `database.py`
+- 286/286 tests OK
+
+---
+
+## TASK-069 — Gateway Instrumentation
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `ai_gateway/gateway.py` instrumenté (aucune modification fonctionnelle)
+  - `call_embedding_api` : capture latence, tokens, coût (text-embedding-3-small $0.02/1M)
+  - `call_chat_completion` : capture latence, tokens in/out, coût (gpt-4o-mini $0.15/$0.60/1M)
+  - fallback_used = True si exception ou réponse vide sans exception
+  - `record_metric()` appelé dans le bloc `finally` — garanti même en cas d'erreur
+- Backward compatible : paramètre `user_id` optionnel déjà existant
+- 286/286 tests OK
+
+---
+
+## TASK-070 — Analytics Runtime
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `tools/observability/runtime_analytics.py` — standalone read-only
+  - 5 sections : latence, coût, qualité runtime, santé pédagogique, utilisateurs
+  - Seuils configurables (WARNING/CRITICAL) par constante
+  - Verdict final : OK / WARNING / CRITICAL + exit code 0/1 (CI-ready)
+  - Fenêtre configurable via `--hours N`
+- 286/286 tests OK
+
+---
+
+## TASK-071 — Dashboard Runtime Admin
+
+STATUS   : DONE
+DATE     : 2026-05-22
+
+Livré :
+- `tabs/tab_admin.py` : section "Observabilité Runtime (24h)" via `get_metrics_summary()`
+  - 8 KPIs : appels LLM, latence moy., taux succès, fallback%, coût estimé, appels lents, erreur #1, types d'erreurs
+  - Couleurs dynamiques vert/orange/rouge selon seuils
+  - Détail par endpoint (jusqu'à 4 colonnes)
+  - Top 5 utilisateurs par volume d'appels (dataframe)
+  - Top 8 erreurs runtime (dataframe)
+  - Expander auto-ouvert si anomalie détectée
+- 286/286 tests OK

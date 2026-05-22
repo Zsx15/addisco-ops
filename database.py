@@ -153,6 +153,31 @@ def init_db():
                 UNIQUE(user_id, skill_id)
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS runtime_metrics (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp      TEXT    NOT NULL,
+                user_id        TEXT    NOT NULL DEFAULT 'default',
+                metric_type    TEXT    NOT NULL,
+                endpoint       TEXT,
+                latency_ms     INTEGER,
+                estimated_cost REAL,
+                tokens_input   INTEGER,
+                tokens_output  INTEGER,
+                success        INTEGER NOT NULL DEFAULT 1,
+                fallback_used  INTEGER NOT NULL DEFAULT 0,
+                error_type     TEXT,
+                question_type  TEXT,
+                score          REAL,
+                document_id    INTEGER
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rm_timestamp ON runtime_metrics(timestamp)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rm_user ON runtime_metrics(user_id)"
+        )
     conn.close()
     # Seed des 10 skills V1.0 — idempotent
     from db.skills import seed_skills as _seed_skills
