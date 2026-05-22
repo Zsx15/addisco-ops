@@ -169,7 +169,7 @@ Intégration curriculum dans generate_question() comme arbitre prioritaire. Over
 
 STATUS   : DONE
 DATE     : 2026-05-22
-COMMIT   : (en cours)
+COMMIT   : 690fa07
 
 Livré :
 - `tools/maintenance/maintenance_report.py` — script standalone read-only
