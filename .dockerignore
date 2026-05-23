@@ -9,3 +9,11 @@ __pycache__/
 .gitignore
 backups/
 README.pdf
+*.db
+*.sqlite
+*.sqlite3
+reports/
+logs/
+.claude/
+.taskmaster/
+rapport.txt
