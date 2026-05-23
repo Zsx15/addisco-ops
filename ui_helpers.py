@@ -36,6 +36,66 @@ def _kpi_card(icon: str, label: str, value: str, accent: str = "#0f172a") -> str
     )
 
 
+def _dark_kpi_card(icon: str, label: str, value: str, accent: str = "#2563EB", sub: str = "") -> str:
+    _sub_html = (
+        f'<div style="font-size:10px;color:#475569;margin-top:4px;letter-spacing:.03em">{sub}</div>'
+        if sub else ""
+    )
+    return (
+        f'<div style="background:#0B1530;border:1px solid rgba(120,140,255,0.18);border-radius:14px;'
+        f'padding:18px 12px;text-align:center;'
+        f'box-shadow:0 4px 16px rgba(0,0,0,0.35),0 0 0 0 transparent;'
+        f'transition:border-color .2s">'
+        f'<div style="font-size:20px;line-height:1;margin-bottom:8px">{icon}</div>'
+        f'<div style="font-size:26px;font-weight:800;color:{accent};line-height:1;'
+        f'margin-bottom:6px;letter-spacing:-0.02em">{value}</div>'
+        f'<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;'
+        f'letter-spacing:.08em">{label}</div>'
+        f'{_sub_html}'
+        f'</div>'
+    )
+
+
+def build_recommendation_reason(
+    mastery_class: str,
+    dominant_error: Optional[str],
+    momentum: float,
+    review_due: bool,
+    avg_score: float,
+) -> list[str]:
+    """
+    Retourne une liste de raisons humaines courtes expliquant pourquoi cette section
+    est recommandée. Basée uniquement sur des signaux réellement mesurés par le moteur.
+    Aucun wording marketing ou fausse IA.
+    """
+    reasons: list[str] = []
+    pct = round(avg_score * 100)
+
+    if mastery_class == "Fragile":
+        reasons.append(f"la maîtrise de cette notion reste fragile (score moyen : {pct}%)")
+    elif mastery_class == "En consolidation":
+        if pct < 70:
+            reasons.append(f"le score moyen reste inférieur au seuil de consolidation ({pct}%)")
+        else:
+            reasons.append(f"la consolidation est en cours ({pct}% — objectif : 80%)")
+
+    if dominant_error and dominant_error not in ("", "correct"):
+        label = _ERROR_LABELS.get(dominant_error, dominant_error)
+        reasons.append(f"des erreurs de type « {label} » ont été détectées récemment")
+
+    if review_due:
+        reasons.append("une révision espacée est actuellement en retard selon l'algorithme")
+
+    if momentum < -0.05:
+        reasons.append(
+            f"une baisse de régularité a été détectée ({round(momentum * 100):+d}% de momentum sur 7j)"
+        )
+    elif momentum > 0.1 and mastery_class == "Fragile":
+        reasons.append("une progression récente est visible — consolidation à encourager")
+
+    return reasons
+
+
 def _mastery_state(row) -> tuple[str, str, str]:
     mc     = row.get("mastery_class", "")
     trend  = row.get("trend", "N/A")

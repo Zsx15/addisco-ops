@@ -133,6 +133,150 @@ section[data-testid="stSidebar"] > div:first-child {
 </style>
 """
 
+DARK_DASHBOARD_CSS = """
+<style>
+/* ── Dark Dashboard Theme — TASK-078 ── */
+
+/* Base */
+.stApp {
+    background-color: #060B1A !important;
+}
+.main .block-container {
+    background-color: #060B1A !important;
+    padding-top: 1rem !important;
+    padding-bottom: 2rem !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: #060B1A !important;
+    padding-top: 0 !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] > div:first-child {
+    background-color: #060B1A !important;
+    border-right: 1px solid rgba(120,140,255,0.15) !important;
+}
+section[data-testid="stSidebar"] .stMarkdown p,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] span {
+    color: #94A3B8 !important;
+}
+section[data-testid="stSidebar"] .stMarkdown strong {
+    color: #F8FAFC !important;
+}
+
+/* Tabs bar */
+.stTabs [data-baseweb="tab-list"] {
+    background: rgba(6,11,26,0.95) !important;
+    border-bottom: 1px solid rgba(120,140,255,0.18) !important;
+    gap: 2px !important;
+}
+.stTabs [data-baseweb="tab"] {
+    color: #64748B !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border-bottom: 2px solid transparent !important;
+}
+.stTabs [aria-selected="true"] {
+    color: #F8FAFC !important;
+    border-bottom-color: #2563EB !important;
+    background: transparent !important;
+}
+
+/* Cards (st.container border=True) */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #0B1530 !important;
+    border: 1px solid rgba(120,140,255,0.18) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important;
+}
+
+/* Expander */
+[data-testid="stExpander"] {
+    background: #0B1530 !important;
+    border: 1px solid rgba(120,140,255,0.18) !important;
+    border-radius: 10px !important;
+}
+[data-testid="stExpander"] summary {
+    color: #94A3B8 !important;
+}
+[data-testid="stExpander"] summary:hover {
+    color: #F8FAFC !important;
+}
+
+/* Dividers */
+hr {
+    border-color: rgba(120,140,255,0.12) !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Metric */
+[data-testid="stMetricValue"] > div {
+    color: #F8FAFC !important;
+}
+[data-testid="stMetricLabel"] > div {
+    color: #94A3B8 !important;
+    font-size: 0.68rem !important;
+}
+
+/* Caption */
+[data-testid="stCaptionContainer"] p {
+    color: #64748B !important;
+}
+
+/* Alerts */
+[data-testid="stAlert"] {
+    background-color: rgba(11,21,48,0.85) !important;
+    border-radius: 10px !important;
+}
+
+/* Download button */
+[data-testid="stDownloadButton"] > button {
+    background: rgba(37,99,235,0.12) !important;
+    border: 1px solid rgba(37,99,235,0.35) !important;
+    color: #60A5FA !important;
+    border-radius: 8px !important;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    background: rgba(37,99,235,0.22) !important;
+    border-color: rgba(37,99,235,0.55) !important;
+}
+
+/* Selectbox */
+[data-baseweb="select"] > div:first-child {
+    background: #0B1530 !important;
+    border-color: rgba(120,140,255,0.25) !important;
+    color: #F8FAFC !important;
+}
+
+/* General text */
+.stMarkdown p { color: #CBD5E1; }
+.stMarkdown li { color: #CBD5E1; }
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 { color: #F8FAFC; }
+label { color: #94A3B8 !important; }
+
+/* Spinner */
+[data-testid="stSpinner"] > div {
+    border-top-color: #2563EB !important;
+}
+
+/* Progress */
+[data-testid="stProgress"] [role="progressbar"] {
+    background: rgba(37,99,235,0.25) !important;
+}
+[data-testid="stProgress"] [role="progressbar"] > div {
+    background: linear-gradient(90deg, #2563EB, #7C3AED) !important;
+}
+
+/* Info box */
+[data-testid="stAlert"][kind="info"] {
+    background: rgba(37,99,235,0.1) !important;
+    border-left-color: #2563EB !important;
+}
+</style>
+"""
+
 PRESENTATION_BANNER = """
 <div style="background:#4f46e5;color:#fff;padding:7px 18px;border-radius:8px;
             font-size:12px;font-weight:700;letter-spacing:.08em;text-align:center;
