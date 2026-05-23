@@ -20,6 +20,7 @@ from database import (
     get_revision_suggestion,
     save_attempt,
     save_attempt_feedback,
+    save_recommendation_feedback,
 )
 from db.corpus import get_corpus_documents
 from ui_helpers import explain_question_decision
@@ -422,8 +423,11 @@ def render() -> None:
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
                         user_id=st.session_state["user_id"],
                     )
-                    st.session_state["last_attempt_id"] = _attempt_id
-                    st.session_state["feedback_given"]  = False
+                    st.session_state["last_attempt_id"]      = _attempt_id
+                    st.session_state["feedback_given"]       = False
+                    st.session_state["session_answers_count"] = (
+                        st.session_state.get("session_answers_count", 0) + 1
+                    )
                     try:
                         compute_and_save_learning_profile(st.session_state["user_id"])
                     except Exception:
@@ -515,6 +519,67 @@ def render() -> None:
                 st.rerun()
         else:
             st.caption("Merci pour votre retour.")
+
+        # ── Feedback session ─────────────────────────────────────────────
+        _session_count   = st.session_state.get("session_answers_count", 0)
+        _sess_fb_given   = st.session_state.get("session_feedback_given", False)
+        _sess_fb_pending = st.session_state.get("session_fb_pending_score")
+
+        if _session_count >= 3 and not _sess_fb_given:
+            st.markdown(
+                '<div style="background:rgba(30,30,50,0.6);border:1px solid rgba(124,58,237,0.25);'
+                'border-radius:12px;padding:16px 18px;margin:16px 0 8px">'
+                '<p style="font-size:14px;font-weight:600;color:#C4B5FD;margin:0 0 12px">'
+                'Cette session vous a-t-elle aidé ?</p>',
+                unsafe_allow_html=True,
+            )
+            if _sess_fb_pending is None:
+                _sb1, _sb2, _sb3, _sb4 = st.columns([1, 1, 1, 5])
+                if _sb1.button("👍 Oui", key="sfb_yes"):
+                    st.session_state["session_fb_pending_score"] = 1.0
+                    st.rerun()
+                if _sb2.button("😐 Partiellement", key="sfb_partial"):
+                    st.session_state["session_fb_pending_score"] = 0.5
+                    st.rerun()
+                if _sb3.button("👎 Non", key="sfb_no"):
+                    st.session_state["session_fb_pending_score"] = 0.0
+                    st.rerun()
+            else:
+                _SCORE_LABELS = {1.0: "👍 Oui", 0.5: "😐 Partiellement", 0.0: "👎 Non"}
+                st.caption(f"Réponse : {_SCORE_LABELS.get(_sess_fb_pending, '—')}")
+                _REASONS = [
+                    "utile", "trop difficile", "trop facile",
+                    "confus", "répétitif", "bonne progression", "fatigue", "autre",
+                ]
+                _reason_sel = st.radio(
+                    "Pourquoi ? (facultatif)",
+                    options=["—"] + _REASONS,
+                    horizontal=True,
+                    key="sfb_reason",
+                    label_visibility="visible",
+                )
+                _rc1, _rc2 = st.columns([1, 4])
+                if _rc1.button("Enregistrer", key="sfb_submit"):
+                    _reason = _reason_sel if _reason_sel != "—" else None
+                    try:
+                        save_recommendation_feedback(
+                            user_id=st.session_state["user_id"],
+                            recommendation_type="session",
+                            feedback_score=_sess_fb_pending,
+                            feedback_reason=_reason,
+                        )
+                    except Exception:
+                        pass
+                    st.session_state["session_feedback_given"]   = True
+                    st.session_state["session_fb_pending_score"] = None
+                    st.rerun()
+                if _rc2.button("Passer", key="sfb_skip"):
+                    st.session_state["session_feedback_given"]   = True
+                    st.session_state["session_fb_pending_score"] = None
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        elif _sess_fb_given and _session_count >= 3:
+            st.caption("Merci pour votre retour sur cette session.")
 
         def _reset_question():
             st.session_state["result"]          = None

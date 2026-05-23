@@ -185,6 +185,17 @@ def init_db():
             )
         except sqlite3.OperationalError:
             pass
+        # ── Feedback session (TASK-083) ───────────────────────────────────
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS recommendation_feedback (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id             TEXT    NOT NULL,
+                recommendation_type TEXT    NOT NULL DEFAULT 'session',
+                feedback_score      REAL    NOT NULL,
+                feedback_reason     TEXT,
+                created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # ── Corpus personnalisés (TASK-080) ───────────────────────────────
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corpus (
@@ -221,6 +232,7 @@ def init_db():
 from db.analytics import (                                          # noqa: E402
     save_attempt,
     save_attempt_feedback,
+    save_recommendation_feedback,
     get_last_attempt_id,
     get_attempts,
     get_attempts_count,
@@ -280,7 +292,8 @@ __all__ = [
     "compute_momentum", "compute_learning_velocity", "compute_consistency_score",
     "build_session_plan", "compute_retention_metrics",
     # Analytics
-    "save_attempt", "save_attempt_feedback", "get_attempts", "get_attempts_count", "get_score_evolution",
+    "save_attempt", "save_attempt_feedback", "save_recommendation_feedback",
+    "get_attempts", "get_attempts_count", "get_score_evolution",
     "get_error_frequency", "get_topic_stats",
     # Documents & Chunks
     "save_document", "save_chunks", "update_chunk_embedding", "get_chunks_for_reindex",

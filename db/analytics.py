@@ -70,6 +70,25 @@ def save_attempt_feedback(attempt_id: int, feedback: int) -> None:
     conn.close()
 
 
+def save_recommendation_feedback(
+    user_id: str,
+    recommendation_type: str,
+    feedback_score: float,
+    feedback_reason: Optional[str] = None,
+) -> None:
+    """Enregistre le feedback session (utile / partiellement / non utile)."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO recommendation_feedback
+                (user_id, recommendation_type, feedback_score, feedback_reason)
+            VALUES (?, ?, ?, ?)
+            """,
+            (user_id, recommendation_type, feedback_score, feedback_reason),
+        )
+    conn.close()
+
+
 def get_last_attempt_id(user_id: str) -> Optional[int]:
     """Retourne l'ID de la dernière tentative de l'utilisateur, ou None."""
     with sqlite3.connect(_db.DB_PATH) as conn:
