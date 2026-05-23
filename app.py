@@ -152,13 +152,15 @@ if not _is_authed:
                 st.rerun()
 
     else:
-        # ── Users présents : login ou inscription ─────────────────────────
+        # ── Users présents : login, inscription, mode démo ────────────────
         if _no_admin:
-            _tb_login, _tb_reg, _tb_admin = st.tabs(
-                ["Connexion", "Créer un compte", "Premier administrateur"]
+            _tb_login, _tb_reg, _tb_admin, _tb_demo = st.tabs(
+                ["Connexion", "Créer un compte", "Premier administrateur", "Mode démo"]
             )
         else:
-            _tb_login, _tb_reg = st.tabs(["Connexion", "Créer un compte"])
+            _tb_login, _tb_reg, _tb_demo = st.tabs(
+                ["Connexion", "Créer un compte", "Mode démo"]
+            )
             _tb_admin = None
 
         with _tb_login:
@@ -204,6 +206,16 @@ if not _is_authed:
         if _tb_admin is not None:
             with _tb_admin:
                 _render_admin_bootstrap()
+
+        with _tb_demo:
+            st.info(
+                "Continuez sans créer de compte.  \n"
+                "Session partagée — données de démonstration disponibles."
+            )
+            if st.button("Continuer en mode démo", key="demo_btn_auth", type="primary"):
+                st.session_state["demo_active"] = True
+                st.session_state["user_id"]     = "default"
+                st.rerun()
 
     st.stop()
 
