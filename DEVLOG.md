@@ -4,6 +4,39 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-23 — TASK-080 — Corpus personnalisés multi-documents
+
+**Commit :** `cb8ed05`
+
+**Fichiers créés :**
+- `db/corpus.py` — service CRUD corpus (`create_corpus`, `get_user_corpus`, `get_corpus_documents`, `get_corpus_by_id`, `delete_corpus`)
+- `tabs/tab_corpus.py` — onglet Corpus dark premium (3 sections : actif, créer, liste avec cartes)
+
+**Fichiers modifiés :**
+- `database.py` — tables `corpus` + `corpus_documents` + index + re-exports
+- `db/analytics.py` — paramètre `document_ids` optionnel sur `get_attempts`, `get_score_evolution`, `get_error_frequency`, `get_topic_stats`
+- `db/chunks.py` — paramètre `document_ids` optionnel sur `get_chunk_stats` + `get_revision_suggestion`
+- `tabs/tab_training.py` — sentinel `_NAMED_CORPUS = -2`, banner corpus actif, filtrage suggestions de révision
+- `tabs/tab_dashboard.py` — badge corpus dans header, toutes les analytics filtrées par `corpus_doc_ids`
+- `app.py` — onglet Corpus ajouté, `active_corpus_id/name` dans session_state, badge sidebar, clear au logout
+
+**Décisions d'architecture :**
+- Corpus actif stocké en `session_state` (MVP — pas de migration users) → simple, stable, réversible
+- `document_ids` filtre SQL injecté dans les fonctions analytics via `_doc_filter()` helper — aucun changement de signature des callers existants (backward compat totale)
+- Fallback : si aucun corpus actif → comportement existant inchangé (toutes les sources)
+- Sentinel `_NAMED_CORPUS = -2` distinct de `_CORPUS = -1` (corpus complet) pour conserver les deux modes
+
+**Tests :** 262/262 OK
+
+**Invariants préservés :**
+- Moteur adaptatif non modifié
+- RAG multi-documents existant réutilisé (`document_ids` déjà supporté par `generate_question`)
+- Compatibilité backward totale sur toutes les fonctions modifiées
+
+**Prochaine étape :** Tests humains en conditions réelles (Phase 19), ou déploiement Railway.
+
+---
+
 ## 2026-05-23 — TASK-079 — Training & Calibration Suite Runner
 
 **Fichier créé :** `tools/testing/run_training_calibration_suite.py`
