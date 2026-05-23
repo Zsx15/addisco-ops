@@ -39,10 +39,11 @@ def save_attempt(
     document_id: Optional[int] = None,
     chunk_id: Optional[int] = None,
     user_id: str = "default",
-):
+) -> Optional[int]:
+    """Enregistre une tentative et retourne son ID (lastrowid)."""
     topic = _normalize_topic(topic)
     with sqlite3.connect(_db.DB_PATH) as conn:
-        conn.execute(
+        cur = conn.execute(
             """
             INSERT INTO attempts
                 (user_id, question, user_answer, expected_answer, correction, score,
@@ -53,6 +54,18 @@ def save_attempt(
             (user_id, question, user_answer, expected_answer, correction, score,
              response_time_seconds, error_type, topic, pedagogy_type,
              document_id, chunk_id),
+        )
+        attempt_id = cur.lastrowid
+    conn.close()
+    return attempt_id
+
+
+def save_attempt_feedback(attempt_id: int, feedback: int) -> None:
+    """Enregistre le feedback qualitatif (1=pertinent, 0=non_pertinent) sur une tentative."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        conn.execute(
+            "UPDATE attempts SET question_feedback = ? WHERE id = ?",
+            (feedback, attempt_id),
         )
     conn.close()
 

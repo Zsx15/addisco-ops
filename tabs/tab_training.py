@@ -18,6 +18,7 @@ from database import (
     get_learning_profile,
     get_revision_suggestion,
     save_attempt,
+    save_attempt_feedback,
 )
 from db.corpus import get_corpus_documents
 from ui_helpers import explain_question_decision
@@ -406,7 +407,7 @@ def render() -> None:
                         if st.session_state.get("active_document_id") == _CORPUS
                         else st.session_state.get("active_document_id")
                     )
-                    save_attempt(
+                    _attempt_id = save_attempt(
                         question=st.session_state["question"],
                         user_answer=user_answer,
                         expected_answer=result.get("expected_answer", ""),
@@ -420,6 +421,8 @@ def render() -> None:
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
                         user_id=st.session_state["user_id"],
                     )
+                    st.session_state["last_attempt_id"] = _attempt_id
+                    st.session_state["feedback_given"]  = False
                     try:
                         compute_and_save_learning_profile(st.session_state["user_id"])
                     except Exception:
@@ -482,11 +485,33 @@ def render() -> None:
                 f"🧠 Résultat enregistré · Notion : {_topic_res} · Score : {round(score * 100)} %"
             )
 
+        # ── Feedback qualitatif ───────────────────────────────────────────
+        _attempt_id   = st.session_state.get("last_attempt_id")
+        _fb_given     = st.session_state.get("feedback_given", False)
+        if _attempt_id and not _fb_given:
+            st.markdown(
+                '<p style="font-size:13px;color:#64748B;margin:12px 0 6px">Cette question était-elle pertinente ?</p>',
+                unsafe_allow_html=True,
+            )
+            _fc1, _fc2, _fc3 = st.columns([1, 1, 6])
+            if _fc1.button("👍 Oui", key="fb_yes"):
+                save_attempt_feedback(_attempt_id, 1)
+                st.session_state["feedback_given"] = True
+                st.rerun()
+            if _fc2.button("👎 Non", key="fb_no"):
+                save_attempt_feedback(_attempt_id, 0)
+                st.session_state["feedback_given"] = True
+                st.rerun()
+        elif _fb_given:
+            st.caption("Merci pour votre retour.")
+
         def _reset_question():
-            st.session_state["result"]       = None
-            st.session_state["question"]     = None
-            st.session_state["chunk_ids"]    = None
-            st.session_state["rag_chunks"]   = []
-            st.session_state["answer_input"] = ""
+            st.session_state["result"]          = None
+            st.session_state["question"]        = None
+            st.session_state["chunk_ids"]       = None
+            st.session_state["rag_chunks"]      = []
+            st.session_state["answer_input"]    = ""
+            st.session_state["last_attempt_id"] = None
+            st.session_state["feedback_given"]  = False
 
         st.button("Nouvelle question sur ce texte", on_click=_reset_question)

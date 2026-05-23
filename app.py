@@ -251,6 +251,7 @@ with st.sidebar:
                 "question_type_reason", "question_profile_pedagogy",
                 "answer_input", "source_text_input",
                 "active_corpus_id", "active_corpus_name",
+                "last_attempt_id", "feedback_given",
             ):
                 st.session_state[_k] = None
             st.session_state["source_text_input"] = ""

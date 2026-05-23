@@ -178,6 +178,13 @@ def init_db():
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_rm_user ON runtime_metrics(user_id)"
         )
+        # ── Feedback qualitatif question (TASK-083) ───────────────────────
+        try:
+            conn.execute(
+                "ALTER TABLE attempts ADD COLUMN question_feedback INTEGER"
+            )
+        except sqlite3.OperationalError:
+            pass
         # ── Corpus personnalisés (TASK-080) ───────────────────────────────
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corpus (
@@ -213,6 +220,7 @@ def init_db():
 
 from db.analytics import (                                          # noqa: E402
     save_attempt,
+    save_attempt_feedback,
     get_attempts,
     get_attempts_count,
     get_score_evolution,
@@ -271,7 +279,7 @@ __all__ = [
     "compute_momentum", "compute_learning_velocity", "compute_consistency_score",
     "build_session_plan", "compute_retention_metrics",
     # Analytics
-    "save_attempt", "get_attempts", "get_attempts_count", "get_score_evolution",
+    "save_attempt", "save_attempt_feedback", "get_attempts", "get_attempts_count", "get_score_evolution",
     "get_error_frequency", "get_topic_stats",
     # Documents & Chunks
     "save_document", "save_chunks", "update_chunk_embedding", "get_chunks_for_reindex",
