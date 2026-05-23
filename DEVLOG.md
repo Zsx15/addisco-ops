@@ -4,6 +4,30 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-23 — TASK-075 — Mastery Boundary Calibration (FRAGILE + MASTERED)
+
+**Fichier créé :** `tools/testing/calibrate_mastery_boundaries.py`
+
+**3 sections :**
+- SECTION A : MASTERY_FRAGILE — 4 candidats × 8 scores test → tableau F/C/A + transition F→C
+- SECTION B : MASTERY_MASTERED — 5 candidats × 8 scores test → tableau + transition C→A
+- SECTION C : validation DB pipeline — 4 cas limites (0.58/0.62/0.79/0.82), pipeline complet
+
+**Résultats :**
+- MASTERY_FRAGILE=0.60 : transition F→C à score 0.60 → **OK** (validé)
+- MASTERY_MASTERED=0.80 : transition C→A à score 0.81 → **OK** (validé)
+- FRAGILE=0.65 trop strict (transition à 0.67) ; FRAGILE=0.50 trop permissif
+- MASTERED=0.85 trop strict (transition à 0.87) ; MASTERED=0.75 OK mais limite basse
+- DB pipeline : **4/4 PASS**
+
+**Conclusion :** les deux seuils actuels sont pédagogiquement validés — aucune modification requise.
+
+**Invariants respectés :** patch mémoire, restauration garantie, DB isolé, 254/254 tests.
+
+**Prochaine étape :** TASK-076 — Adaptive Difficulty Calibration (ADAPTIVE_FORCE_EASY + ADAPTIVE_ALLOW_HARD).
+
+---
+
 ## 2026-05-22 — TASK-074B — MASTERY_MIN_ATTEMPTS calibration 3 → 5
 
 **Fichier modifié :** `engine/thresholds.py` — MASTERY_MIN_ATTEMPTS 3 → 5
