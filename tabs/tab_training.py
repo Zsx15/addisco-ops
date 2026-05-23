@@ -19,6 +19,7 @@ from database import (
     get_revision_suggestion,
     save_attempt,
 )
+from db.corpus import get_corpus_documents
 from ui_helpers import explain_question_decision
 
 _TYPE_LABELS = {
@@ -45,8 +46,9 @@ _MASTERY_BIAS_LABELS = {
     "Maîtrisé":         "Section maîtrisée — questions pièges et cas pratiques pour challenger la maîtrise.",
 }
 
-# Sentinel : jamais un AUTOINCREMENT SQLite valide — signal "corpus multi-documents"
-_CORPUS = -1
+# Sentinels : jamais des AUTOINCREMENT SQLite valides
+_CORPUS       = -1   # tous les documents
+_NAMED_CORPUS = -2   # corpus personnalisé actif
 
 
 def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
@@ -61,8 +63,28 @@ def _make_use_callback(cleaned_text: str, doc_id: int, doc_title: str = ""):
 
 
 def render() -> None:
+    # ── Corpus actif ─────────────────────────────────────────────────────
+    _active_corpus_id   = st.session_state.get("active_corpus_id")
+    _active_corpus_name = st.session_state.get("active_corpus_name", "")
+    _corpus_doc_ids: Optional[list[int]] = None
+    if _active_corpus_id:
+        _corpus_doc_ids = get_corpus_documents(_active_corpus_id) or None
+        if _corpus_doc_ids:
+            st.markdown(
+                f'<div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.28);'
+                f'border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;'
+                f'color:#A78BFA;display:flex;align-items:center;gap:8px">'
+                f'<span>📚</span>'
+                f'<span><b>{_active_corpus_name}</b> — {len(_corpus_doc_ids)} document{"s" if len(_corpus_doc_ids) != 1 else ""} actifs</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
     # ── Suggestion de révision ───────────────────────────────────────────
-    suggestion = get_revision_suggestion(user_id=st.session_state["user_id"])
+    suggestion = get_revision_suggestion(
+        user_id=st.session_state["user_id"],
+        document_ids=_corpus_doc_ids,
+    )
     if suggestion:
         try:
             last_dt   = datetime.fromisoformat(str(suggestion["last_attempt_date"]))
@@ -111,8 +133,21 @@ def render() -> None:
         else:
             _corpus_label = f"📚 Corpus complet ({_n_docs} docs)"
 
-        _doc_ids    = [None, _CORPUS] + [int(r["id"]) for _, r in _df_docs.iterrows()]
-        _doc_titles = {None: "— Texte libre (sans RAG)", _CORPUS: _corpus_label}
+        # Option corpus nommé actif
+        _named_corpus_label = (
+            f"🎯 {_active_corpus_name} ({len(_corpus_doc_ids)} docs)"
+            if _corpus_doc_ids else None
+        )
+
+        _doc_ids = [None]
+        if _named_corpus_label:
+            _doc_ids.append(_NAMED_CORPUS)
+        _doc_ids.append(_CORPUS)
+        _doc_ids += [int(r["id"]) for _, r in _df_docs.iterrows()]
+
+        _doc_titles: dict = {None: "— Texte libre (sans RAG)", _CORPUS: _corpus_label}
+        if _named_corpus_label:
+            _doc_titles[_NAMED_CORPUS] = _named_corpus_label
         for _, _r in _df_docs.iterrows():
             _doc_titles[int(_r["id"])] = _r["title"]
         _active_id = st.session_state.get("active_document_id")
@@ -123,9 +158,11 @@ def render() -> None:
             format_func=lambda x: _doc_titles.get(x, "—"),
             index=_sel_idx,
         )
-        # Sync active_document_ids pour le corpus (mis à jour à chaque render selon le filtre)
+        # Sync active_document_ids selon la sélection
         if _selected == _CORPUS:
             st.session_state["active_document_ids"] = [int(r["id"]) for _, r in _df_docs.iterrows()]
+        elif _selected == _NAMED_CORPUS and _corpus_doc_ids:
+            st.session_state["active_document_ids"] = _corpus_doc_ids
         else:
             st.session_state.pop("active_document_ids", None)
 
@@ -137,6 +174,11 @@ def render() -> None:
             elif _selected == _CORPUS:
                 st.session_state["active_document_id"]    = _CORPUS
                 st.session_state["active_document_title"] = _corpus_label
+                st.session_state["source_text_input"]     = ""
+            elif _selected == _NAMED_CORPUS:
+                st.session_state["active_document_id"]    = _NAMED_CORPUS
+                st.session_state["active_document_title"] = _named_corpus_label or _active_corpus_name
+                st.session_state["active_document_ids"]   = _corpus_doc_ids or []
                 st.session_state["source_text_input"]     = ""
             else:
                 _full = get_document_by_id(_selected)
@@ -157,9 +199,10 @@ def render() -> None:
     )
 
     _active_doc_id = st.session_state.get("active_document_id")
-    if _active_doc_id == _CORPUS:
+    if _active_doc_id in (_CORPUS, _NAMED_CORPUS):
         _corpus_ids = st.session_state.get("active_document_ids") or []
-        st.caption(f"📚 Corpus actif — {len(_corpus_ids)} document(s) · RAG multi-documents")
+        _corpus_tag = f"🎯 {_active_corpus_name} —" if _active_doc_id == _NAMED_CORPUS and _active_corpus_name else "📚 Corpus —"
+        st.caption(f"{_corpus_tag} {len(_corpus_ids)} document(s) · RAG multi-documents")
     elif _active_doc_id:
         _doc_title = st.session_state.get("active_document_title") or "Document importé"
         st.caption(f"Source : {_doc_title}")
@@ -167,8 +210,8 @@ def render() -> None:
     if len(source_text) > 6000:
         st.warning("Texte trop long — seuls les 6 000 premiers caractères seront utilisés.")
 
-    # En mode corpus, le texte source vient du RAG — on autorise le bouton même si vide
-    _is_corpus = st.session_state.get("active_document_id") == _CORPUS
+    # En mode corpus (nommé ou complet), le texte source vient du RAG — bouton autorisé même si vide
+    _is_corpus = _active_doc_id in (_CORPUS, _NAMED_CORPUS)
     _btn_disabled = not (source_text.strip() or _is_corpus)
     if st.button("Générer une question", disabled=_btn_disabled):
         with st.spinner("Génération en cours…"):

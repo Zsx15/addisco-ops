@@ -18,6 +18,14 @@ def _normalize_topic(topic: Optional[str]) -> Optional[str]:
     return topic.strip().capitalize()
 
 
+def _doc_filter(document_ids: Optional[list[int]]) -> tuple[str, list]:
+    """Retourne (clause SQL, params) pour filtrer par document_ids. Vide si None."""
+    if not document_ids:
+        return "", []
+    ph = ",".join("?" * len(document_ids))
+    return f" AND document_id IN ({ph})", list(document_ids)
+
+
 def save_attempt(
     question: str,
     user_answer: str,
@@ -49,70 +57,88 @@ def save_attempt(
     conn.close()
 
 
-def get_attempts_count(user_id: str = "default") -> int:
+def get_attempts_count(user_id: str = "default", document_ids: Optional[list[int]] = None) -> int:
+    _clause, _params = _doc_filter(document_ids)
+    sql = f"SELECT COUNT(*) FROM attempts WHERE user_id = ?{_clause}"
     with sqlite3.connect(_db.DB_PATH) as conn:
-        row = conn.execute(
-            "SELECT COUNT(*) FROM attempts WHERE user_id = ?", (user_id,)
-        ).fetchone()
+        row = conn.execute(sql, (user_id, *_params)).fetchone()
     conn.close()
     return int(row[0]) if row else 0
 
 
-def get_attempts(user_id: str = "default", limit: Optional[int] = None) -> pd.DataFrame:
-    sql = "SELECT * FROM attempts WHERE user_id = ? ORDER BY created_at DESC"
-    params: tuple = (user_id,)
+def get_attempts(
+    user_id: str = "default",
+    limit: Optional[int] = None,
+    document_ids: Optional[list[int]] = None,
+) -> pd.DataFrame:
+    _clause, _params = _doc_filter(document_ids)
+    sql = f"SELECT * FROM attempts WHERE user_id = ?{_clause} ORDER BY created_at DESC"
+    params: list = [user_id, *_params]
     if limit is not None:
         sql += " LIMIT ?"
-        params = (user_id, limit)
+        params.append(limit)
     with sqlite3.connect(_db.DB_PATH) as conn:
         df = pd.read_sql_query(sql, conn, params=params)
     conn.close()
     return df
 
 
-def get_score_evolution(limit: int = 20, user_id: str = "default") -> pd.DataFrame:
+def get_score_evolution(
+    limit: int = 20,
+    user_id: str = "default",
+    document_ids: Optional[list[int]] = None,
+) -> pd.DataFrame:
+    _clause, _params = _doc_filter(document_ids)
     with sqlite3.connect(_db.DB_PATH) as conn:
         df = pd.read_sql_query(
-            """
+            f"""
             SELECT id, score, created_at
             FROM attempts
             WHERE score IS NOT NULL
-              AND user_id = ?
+              AND user_id = ?{_clause}
             ORDER BY created_at DESC
             LIMIT ?
             """,
             conn,
-            params=(user_id, limit),
+            params=(user_id, *_params, limit),
         )
     conn.close()
     return df.iloc[::-1].reset_index(drop=True)
 
 
-def get_error_frequency(user_id: str = "default") -> pd.DataFrame:
+def get_error_frequency(
+    user_id: str = "default",
+    document_ids: Optional[list[int]] = None,
+) -> pd.DataFrame:
+    _clause, _params = _doc_filter(document_ids)
     with sqlite3.connect(_db.DB_PATH) as conn:
         df = pd.read_sql_query(
-            """
+            f"""
             SELECT error_type, COUNT(*) as count
             FROM attempts
             WHERE error_type IS NOT NULL
               AND error_type != ''
               AND error_type != 'correct'
               AND error_type != 'non_evaluable'
-              AND user_id = ?
+              AND user_id = ?{_clause}
             GROUP BY error_type
             ORDER BY count DESC
             """,
             conn,
-            params=(user_id,),
+            params=(user_id, *_params),
         )
     conn.close()
     return df
 
 
-def get_topic_stats(user_id: str = "default") -> pd.DataFrame:
+def get_topic_stats(
+    user_id: str = "default",
+    document_ids: Optional[list[int]] = None,
+) -> pd.DataFrame:
+    _clause, _params = _doc_filter(document_ids)
     with sqlite3.connect(_db.DB_PATH) as conn:
         df = pd.read_sql_query(
-            """
+            f"""
             SELECT
                 MIN(topic)           AS topic,
                 ROUND(AVG(score), 2) AS avg_score,
@@ -120,12 +146,12 @@ def get_topic_stats(user_id: str = "default") -> pd.DataFrame:
             FROM attempts
             WHERE topic IS NOT NULL AND topic != ''
               AND score IS NOT NULL
-              AND user_id = ?
+              AND user_id = ?{_clause}
             GROUP BY LOWER(TRIM(topic))
             ORDER BY avg_score ASC
             """,
             conn,
-            params=(user_id,),
+            params=(user_id, *_params),
         )
     conn.close()
     return df

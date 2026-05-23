@@ -1,5 +1,6 @@
 """Onglet Dashboard — Dark Premium UI (TASK-078)."""
 from datetime import datetime
+from typing import Optional
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -66,12 +67,30 @@ def render() -> None:
 
     _uid      = st.session_state["user_id"]
     _username = st.session_state.get("username") or "Apprenant"
-    total_attempts = get_attempts_count(user_id=_uid)
+
+    # ── Filtrage corpus actif ────────────────────────────────────────────────
+    _corpus_doc_ids: Optional[list[int]] = None
+    _active_corpus_name = st.session_state.get("active_corpus_name", "")
+    _active_corpus_id   = st.session_state.get("active_corpus_id")
+    if _active_corpus_id:
+        from db.corpus import get_corpus_documents as _get_corpus_docs
+        _corpus_doc_ids = _get_corpus_docs(_active_corpus_id) or None
+
+    total_attempts = get_attempts_count(user_id=_uid, document_ids=_corpus_doc_ids)
 
     # ── Header ───────────────────────────────────────────────────────────────
     _now      = datetime.now()
     _date_str = f"{_now.day} {_MONTHS_FR[_now.month - 1]} {_now.year}"
 
+    _corpus_badge = (
+        f'<span style="background:rgba(124,58,237,0.13);border:1px solid rgba(124,58,237,0.35);'
+        f'border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:#A78BFA;'
+        f'text-transform:uppercase;letter-spacing:.08em">📚 {_active_corpus_name}</span>'
+        if _active_corpus_name else
+        '<span style="background:rgba(37,99,235,0.13);border:1px solid rgba(37,99,235,0.35);'
+        'border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:#60A5FA;'
+        'text-transform:uppercase;letter-spacing:.08em">Adaptive Learning</span>'
+    )
     st.markdown(
         f'<div style="padding:18px 0 22px;border-bottom:1px solid rgba(120,140,255,0.13);margin-bottom:20px">'
         f'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
@@ -81,9 +100,7 @@ def render() -> None:
         f'<div style="font-size:13px;color:#64748B;margin-top:5px">'
         f'{_date_str} &nbsp;·&nbsp; {total_attempts} tentative{"s" if total_attempts != 1 else ""} enregistrée{"s" if total_attempts != 1 else ""}'
         f'</div></div>'
-        f'<span style="background:rgba(37,99,235,0.13);border:1px solid rgba(37,99,235,0.35);'
-        f'border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:#60A5FA;'
-        f'text-transform:uppercase;letter-spacing:.08em">Adaptive Learning</span>'
+        f'{_corpus_badge}'
         f'</div></div>',
         unsafe_allow_html=True,
     )
@@ -122,10 +139,10 @@ def render() -> None:
 
     # ── Chargement des données ───────────────────────────────────────────────
     with st.spinner(""):
-        df_all    = get_attempts(user_id=_uid, limit=_window_limit)
-        df_topics = get_topic_stats(user_id=_uid)
-        df_chunks = classify_mastery(get_chunk_stats(user_id=_uid))
-        df_errors = get_error_frequency(user_id=_uid)
+        df_all    = get_attempts(user_id=_uid, limit=_window_limit, document_ids=_corpus_doc_ids)
+        df_topics = get_topic_stats(user_id=_uid, document_ids=_corpus_doc_ids)
+        df_chunks = classify_mastery(get_chunk_stats(user_id=_uid, document_ids=_corpus_doc_ids))
+        df_errors = get_error_frequency(user_id=_uid, document_ids=_corpus_doc_ids)
 
     scores_all = df_all["score"].dropna()
     n_sections = len(df_chunks)

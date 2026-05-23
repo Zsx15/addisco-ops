@@ -20,6 +20,7 @@ from tabs.tab_documents import render as render_documents
 from tabs.tab_engine import render as render_engine
 from tabs.tab_trainer import render as render_trainer
 from tabs.tab_admin import render as render_admin
+from tabs.tab_corpus import render as render_corpus
 
 init_db()
 seed_demo_document()
@@ -218,6 +219,7 @@ for key in (
     "question_chunk_error", "question_chunk_status",
     "question_type_reason", "question_profile_pedagogy",
     "username", "role",
+    "active_corpus_id", "active_corpus_name",
 ):
     if key not in st.session_state:
         st.session_state[key] = None
@@ -248,6 +250,7 @@ with st.sidebar:
                 "question_chunk_days", "question_chunk_error", "question_chunk_status",
                 "question_type_reason", "question_profile_pedagogy",
                 "answer_input", "source_text_input",
+                "active_corpus_id", "active_corpus_name",
             ):
                 st.session_state[_k] = None
             st.session_state["source_text_input"] = ""
@@ -255,6 +258,21 @@ with st.sidebar:
     else:
         st.markdown("**Session utilisateur**")
         st.text_input("Identifiant", key="user_id", placeholder="ex : alice, bob…")
+
+    # ── Corpus actif (badge sidebar) ──────────────────────────────────────
+    _sidebar_corpus = st.session_state.get("active_corpus_name")
+    if _sidebar_corpus:
+        from db.corpus import get_corpus_documents as _gc_docs
+        _sidebar_corpus_id = st.session_state.get("active_corpus_id")
+        _n_corpus_docs = len(_gc_docs(_sidebar_corpus_id)) if _sidebar_corpus_id else 0
+        st.markdown(
+            f'<div style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);'
+            f'border-radius:8px;padding:6px 10px;font-size:12px;color:#A78BFA">'
+            f'📚 <b>{_sidebar_corpus}</b><br>'
+            f'<span style="color:#64748B;font-size:11px">{_n_corpus_docs} doc{"s" if _n_corpus_docs != 1 else ""} · corpus actif</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     st.divider()
     st.caption("**Statut système**")
@@ -284,18 +302,20 @@ if _pres_mode:
 else:
     # ── Navigation complète selon le rôle ──────────────────────────────────
     if _is_admin:
-        (tab_train, tab_history, tab_dashboard,
+        (tab_train, tab_history, tab_dashboard, tab_corpus,
          tab_docs, tab_engine, tab_formateur, tab_admin) = st.tabs(
-            ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur", "Admin"]
+            ["Entraînement", "Historique", "Dashboard", "Corpus",
+             "Documents", "Moteur IA", "Formateur", "Admin"]
         )
     elif _is_privileged:
-        (tab_train, tab_history, tab_dashboard,
+        (tab_train, tab_history, tab_dashboard, tab_corpus,
          tab_docs, tab_engine, tab_formateur) = st.tabs(
-            ["Entraînement", "Historique", "Dashboard", "Documents", "Moteur IA", "Formateur"]
+            ["Entraînement", "Historique", "Dashboard", "Corpus",
+             "Documents", "Moteur IA", "Formateur"]
         )
     else:
-        tab_train, tab_history, tab_dashboard, tab_engine = st.tabs(
-            ["Entraînement", "Historique", "Dashboard", "Moteur IA"]
+        tab_train, tab_history, tab_dashboard, tab_corpus, tab_engine = st.tabs(
+            ["Entraînement", "Historique", "Dashboard", "Corpus", "Moteur IA"]
         )
 
     with tab_train:
@@ -306,6 +326,9 @@ else:
 
     with tab_dashboard:
         render_dashboard()
+
+    with tab_corpus:
+        render_corpus()
 
     with tab_engine:
         render_engine()

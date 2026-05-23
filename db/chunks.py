@@ -125,11 +125,20 @@ def get_documents() -> pd.DataFrame:
     return df
 
 
-def get_chunk_stats(user_id: str = "default") -> pd.DataFrame:
+def get_chunk_stats(
+    user_id: str = "default",
+    document_ids: Optional[list[int]] = None,
+) -> pd.DataFrame:
     """Agrège les tentatives par chunk source (mode RAG uniquement)."""
+    _doc_clause = ""
+    _doc_params: list = []
+    if document_ids:
+        ph = ",".join("?" * len(document_ids))
+        _doc_clause = f" AND c.document_id IN ({ph})"
+        _doc_params = list(document_ids)
     with sqlite3.connect(_db.DB_PATH) as conn:
         df = pd.read_sql_query(
-            """
+            f"""
             SELECT
                 a.chunk_id,
                 COALESCE(c.section_title, 'Section ' || (c.chunk_index + 1)) AS section_label,
@@ -164,12 +173,12 @@ def get_chunk_stats(user_id: str = "default") -> pd.DataFrame:
             JOIN documents d ON c.document_id  = d.id
             WHERE a.chunk_id IS NOT NULL
               AND a.score    IS NOT NULL
-              AND a.user_id  = ?
+              AND a.user_id  = ?{_doc_clause}
             GROUP BY a.chunk_id
             ORDER BY avg_score ASC
             """,
             conn,
-            params=(user_id,),
+            params=(user_id, *_doc_params),
         )
     conn.close()
     return df
@@ -216,12 +225,21 @@ def get_chunk_mastery(chunk_id: int, user_id: str = "default") -> Optional[str]:
     return "En consolidation"
 
 
-def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
+def get_revision_suggestion(
+    user_id: str = "default",
+    document_ids: Optional[list[int]] = None,
+) -> Optional[dict]:
     _frag        = MASTERY_FRAGILE
     _mast        = MASTERY_MASTERED
     _mast_n      = MASTERY_MIN_ATTEMPTS
     _frag_days   = REVIEW_INTERVALS["Fragile"]
     _consol_days = REVIEW_INTERVALS["En consolidation"]
+    _doc_clause = ""
+    _doc_params: list = []
+    if document_ids:
+        ph = ",".join("?" * len(document_ids))
+        _doc_clause = f" AND c.document_id IN ({ph})"
+        _doc_params = list(document_ids)
     with sqlite3.connect(_db.DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
@@ -240,7 +258,7 @@ def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
             JOIN documents d ON c.document_id = d.id
             WHERE a.chunk_id IS NOT NULL
               AND a.score    IS NOT NULL
-              AND a.user_id  = ?
+              AND a.user_id  = ?{_doc_clause}
             GROUP BY a.chunk_id
             HAVING NOT (ROUND(AVG(a.score), 2) >= {_mast} AND COUNT(*) >= {_mast_n})
             ORDER BY
@@ -256,7 +274,7 @@ def get_revision_suggestion(user_id: str = "default") -> Optional[dict]:
                 ROUND(AVG(a.score), 2) ASC
             LIMIT 1
             """,
-            (user_id,),
+            (user_id, *_doc_params),
         ).fetchone()
     conn.close()
     return dict(row) if row else None

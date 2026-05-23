@@ -178,6 +178,28 @@ def init_db():
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_rm_user ON runtime_metrics(user_id)"
         )
+        # ── Corpus personnalisés (TASK-080) ───────────────────────────────
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS corpus (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     TEXT    NOT NULL,
+                corpus_name TEXT    NOT NULL,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_corpus_user ON corpus(user_id)"
+        )
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS corpus_documents (
+                corpus_id   INTEGER NOT NULL REFERENCES corpus(id),
+                document_id INTEGER NOT NULL REFERENCES documents(id),
+                PRIMARY KEY (corpus_id, document_id)
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_corpus_doc ON corpus_documents(corpus_id)"
+        )
     conn.close()
     # Seed des 10 skills V1.0 — idempotent
     from db.skills import seed_skills as _seed_skills
@@ -233,6 +255,13 @@ from db.skills import (                                             # noqa: E402
     update_user_skill_mastery,
 )
 from engine.skill_engine import classify_skill_mastery             # noqa: E402
+from db.corpus import (                                             # noqa: E402
+    create_corpus,
+    get_user_corpus,
+    get_corpus_documents,
+    get_corpus_by_id,
+    delete_corpus,
+)
 
 __all__ = [
     # Infrastructure
@@ -261,4 +290,7 @@ __all__ = [
     "classify_skill_mastery",
     # Skills Engine V1.1
     "remap_document_skills", "remap_all_documents",
+    # Corpus personnalisés
+    "create_corpus", "get_user_corpus", "get_corpus_documents",
+    "get_corpus_by_id", "delete_corpus",
 ]
