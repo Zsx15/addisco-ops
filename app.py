@@ -33,7 +33,7 @@ st.set_page_config(page_title="ADDISCO OPS", page_icon="🧠", layout="wide")
 
 
 # ── Gate APP_PASSWORD (clé "app_gated" — indépendante du login users) ─────────
-_APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+_APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
 if _APP_PASSWORD and not st.session_state.get("app_gated"):
     st.title("🧠 ADDISCO OPS")
     st.subheader("Accès protégé")
