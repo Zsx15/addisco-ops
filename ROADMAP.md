@@ -462,7 +462,17 @@ Dépendance : Phase 17 complète.
 | TASK-074 | Engine Calibration Harness (5 séquences, SEQ-C révèle MIN_ATTEMPTS) | `6b54cea` | DONE |
 | TASK-074B | MASTERY_MIN_ATTEMPTS calibration 3 → 5 (validée SEQ-C) | `897824d` | DONE |
 
-**Phase 18 — COMPLÈTE.** Commits `7dac9df` → `897824d`. Table `runtime_metrics`, gateway instrumenté, CLI analytique, dashboard admin enrichi (8 KPIs + 8 charts Plotly), simulation contrôlée (mock/API, profils pondérés, verdict COHERENT/WARNING/REGRESSION), calibration harness (5 séquences backdatées, injection SQL directe), MASTERY_MIN_ATTEMPTS validé à 5.
+### Phase 18C — Calibration complète des seuils moteur
+
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-075 | Mastery Boundary Calibration (FRAGILE + MASTERED) | `95ff428` | DONE |
+| TASK-076 | Adaptive Difficulty Calibration (FORCE_EASY + ALLOW_HARD) | `214c4de` | DONE |
+| TASK-077 | Review Intervals Calibration (REVIEW_INTERVALS + sensibilité) | `ab81614` | DONE |
+
+**Phase 18C — COMPLÈTE.** Tous les 6 seuils de `engine/thresholds.py` validés par harness de calibration isolé (DB temporaire, patch en mémoire, aucune modification du fichier source). Conclusion : MASTERY_FRAGILE=0.60, MASTERY_MASTERED=0.80, MASTERY_MIN_ATTEMPTS=5, ADAPTIVE_FORCE_EASY=0.40, ADAPTIVE_ALLOW_HARD=0.65, REVIEW_INTERVALS=1/3/7 — tous confirmés corrects.
+
+**Phase 18 — COMPLÈTE.** Commits `7dac9df` → `ab81614`. Table `runtime_metrics`, gateway instrumenté, CLI analytique, dashboard admin enrichi (8 KPIs + 8 charts Plotly), simulation contrôlée (mock/API, profils pondérés, verdict COHERENT/WARNING/REGRESSION), calibration harness (5 séquences backdatées, injection SQL directe), MASTERY_MIN_ATTEMPTS validé à 5, calibration complète des 6 seuils moteur (18C).
 
 ---
 

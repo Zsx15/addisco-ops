@@ -4,6 +4,31 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-23 — TASK-077 — Review Intervals Calibration (REVIEW_INTERVALS)
+
+**Fichier créé :** `tools/testing/calibrate_review_intervals.py`
+
+**3 sections :**
+- SECTION A : carte complète `_adaptive_interval(mastery, trend)` — 3 mastery × 4 trends = 12 cellules + 5 vérifications de cohérence
+- SECTION B : ordre de priorité DB `get_revision_suggestion()` — 4 scénarios (overdue, non-due, Fragile vs Consol)
+- SECTION C : analyse de sensibilité — 3 jeux d'intervalles × corpus 10 chunks × 4 horizons (T+0/+3/+7/+14j)
+
+**Résultats :**
+- Carte intervalles effectifs : Fragile 1→2j, Consol 2→5j, Maîtrisé 7j — cohérence structurelle **OK**
+- Priorité DB : 4/4 scénarios **PASS** (ordre overdue > mastery level confirmé)
+- Sensibilité : 1/3/7 = 5/10 chunks en retard à T=0 (pression quotidienne élevée, alignement Leitner standard)
+- Alternatives : 1/5/14 (usage 2-3j), 2/7/21 (hebdomadaire) — documentées pour calibration future
+
+**Conclusion :** REVIEW_INTERVALS=1/3/7 validé. Optimisation fine requiert données de rétention réelles (>30j d'usage actif).
+
+**Phase 18C terminée.** Les 6 seuils de `engine/thresholds.py` sont tous validés — aucune modification requise.
+
+**Invariants respectés :** patch in-place dict (propagation garantie), DB isolée, restauration automatique, 254/254 tests.
+
+**Prochaine étape :** Phase 19 — à définir selon priorités (UX polish, production readiness, ou nouvelle fonctionnalité moteur).
+
+---
+
 ## 2026-05-23 — TASK-076 — Adaptive Difficulty Calibration (FORCE_EASY + ALLOW_HARD)
 
 **Fichier créé :** `tools/testing/calibrate_adaptive_difficulty.py`
