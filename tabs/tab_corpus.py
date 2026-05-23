@@ -31,15 +31,22 @@ def _corpus_card(corpus: dict, is_active: bool, uid: str) -> None:
     accent = "#7C3AED" if is_active else "rgba(120,140,255,0.18)"
     border = f"2px solid {accent}" if is_active else f"1px solid {accent}"
     label  = corpus["corpus_name"]
-    n_docs = int(corpus.get("n_docs") or 0)
-    created = _fmt_date(corpus.get("created_at", ""))
-    badge_bg = "rgba(124,58,237,0.18)" if is_active else "rgba(37,99,235,0.1)"
+    n_docs   = int(corpus.get("n_docs") or 0)
+    n_chunks = int(corpus.get("n_chunks") or 0)
+    created  = _fmt_date(corpus.get("created_at", ""))
+    badge_bg  = "rgba(124,58,237,0.18)" if is_active else "rgba(37,99,235,0.1)"
     badge_col = "#A78BFA" if is_active else "#60A5FA"
     active_tag = (
         '<span style="background:rgba(124,58,237,0.22);border:1px solid #7C3AED;'
         'border-radius:10px;padding:2px 9px;font-size:10px;font-weight:700;'
         'color:#A78BFA;letter-spacing:.06em;text-transform:uppercase">ACTIF</span>'
         if is_active else ""
+    )
+    chunk_badge = (
+        f'<span style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);'
+        f'border-radius:8px;padding:2px 10px;font-size:11px;font-weight:600;color:#34D399">'
+        f'{n_chunks} chunk{"s" if n_chunks != 1 else ""}</span>'
+        if n_chunks else ""
     )
 
     st.markdown(
@@ -48,10 +55,11 @@ def _corpus_card(corpus: dict, is_active: bool, uid: str) -> None:
         f'<div style="display:flex;align-items:center;justify-content:space-between;'
         f'flex-wrap:wrap;gap:8px">'
         f'<div style="font-size:15px;font-weight:700;color:#F8FAFC">{label} {active_tag}</div>'
-        f'<div style="display:flex;gap:8px;align-items:center">'
+        f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
         f'<span style="background:{badge_bg};border:1px solid rgba(37,99,235,0.3);'
         f'border-radius:8px;padding:2px 10px;font-size:11px;font-weight:600;color:{badge_col}">'
         f'{n_docs} doc{"s" if n_docs != 1 else ""}</span>'
+        f'{chunk_badge}'
         f'<span style="font-size:11px;color:#64748B">{created}</span>'
         f'</div></div></div>',
         unsafe_allow_html=True,

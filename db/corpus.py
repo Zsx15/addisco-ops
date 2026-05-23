@@ -36,9 +36,11 @@ def get_user_corpus(user_id: str) -> list[dict]:
         rows = conn.execute(
             """
             SELECT c.id, c.corpus_name, c.created_at,
-                   COUNT(cd.document_id) AS n_docs
+                   COUNT(DISTINCT cd.document_id) AS n_docs,
+                   COUNT(ch.id) AS n_chunks
             FROM corpus c
             LEFT JOIN corpus_documents cd ON cd.corpus_id = c.id
+            LEFT JOIN chunks ch ON ch.document_id = cd.document_id
             WHERE c.user_id = ?
             GROUP BY c.id
             ORDER BY c.created_at DESC
@@ -64,9 +66,11 @@ def get_corpus_by_id(corpus_id: int, user_id: Optional[str] = None) -> Optional[
     """Retourne les métadonnées d'un corpus (avec n_docs). Vérifie user_id si fourni."""
     sql = """
         SELECT c.id, c.corpus_name, c.created_at, c.user_id,
-               COUNT(cd.document_id) AS n_docs
+               COUNT(DISTINCT cd.document_id) AS n_docs,
+               COUNT(ch.id) AS n_chunks
         FROM corpus c
         LEFT JOIN corpus_documents cd ON cd.corpus_id = c.id
+        LEFT JOIN chunks ch ON ch.document_id = cd.document_id
         WHERE c.id = ?
     """
     params: list = [corpus_id]
