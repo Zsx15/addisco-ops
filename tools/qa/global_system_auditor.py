@@ -57,6 +57,7 @@ _KNOWN_ERROR_TYPES = {
     "correct", "reponse_vague", "oubli_etape", "hors_sujet",
     "non_evaluable", "erreur_logique", "erreur_factuelle",
     "incomplet", "mauvaise_interpretation",
+    "confusion_notion", "erreur_ordre",
 }
 
 _KNOWN_QUESTION_TYPES = {
@@ -596,8 +597,23 @@ def audit_chunks(conn: Optional[sqlite3.Connection], verbose: bool) -> list[Chec
         if chunks_no_skill > 0:
             pct = round(chunks_no_skill / max(n_chunks, 1) * 100)
             status = "WARNING" if pct < 50 else "CRITICAL"
+            top_docs = _q(conn,
+                "SELECT d.title, COUNT(*) as n_missing, "
+                "(SELECT COUNT(*) FROM chunks c2 WHERE c2.document_id = d.id) as n_total "
+                "FROM chunks c "
+                "JOIN documents d ON c.document_id = d.id "
+                "WHERE NOT EXISTS "
+                "(SELECT 1 FROM chunk_skills cs WHERE cs.chunk_id = c.id AND cs.is_active = 1) "
+                "GROUP BY d.id ORDER BY n_missing DESC LIMIT 5"
+            )
+            doc_lines = ", ".join(
+                f"'{r[0]}' {r[1]}/{r[2]}" for r in top_docs
+            ) if top_docs else ""
+            detail = doc_lines if verbose else ""
             checks.append(Check("CHUNKS", "Chunks sans skill", status,
-                                f"{chunks_no_skill}/{n_chunks} chunks sans skill ({pct}%)"))
+                                f"{chunks_no_skill}/{n_chunks} chunks sans skill ({pct}%)"
+                                + (f" — top docs : {doc_lines}" if doc_lines else ""),
+                                detail))
         else:
             checks.append(Check("CHUNKS", "Skills par chunk", "OK",
                                 "Tous les chunks ont au moins un skill"))
@@ -834,15 +850,18 @@ def audit_calibration(run_calibration: bool, verbose: bool) -> list[Check]:
             [sys.executable, str(runner), "--quick", "--no-regression"],
             capture_output=True, text=True, timeout=60,
             cwd=str(_ROOT),
+            encoding="utf-8", errors="replace",
         )
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
         if result.returncode == 0:
             checks.append(Check("CALIBRATION", "Suite --quick", "OK",
                                 "GO SAFE — toutes calibrations PASS",
-                                result.stdout[-500:] if verbose else ""))
+                                stdout[-500:] if verbose else ""))
         else:
             checks.append(Check("CALIBRATION", "Suite --quick", "WARNING",
                                 "Verdict WARNING ou FAILED — voir run_training_calibration_suite.py",
-                                (result.stdout + result.stderr)[-500:]))
+                                (stdout + stderr)[-500:]))
     except subprocess.TimeoutExpired:
         checks.append(Check("CALIBRATION", "Suite --quick", "WARNING",
                             "Timeout (>60s) sur --quick"))
@@ -969,8 +988,9 @@ def audit_tests(run_tests: bool, verbose: bool) -> list[Check]:
             [sys.executable, "-m", "pytest", "test_regression.py", "--tb=short", "-q"],
             capture_output=True, text=True, timeout=120,
             cwd=str(_ROOT),
+            encoding="utf-8", errors="replace",
         )
-        last = result.stdout.strip().splitlines()
+        last = (result.stdout or "").strip().splitlines()
         summary = last[-1] if last else "(pas de sortie)"
         if result.returncode == 0:
             checks.append(Check("TESTS", "test_regression.py", "OK", summary))
@@ -994,8 +1014,9 @@ def audit_tests(run_tests: bool, verbose: bool) -> list[Check]:
                 [sys.executable, "-m", "pytest", "test_integration.py", "--tb=short", "-q"],
                 capture_output=True, text=True, timeout=60,
                 cwd=str(_ROOT),
+                encoding="utf-8", errors="replace",
             )
-            last = result.stdout.strip().splitlines()
+            last = (result.stdout or "").strip().splitlines()
             summary = last[-1] if last else "(pas de sortie)"
             status = "OK" if result.returncode == 0 else "WARNING"
             checks.append(Check("TESTS", "test_integration.py", status, summary))
