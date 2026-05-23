@@ -4,6 +4,63 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-23 — TASK-079 — Training & Calibration Suite Runner
+
+**Fichier créé :** `tools/testing/run_training_calibration_suite.py`
+
+**Objectif :** Script orchestrateur unique pour vérifier la stabilité du moteur avant tests humains.
+
+**3 phases orchestrées via subprocess :**
+- Phase 1 : Simulation adaptative (`simulate_adaptive_training.py`) — parse COPY_FOR_ANALYSIS
+- Phase 2 : 4 calibrations moteur (mastery_threshold, mastery_boundaries, adaptive_difficulty, review_intervals) — vérification de marqueurs précis
+- Phase 3 : Tests de régression (`test_regression.py`)
+
+**Options CLI :**
+- `--quick` : n=20, sans régression (2.1s)
+- `--full` : n=50, régression + rapport markdown (~10s)
+- `--user`, `--n`, `--mode mock/api`, `--skip-api-confirm`, `--no-regression`, `--output`
+
+**Verdict global :** GO SAFE / WARNING / FAILED selon seuils (fallback >20%, score -0.15, 0 attempts, calibration crash, régression KO)
+
+**Rapport markdown** généré dans `reports/` — 6 sections, copiable ChatGPT.
+
+**Résultats validation :**
+- `--quick` → ✅ GO SAFE en 2.1s
+- `--full` → ⚠️ WARNING (nouveaux skills fragiles simulés — comportement attendu sur 50 essais aléatoires)
+- 254/254 tests régression OK
+
+**Invariants respectés :** aucune modification moteur/DB, calibrations read-only sur DB temporaires.
+
+**Prochaine étape :** TASK-080 ou tests humains en conditions réelles.
+
+---
+
+## 2026-05-23 — TASK-078 — Dark Premium Dashboard ADDISCO OPS
+
+**Fichiers modifiés :** `tabs/tab_dashboard.py` (rewrite), `tabs/styles.py` (+CSS dark), `ui_helpers.py` (+2 fonctions)
+
+**Layout dark premium :**
+- Header "Bonjour [username]" + date + badge Adaptive Learning
+- 5 KPI cards dark : Score moyen · Tentatives · Maîtrisées · En retard · Momentum 7j
+- Graphique Plotly dark (fill area, seuils 60%/80% annotés)
+- Storytelling moteur — signaux réels (fragile, progression, régression, erreur dominante, momentum)
+- Recommandation IA Coach + expander "Pourquoi ?" (`build_recommendation_reason`)
+- Révisions à venir avec couleur urgence
+- Compétences bar chart Plotly dark + badges colorés
+- Profil pédagogique dark KPI
+
+**Nouvelles fonctions `ui_helpers.py` :**
+- `_dark_kpi_card(icon, label, value, accent, sub)` — carte KPI fond #0B1530
+- `build_recommendation_reason(mastery_class, dominant_error, momentum, review_due, avg_score)` — signaux honnêtes, zéro wording marketing
+
+**DARK_DASHBOARD_CSS :** injecté uniquement dans `render()` → scope dashboard, autres onglets inchangés.
+
+**Invariants respectés :** moteur/DB/algorithmes intouchés, 254/254 tests.
+
+**Prochaine étape :** TASK-079 (fait) ou ajustements UX post-démo.
+
+---
+
 ## 2026-05-23 — TASK-077 — Review Intervals Calibration (REVIEW_INTERVALS)
 
 **Fichier créé :** `tools/testing/calibrate_review_intervals.py`
