@@ -4,6 +4,60 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-23 — TASK-082 — Hardening pré-déploiement (auditor 98→99/100)
+
+**Commit :** `ff6a271`
+
+**Fichier modifié :** `tools/qa/global_system_auditor.py`
+
+**4 corrections ciblées :**
+1. **Encoding subprocess** — ajout `encoding="utf-8", errors="replace"` sur les 3 appels `subprocess.run` (calibration runner, test_regression, test_integration) + guard `stdout or ""` pour éviter NoneType
+2. **error_types normalisés** — `_KNOWN_ERROR_TYPES` étendu avec `confusion_notion` (98 occurrences DB) et `erreur_ordre` (13 occurrences DB) — les deux valeurs réelles détectées en DB lors de TASK-081
+3. **Chunks sans skill enrichi** — section CHUNKS affiche maintenant le top 5 documents avec ratio manquant : `'Decrets' 61/276, 'Communication audiovisuel' 20/78, ...`
+
+**Impact score :**
+- LEARNING : 14/15 → 15/15 (error_types inconnus résolus)
+- Score global : 98/100 → **99/100**
+- WARNING résiduel unique : `SENTRY_DSN` absent en local (attendu — config prod uniquement)
+
+**Tests :** 262/262 OK
+
+**Invariants :** aucune modification de la logique d'audit, aucune écriture DB, backward compat totale.
+
+---
+
+## 2026-05-23 — TASK-081 — Global System Auditor ADDISCO OPS
+
+**Commit :** `9e3fcac` (inclus dans snapshot Phase 19)
+
+**Fichier créé :** `tools/qa/global_system_auditor.py` (~1 300 lignes)
+
+**10 sections d'audit read-only :**
+| Section | Pts max | Couverture |
+|---------|---------|------------|
+| STRUCTURE | 15 | fichiers clés, py_compile, imports, thresholds moteur |
+| DATABASE | 20 | tables, index, orphelins, colonnes |
+| CORPUS | 15 | cohérence corpus/documents, cascades |
+| LEARNING | 15 | attempts scores, error_types, question_types |
+| CHUNKS | 0 | couverture, longueurs, skills (visuel uniquement) |
+| SKILLS | 10 | V1.0, thresholds, chunk_skills, mastery_score |
+| RUNTIME | 10 | latences, fallback rate, taux erreur |
+| CALIBRATION | 0 | scripts présents, suite runner (optionnel --check-calibration) |
+| SECURITY | 10 | .env, clés API, taille DB, backup, Docker |
+| TESTS | 5 | fichiers présents, exécution (optionnel --run-tests) |
+
+**CLI :** `python tools/qa/global_system_auditor.py [--verbose] [--check-calibration] [--run-tests] [--report]`
+
+**Sortie :** terminal coloré (ANSI) + rapport markdown dans `reports/global_audit_YYYYMMDD_HHMM.md`
+
+**Verdict :** GO SAFE (≥95) / WARNING (80–94) / FAILED (<80)
+
+**Score initial :** 98/100 WARNING (LEARNING -1 error_types inconnus, SECURITY -1 SENTRY_DSN)
+
+**Invariant clé :** connexion DB en mode `file:...?mode=ro` — aucune écriture possible pendant l'audit.
+
+---
+
 ## 2026-05-23 — TASK-080 — Corpus personnalisés multi-documents
 
 **Commit :** `cb8ed05`
