@@ -402,20 +402,16 @@ Dépendance : Phase 15 complète (corpus multi-documents opérationnel).
 | TASK-058B | Script vérification alignement Curriculum Engine | `8f7b5e3` | DONE |
 | TASK-059 | Runtime Curriculum Arbitration | `ce5e88b` | DONE |
 
-### Restant Phase 16 — TASK-060 à TASK-063
+### Tâches Phase 16
 
-| Task | Titre | Statut |
-|------|-------|--------|
-| TASK-060 | Maintenance Assistée V1 | TODO |
-| TASK-061 | Vue admin | TODO |
-| TASK-062 | Rapports HTML/PDF | TODO |
-| TASK-063 | UX responsive tablette | TODO |
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-060 | Maintenance Assistée V1 | `690fa07` | DONE |
+| TASK-061 | Vue admin | `bc8f50f` | DONE |
+| TASK-062 | Rapports HTML/PDF | `56f3981` | DONE |
+| TASK-063 | UX responsive tablette | `079298a` | DONE |
 
-Critère de sortie Phase 16 :
-- moteur calibré, documenté et auditable ;
-- vue admin fonctionnelle ;
-- rapport pédagogique exportable ;
-- interface responsive.
+**Phase 16 — COMPLÈTE.** Commits `690fa07` → `079298a`. Maintenance assistée (6 sections, verdict GO/WARNING/FAILED), vue admin (KPIs globaux, gestion utilisateurs, alertes système), rapports pédagogiques HTML (7 sections, CSS inline, export PDF), UX responsive tablette + mode présentation.
 
 ---
 
@@ -428,24 +424,45 @@ Dépendance : Phase 16 complète.
 Note de numérotation : les tâches Phase 17 commencent à TASK-064 pour éviter
 toute collision avec les tâches Phase 16 restantes (TASK-060 à TASK-063).
 
-| Task | Titre | Statut |
-|------|-------|--------|
-| TASK-064 | Tests d'intégration complets | TODO |
-| TASK-065 | Rate limiting LLM | TODO |
-| TASK-066 | Monitoring applicatif (Sentry) | TODO |
-| TASK-067 | CI/CD complet | TODO |
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-064 | Tests d'intégration complets | `9ca1bed` | DONE |
+| TASK-065 | Rate limiting LLM | `698dbe5` | DONE |
+| TASK-066 | Monitoring applicatif (Sentry) | `ec034a2` | DONE |
+| TASK-067 | CI/CD complet | `11369b8` | DONE |
 
 **Docker livré — 2026-05-20.**
 `docker compose up --build` opérationnel. Image `python:3.11-slim`, bind mounts `database.db` + `docs`, `env_file .env`, HTTP 200 OK validé. Commits `3741e82` + `d6128f3`.
 
-Critère de sortie :
-- déploiement reproductible en une commande ;
-- toute erreur production remonte en alerte ;
-- CI green à chaque commit.
+**Phase 17 — COMPLÈTE.** Commits `9ca1bed` → `11369b8`. Tests d'intégration 24 cas end-to-end, rate limiting sliding window per-user/per-type, Sentry LoggingIntegration, CI/CD py_compile exhaustif (100 fichiers auto) + numpy explicite.
 
-Risques :
-- choix hébergement cloud : coût et lock-in ;
-  mitigation : Docker standardisé, pas de services cloud propriétaires.
+---
+
+## Phase 18 — Observabilité LLM et Calibration Moteur
+
+Objectif : instrumenter le pipeline LLM, rendre le moteur auditable et calibrable par données réelles.
+
+Dépendance : Phase 17 complète.
+
+### Phase 18A — Observabilité LLM avancée
+
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-068 | Runtime metrics DB (`db/runtime_metrics.py`) | `7dac9df` | DONE |
+| TASK-069 | Gateway instrumenté (latence/tokens/coût/fallback) | `7dac9df` | DONE |
+| TASK-070 | CLI runtime analytics (5 sections, verdict OK/WARNING/CRITICAL) | `7dac9df` | DONE |
+| TASK-071 | tab_admin — section Observabilité Runtime 8 KPIs | `7dac9df` | DONE |
+| TASK-072 | Tendances historiques Plotly (24h + 7j, 8 charts) | `4a5fb49` | DONE |
+
+### Phase 18B — Simulation et calibration
+
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-073 | Simulation contrôlée moteur adaptatif (mock + API) | `fa994ac` | DONE |
+| TASK-074 | Engine Calibration Harness (5 séquences, SEQ-C révèle MIN_ATTEMPTS) | `6b54cea` | DONE |
+| TASK-074B | MASTERY_MIN_ATTEMPTS calibration 3 → 5 (validée SEQ-C) | `897824d` | DONE |
+
+**Phase 18 — COMPLÈTE.** Commits `7dac9df` → `897824d`. Table `runtime_metrics`, gateway instrumenté, CLI analytique, dashboard admin enrichi (8 KPIs + 8 charts Plotly), simulation contrôlée (mock/API, profils pondérés, verdict COHERENT/WARNING/REGRESSION), calibration harness (5 séquences backdatées, injection SQL directe), MASTERY_MIN_ATTEMPTS validé à 5.
 
 ---
 

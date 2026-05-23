@@ -4,6 +4,187 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-22 — TASK-074B — MASTERY_MIN_ATTEMPTS calibration 3 → 5
+
+**Fichier modifié :** `engine/thresholds.py` — MASTERY_MIN_ATTEMPTS 3 → 5
+
+**Résultat calibration SEQ-C :**
+- MIN=3 : transition Fragile→Acquis à Q3 — TOO_FAST
+- MIN=5 : transition à Q5 — OK (équilibre réactivité/robustesse)
+- MIN=8 : transition à Q8 — OK (conservateur)
+- Recommandation appliquée : MIN_ATTEMPTS=5
+
+**Tests ajustés :** 3 cas portés à 5 attempts pour atteindre Maîtrisé (254/254 OK).
+
+**Prochaine étape :** documenter Phase 18 dans ROADMAP + DEVLOG.
+
+---
+
+## 2026-05-22 — TASK-074 — Engine Calibration Harness
+
+**Fichier créé :** `tools/testing/calibrate_engine.py`
+
+**Fonctionnement :**
+- DB isolé (copie temp) — données réelles jamais touchées
+- 5 séquences déterministes avec timestamps SQL backdatés :
+  - SEQ-A : `reponse_vague` ×20 → patterns `critique`/`chronique` (PASS)
+  - SEQ-B : `hors_sujet` ×15 → pivot curriculum (PASS)
+  - SEQ-C : `correct` ×20 → mastery Fragile → Acquis — **TOO_FAST révélé**
+  - SEQ-D : vague ancien + hauts récents → `en_amelioration` (PASS)
+  - SEQ-E : `oubli_etape` > STALE_DAYS → `stabilisé` (PASS)
+- Verdict par séquence : PASS / TOO_FAST / TOO_SLOW / NO_REACTION / WRONG_REACTION
+- Bloc COPY_FOR_ANALYSIS markdown complet
+
+**Résultat : 4/5 PASS.** SEQ-C identifie MASTERY_MIN_ATTEMPTS=3 trop permissif → TASK-074B.
+
+**Invariants respectés :** injection SQL directe bypass `save_attempt`, DB utilisateur intact, 286/286 tests.
+
+---
+
+## 2026-05-22 — TASK-073 — Simulation contrôlée moteur adaptatif
+
+**Fichier créé :** `tools/testing/simulate_adaptive_training.py`
+
+**Modes :**
+- `--mode mock` : pipeline complet sans appel API (test cohérence moteur)
+- `--mode api` : vrais appels `generate_question` + `correct_answer`
+
+**Profils de réponse pondérés :** correct 35% / partielle 25% / vague 15% / oubli_etape 10% / hors_sujet 10% / non_evaluable 5%
+
+**Logique :**
+- Recalcul skills + profil + error_patterns toutes les 10 entrées
+- Sections A–G : config / avant / session / après / delta / verdict / copy_block
+- Verdict automatique : COHERENT / WARNING / REGRESSION / FAILED
+
+**Invariants respectés :** 286/286 tests, DB utilisateur non modifié en mode mock.
+
+---
+
+## 2026-05-22 — TASK-072 — Tendances historiques Plotly dashboard admin
+
+**Fichiers modifiés :**
+- `db/runtime_metrics.py` — `get_timeseries(hours, bucket)` agrégats par heure/jour
+- `tabs/tab_admin.py` — expander "Tendances historiques" avec 8 charts Plotly
+
+**Charts :**
+- Tab 24h : appels/h, latence/h, fallback%/h, coût/h
+- Tab 7j : appels/j, latence+fallback/j, coût/j, taux-succès/j
+- Seuils WARNING/CRITICAL en lignes horizontales
+- Axe Y2 double pour latence+fallback sur même graphe
+
+**Invariants respectés :** 286/286 tests, aucune modification moteur ou DB schéma.
+
+---
+
+## 2026-05-22 — TASK-068/069/070/071 — Phase 18A Observabilité LLM avancée
+
+**Fichiers créés :**
+- `db/runtime_metrics.py` — table SQLite `runtime_metrics`, `record_metric()` non-bloquant (TASK-068)
+- `tools/observability/runtime_analytics.py` — CLI 5 sections, verdict OK/WARNING/CRITICAL (TASK-070)
+
+**Fichiers modifiés :**
+- `ai_gateway/gateway.py` — latence/tokens/coût/fallback capturés dans `finally` (TASK-069)
+- `database.py` — init table runtime_metrics
+- `tabs/tab_admin.py` — section "Observabilité Runtime" : 8 KPIs + breakdown endpoint/user/erreurs (TASK-071)
+
+**Métriques collectées :** latence ms, tokens, coût estimé, fallback%, taux erreur, p95 latence.
+
+**Invariants respectés :** `record_metric()` non-bloquant (`try/except`), gateway fallback intact, 286/286 tests.
+
+---
+
+## 2026-05-22 — TASK-067 — CI/CD complet
+
+**Fichiers modifiés :**
+- `.github/workflows/ci.yml` — step `py_compile` exhaustif : `find . | xargs -0 py_compile` (100 fichiers, auto-maintenu)
+- `requirements.txt` — `numpy>=1.26.0` explicite (dépendance transitive `rag_service.py` non garantie)
+
+**Invariants respectés :** 100 fichiers py_compile OK, 286/286 tests.
+
+---
+
+## 2026-05-22 — TASK-066 — Monitoring applicatif Sentry
+
+**Fichier modifié :** `logger.py` — intégration `sentry_sdk` avec `LoggingIntegration` (niveau WARNING+)
+
+**Fichiers modifiés :** `.env.example` (+SENTRY_DSN, SENTRY_ENV, SENTRY_TRACES_RATE), `requirements.txt` (+sentry-sdk).
+
+**Comportement :** Sentry actif uniquement si `SENTRY_DSN` présent dans `.env` — mode développement inchangé.
+
+**Invariants respectés :** 286/286 tests, aucun changement moteur.
+
+---
+
+## 2026-05-22 — TASK-065 — Rate limiting LLM par utilisateur
+
+**Fichiers créés/modifiés :**
+- `ai_gateway/rate_limiter.py` — sliding window in-memory, thread-safe, stdlib pur ; deux fenêtres (minute + heure) ; per-user + per-call-type (chat / embedding)
+- `ai_gateway/gateway.py` — gate avant chaque appel API ; rate limit dépassé → log WARNING + return None (fallback déclenché)
+- `test_regression.py` — 8 nouveaux tests `TestRateLimiter`
+- `.env.example` — 4 vars documentées (RATE_CHAT_PER_MINUTE, RATE_CHAT_PER_HOUR, etc.)
+
+**Invariants respectés :** backward-compatible (paramètre optionnel), fallback intact, 286/286 tests.
+
+---
+
+## 2026-05-22 — TASK-064 — Tests d'intégration complets
+
+**Fichier créé :** `tests/test_integration.py` — 24 tests end-to-end pipeline complet
+
+**Couverture :** import pipeline (PDF/TXT), chunking, embeddings, RAG retrieval, `generate_question`, `correct_answer`, `save_attempt`, `get_chunk_stats`, auth, rate limiter, adaptive engine.
+
+**Invariants respectés :** DB temporaire isolée, zéro appel API (mocks), 254/254 tests régression OK.
+
+---
+
+## 2026-05-22 — TASK-063 — UX responsive tablette + mode présentation
+
+**Fichiers modifiés :**
+- `tabs/styles.py` — `RESPONSIVE_CSS` (media queries 900px + 600px), `PRESENTATION_CSS`, `PRESENTATION_BANNER`
+- `app.py` — toggle "Mode présentation" sidebar ; 3 tabs essentiels en mode présentation ; injection CSS conditionnelle
+
+**Invariants respectés :** navigation complète hors mode présentation, py_compile 2/2 OK, 254/254 tests.
+
+---
+
+## 2026-05-22 — TASK-062 — Rapports pédagogiques HTML V1
+
+**Fichier créé :** `tools/reports/generate_learning_report.py`
+
+**7 sections :** résumé exécutif, KPIs (tentatives/score/rétention/temps), maîtrise par section, profil d'apprentissage, patterns d'erreurs actifs, plan de session recommandé, sections prioritaires.
+
+**Comportement :** CSS inline, compatible impression → PDF (Ctrl+P) ; sortie `reports/rapport_<user_id>_<YYYYMMDD>.html` ; read-only, aucun appel API.
+
+**Invariants respectés :** `.gitignore` +reports/, py_compile OK, 254/254 tests.
+
+---
+
+## 2026-05-22 — TASK-061 — Vue admin
+
+**Fichiers créés/modifiés :**
+- `db/admin.py` — `set_user_active()`, `get_platform_stats()`, `get_document_admin_stats()`, `get_system_alerts()` (read-only)
+- `tabs/tab_admin.py` — 4 zones : KPIs globaux, alertes système, gestion utilisateurs (activation/désactivation + promotion rôle), liste documents avec stats
+- `database.py` — migration douce `users.is_active DEFAULT 1`
+- `app.py` — onglet "Admin" visible uniquement `role=admin`
+
+**Invariants respectés :** py_compile 4/4 OK, 254/254 tests.
+
+---
+
+## 2026-05-22 — TASK-060 — Maintenance Assistée V1
+
+**Fichier créé :** `tools/maintenance/maintenance_report.py`
+
+**6 sections :** chunks WEAK/ORPHAN/NOISY, skills morts/surchargés, documents problématiques, dérive scores 7j, anomalies attempts, guardrails architecture.
+
+**Verdict :** GO SAFE / WARNING / FAILED
+
+**Comportement :** réutilise `chunk_quality_analyzer` + `architecture_guardrails` sans duplication ; read-only, aucun appel API.
+
+**Invariants respectés :** 254/254 tests régression OK.
+
+---
+
 ## 2026-05-22 — TASK-059 — Runtime Curriculum Arbitration
 
 **Fichier modifié :** `ai_service.py` — bloc d'arbitrage inséré entre `choose_adaptive_question_type()` et `type_instruction`
