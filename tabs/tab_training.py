@@ -22,6 +22,7 @@ from database import (
     save_attempt_feedback,
     save_recommendation_feedback,
 )
+from db.sessions import start_session, close_session, log_event as _log_event
 from db.corpus import get_corpus_documents
 from ui_helpers import explain_question_decision
 
@@ -234,6 +235,19 @@ def render() -> None:
                 st.session_state["start_time"]    = time.time()
                 st.session_state["result"]        = None
                 st.session_state["answer_input"]  = ""
+                # ── Session tracking ─────────────────────────────────────
+                try:
+                    if st.session_state.get("current_session_id") is None:
+                        _corpus_id = st.session_state.get("active_corpus_id")
+                        _sid = start_session(st.session_state["user_id"], corpus_id=_corpus_id)
+                        st.session_state["current_session_id"] = _sid
+                        st.session_state["session_scores"]      = []
+                        st.session_state["session_error_types"] = []
+                    _sid = st.session_state.get("current_session_id")
+                    if _sid:
+                        _log_event(_sid, "question_generated")
+                except Exception:
+                    pass
                 if chunk_ids:
                     # Contexte RAG — enrichissement document_title via get_chunk_by_id
                     try:
@@ -429,6 +443,17 @@ def render() -> None:
                         st.session_state.get("session_answers_count", 0) + 1
                     )
                     try:
+                        _sid = st.session_state.get("current_session_id")
+                        if _sid:
+                            _s_val = float(result.get("score", 0) or 0)
+                            _e_val = result.get("error_type") or ""
+                            st.session_state.setdefault("session_scores", []).append(_s_val)
+                            if _e_val:
+                                st.session_state.setdefault("session_error_types", []).append(_e_val)
+                            _log_event(_sid, "answer_submitted", {"score": round(_s_val, 2)})
+                    except Exception:
+                        pass
+                    try:
                         compute_and_save_learning_profile(st.session_state["user_id"])
                     except Exception:
                         pass
@@ -570,10 +595,44 @@ def render() -> None:
                         )
                     except Exception:
                         pass
+                    try:
+                        _sid = st.session_state.get("current_session_id")
+                        if _sid:
+                            _sc = st.session_state.get("session_scores") or []
+                            _er = st.session_state.get("session_error_types") or []
+                            close_session(
+                                _sid,
+                                total_questions=st.session_state.get("session_answers_count", 0),
+                                completed_questions=st.session_state.get("session_answers_count", 0),
+                                avg_score=round(sum(_sc) / len(_sc), 2) if _sc else None,
+                                dominant_error=max(set(_er), key=_er.count) if _er else None,
+                                feedback_score=_sess_fb_pending,
+                            )
+                            _log_event(_sid, "feedback_submitted", {"score": _sess_fb_pending, "reason": _reason})
+                            st.session_state["current_session_id"] = None
+                    except Exception:
+                        pass
                     st.session_state["session_feedback_given"]   = True
                     st.session_state["session_fb_pending_score"] = None
                     st.rerun()
                 if _rc2.button("Passer", key="sfb_skip"):
+                    try:
+                        _sid = st.session_state.get("current_session_id")
+                        if _sid:
+                            _sc = st.session_state.get("session_scores") or []
+                            _er = st.session_state.get("session_error_types") or []
+                            close_session(
+                                _sid,
+                                total_questions=st.session_state.get("session_answers_count", 0),
+                                completed_questions=st.session_state.get("session_answers_count", 0),
+                                avg_score=round(sum(_sc) / len(_sc), 2) if _sc else None,
+                                dominant_error=max(set(_er), key=_er.count) if _er else None,
+                                feedback_score=_sess_fb_pending,
+                            )
+                            _log_event(_sid, "session_completed")
+                            st.session_state["current_session_id"] = None
+                    except Exception:
+                        pass
                     st.session_state["session_feedback_given"]   = True
                     st.session_state["session_fb_pending_score"] = None
                     st.rerun()

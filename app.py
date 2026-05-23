@@ -21,6 +21,7 @@ from tabs.tab_engine import render as render_engine
 from tabs.tab_trainer import render as render_trainer
 from tabs.tab_admin import render as render_admin
 from tabs.tab_corpus import render as render_corpus
+from tabs.tab_learning_analytics import render as render_analytics
 
 init_db()
 seed_demo_document()
@@ -220,6 +221,7 @@ for key in (
     "question_type_reason", "question_profile_pedagogy",
     "username", "role",
     "active_corpus_id", "active_corpus_name",
+    "current_session_id",
 ):
     if key not in st.session_state:
         st.session_state[key] = None
@@ -303,20 +305,20 @@ if _pres_mode:
 else:
     # ── Navigation complète selon le rôle ──────────────────────────────────
     if _is_admin:
-        (tab_train, tab_history, tab_dashboard, tab_corpus,
+        (tab_train, tab_history, tab_dashboard, tab_analytics, tab_corpus,
          tab_docs, tab_engine, tab_formateur, tab_admin) = st.tabs(
-            ["Entraînement", "Historique", "Dashboard", "Corpus",
+            ["Entraînement", "Historique", "Dashboard", "Analytics", "Corpus",
              "Documents", "Moteur IA", "Formateur", "Admin"]
         )
     elif _is_privileged:
-        (tab_train, tab_history, tab_dashboard, tab_corpus,
+        (tab_train, tab_history, tab_dashboard, tab_analytics, tab_corpus,
          tab_docs, tab_engine, tab_formateur) = st.tabs(
-            ["Entraînement", "Historique", "Dashboard", "Corpus",
+            ["Entraînement", "Historique", "Dashboard", "Analytics", "Corpus",
              "Documents", "Moteur IA", "Formateur"]
         )
     else:
-        tab_train, tab_history, tab_dashboard, tab_corpus, tab_engine = st.tabs(
-            ["Entraînement", "Historique", "Dashboard", "Corpus", "Moteur IA"]
+        tab_train, tab_history, tab_dashboard, tab_analytics, tab_corpus, tab_engine = st.tabs(
+            ["Entraînement", "Historique", "Dashboard", "Analytics", "Corpus", "Moteur IA"]
         )
 
     with tab_train:
@@ -327,6 +329,9 @@ else:
 
     with tab_dashboard:
         render_dashboard()
+
+    with tab_analytics:
+        render_analytics()
 
     with tab_corpus:
         render_corpus()

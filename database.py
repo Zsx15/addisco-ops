@@ -185,6 +185,39 @@ def init_db():
             )
         except sqlite3.OperationalError:
             pass
+        # ── Session tracking (TASK-084) ──────────────────────────────────
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS learning_sessions (
+                id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id                 TEXT    NOT NULL,
+                corpus_id               INTEGER REFERENCES corpus(id),
+                started_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ended_at                TIMESTAMP,
+                duration_seconds        INTEGER,
+                total_questions         INTEGER DEFAULT 0,
+                completed_questions     INTEGER DEFAULT 0,
+                avg_score               REAL,
+                dominant_error          TEXT,
+                recommendation_followed INTEGER,
+                feedback_score          REAL,
+                created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ls_user ON learning_sessions(user_id)"
+        )
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS session_events (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id  INTEGER NOT NULL REFERENCES learning_sessions(id),
+                event_type  TEXT    NOT NULL,
+                event_data  TEXT,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_se_session ON session_events(session_id)"
+        )
         # ── Feedback session (TASK-083) ───────────────────────────────────
         conn.execute("""
             CREATE TABLE IF NOT EXISTS recommendation_feedback (
