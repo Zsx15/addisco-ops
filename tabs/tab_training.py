@@ -15,6 +15,7 @@ from database import (
     get_chunk_stats,
     get_document_by_id,
     get_documents,
+    get_last_attempt_id,
     get_learning_profile,
     get_revision_suggestion,
     save_attempt,
@@ -486,23 +487,28 @@ def render() -> None:
             )
 
         # ── Feedback qualitatif ───────────────────────────────────────────
-        _attempt_id   = st.session_state.get("last_attempt_id")
-        _fb_given     = st.session_state.get("feedback_given", False)
-        if _attempt_id and not _fb_given:
-            st.markdown(
-                '<p style="font-size:13px;color:#64748B;margin:12px 0 6px">Cette question était-elle pertinente ?</p>',
-                unsafe_allow_html=True,
+        _fb_given = st.session_state.get("feedback_given", False)
+        if not _fb_given:
+            _attempt_id = (
+                st.session_state.get("last_attempt_id")
+                or get_last_attempt_id(st.session_state["user_id"])
             )
-            _fc1, _fc2, _fc3 = st.columns([1, 1, 6])
-            if _fc1.button("👍 Oui", key="fb_yes"):
-                save_attempt_feedback(_attempt_id, 1)
-                st.session_state["feedback_given"] = True
-                st.rerun()
-            if _fc2.button("👎 Non", key="fb_no"):
-                save_attempt_feedback(_attempt_id, 0)
-                st.session_state["feedback_given"] = True
-                st.rerun()
-        elif _fb_given:
+            if _attempt_id:
+                st.markdown(
+                    '<p style="font-size:13px;color:#64748B;margin:12px 0 6px">'
+                    "Cette question était-elle pertinente ?</p>",
+                    unsafe_allow_html=True,
+                )
+                _fc1, _fc2, _fc3 = st.columns([1, 1, 6])
+                if _fc1.button("👍 Oui", key="fb_yes"):
+                    save_attempt_feedback(_attempt_id, 1)
+                    st.session_state["feedback_given"] = True
+                    st.rerun()
+                if _fc2.button("👎 Non", key="fb_no"):
+                    save_attempt_feedback(_attempt_id, 0)
+                    st.session_state["feedback_given"] = True
+                    st.rerun()
+        else:
             st.caption("Merci pour votre retour.")
 
         def _reset_question():

@@ -221,6 +221,7 @@ def init_db():
 from db.analytics import (                                          # noqa: E402
     save_attempt,
     save_attempt_feedback,
+    get_last_attempt_id,
     get_attempts,
     get_attempts_count,
     get_score_evolution,

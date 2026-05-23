@@ -70,6 +70,17 @@ def save_attempt_feedback(attempt_id: int, feedback: int) -> None:
     conn.close()
 
 
+def get_last_attempt_id(user_id: str) -> Optional[int]:
+    """Retourne l'ID de la dernière tentative de l'utilisateur, ou None."""
+    with sqlite3.connect(_db.DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT id FROM attempts WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
+    conn.close()
+    return int(row[0]) if row else None
+
+
 def get_attempts_count(user_id: str = "default", document_ids: Optional[list[int]] = None) -> int:
     _clause, _params = _doc_filter(document_ids)
     sql = f"SELECT COUNT(*) FROM attempts WHERE user_id = ?{_clause}"
