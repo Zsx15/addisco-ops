@@ -1,114 +1,128 @@
 # ADDISCO OPS — Moteur de révision pédagogique par IA
 
-Plateforme de formation professionnelle basée sur un corpus documentaire,
-la génération de questions par IA et la correction adaptative.
+Plateforme de formation professionnelle basée sur un corpus documentaire personnel,
+la génération de questions par IA et la correction adaptative. Chaque apprenant
+progresse à son rythme sur ses propres documents métier.
 
 ---
 
-## Présentation
+## Sommaire
 
-### Problématique
+1. [Vision et problématique](#1-vision-et-problématique)
+2. [Fonctionnalités](#2-fonctionnalités)
+3. [Architecture générale](#3-architecture-générale)
+4. [Structure du projet](#4-structure-du-projet)
+5. [Base de données](#5-base-de-données)
+6. [Moteur adaptatif — seuils calibrés](#6-moteur-adaptatif--seuils-calibrés)
+7. [Skills Engine V1.0](#7-skills-engine-v10)
+8. [Corpus personnalisés](#8-corpus-personnalisés)
+9. [Système de rôles](#9-système-de-rôles)
+10. [QA, observabilité et outils internes](#10-qa-observabilité-et-outils-internes)
+11. [Tests automatisés](#11-tests-automatisés)
+12. [Déploiement Railway](#12-déploiement-railway)
+13. [Lancement local](#13-lancement-local)
+14. [Stack technique](#14-stack-technique)
+15. [État du projet](#15-état-du-projet)
+
+---
+
+## 1. Vision et problématique
 
 Les équipes opérationnelles doivent maîtriser des procédures, des réglementations
-et des protocoles en constante évolution. Les formations classiques (PDF, présentiel,
-e-learning statique) produisent des connaissances fragiles qui s'érodent rapidement.
+et des protocoles en constante évolution. Les formations classiques — PDF, présentiel,
+e-learning statique — produisent des connaissances fragiles qui s'érodent rapidement.
 
-### Vision ADDISCO OPS
+**ADDISCO OPS** permet à une organisation d'importer ses propres documents (procédures
+internes, référentiels métier, réglementations) et de générer automatiquement des
+sessions de révision personnalisées pour ses collaborateurs.
 
-ADDISCO OPS est un moteur de révision pédagogique qui permet à une organisation
-d'importer ses propres documents (procédures internes, référentiels métier, réglementations)
-et de générer automatiquement des sessions de révision personnalisées pour ses collaborateurs.
-
-Le moteur adapte la pédagogie à chaque apprenant : type de question, niveau de difficulté,
-rythme de révision et priorité des notions fragiles évoluent selon les résultats observés.
-
-### Objectif du moteur
-
-Transformer un corpus documentaire statique en un système de révision vivant,
-capable de détecter les lacunes individuelles et d'y apporter une réponse pédagogique ciblée.
+Le moteur adapte la pédagogie à chaque apprenant en temps réel : type de question,
+niveau de difficulté, rythme de révision et priorité des notions fragiles évoluent
+selon les résultats observés. Les intervalles de répétition espacée sont calculés
+par un moteur calibré empiriquement — pas par des heuristiques arbitraires.
 
 ---
 
-## Fonctionnalités actuelles
+## 2. Fonctionnalités
 
 ### Gestion documentaire
 
 | Fonctionnalité | État |
 |---|---|
-| Import PDF | Stable |
-| Import DOCX | Stable |
+| Import PDF (pypdf) | Stable |
+| Import DOCX (python-docx) | Stable |
 | Import texte brut | Stable |
-| Découpage en chunks sémantiques | Stable |
-| Calcul d'embeddings (OpenAI text-embedding-3-small) | Stable |
-| Catégorisation des documents | Stable |
-| Corpus multi-documents | Stable |
+| Découpage en chunks sémantiques (~500 chars) | Stable |
+| Calcul d'embeddings (text-embedding-3-small, 1 536 dims) | Stable |
+| Catégorisation par domaine | Stable |
+| Recherche cross-documents (RAG multi-doc) | Stable |
 
-![Gestion des documents](docs/assets/import_documents.png)
-*Upload PDF / DOCX / TXT, catégorisation par domaine, statut de chunking et d'indexation des embeddings.*
+### Corpus personnalisés
+
+| Fonctionnalité | État |
+|---|---|
+| Création de corpus nommés (ex : "VO583", "Sécurité ferroviaire") | Stable |
+| Sélection multi-documents par corpus | Stable |
+| Corpus actif — entraînement, analytics et révisions filtrés | Stable |
+| Badge corpus actif dans la sidebar | Stable |
+| Fallback automatique si aucun corpus actif | Stable |
 
 ### Moteur pédagogique
 
 | Fonctionnalité | État |
 |---|---|
-| Génération de questions (6 types) | Stable |
-| Correction IA structurée (score + type d'erreur) | Stable |
-| Recherche contextuelle RAG | Stable |
-| Recherche cross-documents | Stable |
+| Génération de questions — 6 types pédagogiques | Stable |
+| Correction IA structurée (score 0–1, type d'erreur, notion) | Stable |
+| Recherche RAG contextuelle (cosinus numpy) | Stable |
 | Fallback texte brut si RAG indisponible | Stable |
-| Historique des tentatives par utilisateur | Stable |
-| Répétition espacée (intervalles adaptatifs) | Stable |
+| Répétition espacée — intervalles adaptatifs calibrés | Stable |
+| Sélection du type de question selon le profil utilisateur | Stable |
+| Difficulté adaptative (force easy / allow hard) | Stable |
 
-Les 6 types de questions générés : question directe, cas pratique, vrai/faux,
-question pièges, reformulation, question de conséquence.
+Les 6 types de questions : `question_directe`, `cas_pratique`, `vrai_faux`,
+`question_piege`, `reformulation`, `consequence`.
 
-![Session d'entraînement](docs/assets/session_entrainement.png)
-*Session d'entraînement : question générée par RAG, contexte du chunk source, zone de réponse et correction après soumission.*
-
-### Profils d'apprentissage et analytics
+### Analytics et profil d'apprentissage
 
 | Fonctionnalité | État |
 |---|---|
-| Profil pédagogique par utilisateur | Stable |
-| Score par dimension (logique, procédural, narratif, analogique) | Stable |
-| Détection des notions fragiles | Stable |
-| Momentum (progression sur 7 jours) | Stable |
-| Learning velocity (delta de score inter-sessions) | Stable |
-| Consistency score (régularité des sessions) | Stable |
-| Métriques de rétention J+1 / J+7 / J+30 | Stable (données requises) |
+| Score moyen global et par document | Stable |
+| Momentum sur 7 jours | Stable |
+| Learning velocity (delta inter-sessions) | Stable |
+| Consistency score (régularité sur 30 jours) | Stable |
+| Notions fragiles détectées automatiquement | Stable |
+| Répartition par type d'erreur | Stable |
+| Profil pédagogique dominant (logique/procédural/narratif/analogique) | Stable |
+| Métriques de rétention J+1 / J+7 / J+30 | Stable (données >30j requises) |
 | Plan de session adaptatif | Stable |
 
-### Dashboard et interface
+### Interface et dashboard
 
 | Fonctionnalité | État |
 |---|---|
-| Dashboard apprenant — progression, scores, notions fragiles | Stable |
-| Dashboard formateur — cockpit pédagogique de cohorte | Partiel (voir § État actuel) |
+| Dashboard apprenant dark premium (Plotly) | Stable |
+| KPI cards — score, tentatives, maîtrisées, en retard, momentum | Stable |
+| Storytelling moteur — signaux réels, zéro marketing | Stable |
+| Recommandation IA Coach contextualisée | Stable |
+| Cockpit pédagogique formateur (cohorte) | Stable |
 | Historique paginé des tentatives | Stable |
-| Contexte RAG affiché pendant l'entraînement | Stable |
-| Alertes pédagogiques automatiques | Stable |
+| Mode présentation (navigation réduite, F11) | Stable |
 
-### Gestion des utilisateurs et rôles
+### Gestion des utilisateurs
 
 | Fonctionnalité | État |
 |---|---|
 | Authentification par compte (bcrypt) | Stable |
 | Rôles : apprenant / formateur / admin | Stable |
-| Inscription publique limitée au rôle apprenant | Stable |
+| Bootstrap premier admin (interface one-shot) | Stable |
+| Inscription publique — rôle apprenant uniquement | Stable |
 | Promotion de rôle via interface admin | Stable |
-| Outils CLI admin (création, reset mot de passe) | Stable |
-
-### Qualité et observabilité
-
-| Fonctionnalité | État |
-|---|---|
-| Suite de tests unitaires | 227 tests |
-| Script de robustesse 100 questions simulées | Stable |
-| Audit empirique des skills (read-only) | Stable |
-| Séparation runtime / tooling | Stable |
+| Outils CLI admin (create_admin, reset_password) | Stable |
+| Gate APP_PASSWORD (accès global protégé) | Stable |
 
 ---
 
-## Architecture générale
+## 3. Architecture générale
 
 ### Pipeline documentaire et pédagogique
 
@@ -120,403 +134,682 @@ Document (PDF / DOCX / TXT)
   Extraction + nettoyage du texte
         │
         ▼
-  Découpage en chunks (~500 caractères, par section logique)
+  Découpage en chunks (~500 chars, par section logique)
         │
         ▼
-  ai_service.py
-  Calcul des embeddings (OpenAI text-embedding-3-small, 1 536 dims)
-  Stockage BLOB float32 en SQLite
+  ai_service.py — generate_embedding()
+  Embedding float32 BLOB → chunks.embedding (1 536 dims)
         │
         ▼
   ─────────────── Session d'entraînement ───────────────
         │
         ▼
-  rag_service.py
+  rag_service.py — search_similar_chunks()
   Recherche cosinus — top-K chunks les plus pertinents
+  (filtrés par corpus actif si défini)
         │
         ▼
-  ai_service.py
-  Génération de question (gpt-4o-mini)
-  Type pédagogique sélectionné selon le profil utilisateur
+  ai_service.py — generate_question()
+  Prompt LLM (gpt-4o-mini) + type pédagogique sélectionné
         │
         ▼
   Réponse de l'apprenant
         │
         ▼
-  ai_service.py
-  Correction structurée : score (0–1), type d'erreur, notion
+  ai_service.py — correct_answer()
+  Correction structurée : score (0–1), error_type, notion
         │
         ▼
-  database.py
-  Enregistrement de la tentative (attempt)
-  chunk_id préservé pour la répétition espacée
+  database.py — save_attempt()
+  Enregistrement + chunk_id préservé (répétition espacée)
         │
         ▼
   adaptive_engine.py
-  Mise à jour du profil d'apprentissage
-  Calcul des prochaines révisions (intervalles espacés)
+  classify_mastery() → _adaptive_interval()
+  _choose_question_type() selon profil
         │
         ▼
   Dashboard — analytics, notions fragiles, progression
 ```
 
-### Moteur adaptatif
+### Modules et responsabilités
+
+| Fichier | Rôle |
+|---|---|
+| `app.py` | Point d'entrée Streamlit — auth, routing, sidebar, session_state |
+| `ai_service.py` | RAG, embeddings, génération LLM, correction, fallback |
+| `database.py` | Couche SQLite — init_db, tentatives, profils, documents, re-exports |
+| `adaptive_engine.py` | Moteur pur — zéro import projet (contrainte critique) |
+| `rag_service.py` | Recherche vectorielle cosinus (numpy, BLOB SQLite) |
+| `document_service.py` | Import, chunking, seed démo |
+| `auth_service.py` | Bcrypt, rôles, register/verify |
+| `logger.py` | Logging centralisé |
+| `config.py` | Configuration centralisée |
+| `ui_helpers.py` | Helpers UX partagés entre onglets |
+
+### Séparation des couches
 
 ```
-Tentatives (score, type_erreur, pedagogy_type, chunk_id)
+Runtime applicatif (app.py + tabs/ + db/ + engine/ + ai_service.py + ...)
         │
-        ▼
-  classify_mastery()
-  → débutant / intermédiaire / maîtrisé / fragile (par chunk)
-        │
-        ▼
-  _choose_question_type()
-  → rotation + biais mastery + profil pédagogique utilisateur
-        │
-        ▼
-  Question typée → Correction → Profil mis à jour
+        ├── Ne dépend jamais de tools/
+        └── Ne dépend jamais de tests
+
+tools/  (CLI internes — jamais importés par le runtime)
+        ├── tools/admin/        — scripts admin CLI
+        ├── tools/testing/      — calibration + simulation
+        ├── tools/observability/ — audit read-only
+        ├── tools/qa/           — QA + auditor système
+        ├── tools/reports/      — génération rapports
+        └── tools/guardrails/   — validation architecture
+
+tests/
+        ├── test_regression.py  — 262 tests (pytest)
+        ├── test_integration.py — tests intégration
+        └── test_auth_service.py — tests auth
 ```
 
 ---
 
-## Structure du projet
+## 4. Structure du projet
 
 ```
 addisco-ops/
 │
-├── app.py                    — Routeur Streamlit (auth, sidebar, navigation)
-├── auth_service.py           — Authentification bcrypt, gestion des rôles
-├── database.py               — Couche SQLite (tentatives, profils, documents)
-├── ai_service.py             — RAG, embeddings, génération, correction (OpenAI)
-├── rag_service.py            — Recherche vectorielle cosinus (numpy)
-├── adaptive_engine.py        — Moteur pur (zéro dépendance projet)
-├── document_service.py       — Import, chunking, seed démo
-├── logger.py                 — Logging centralisé
+├── app.py                        — Routeur Streamlit (auth, sidebar, navigation multi-rôles)
+├── ai_service.py                 — RAG, embeddings, génération, correction (OpenAI)
+├── adaptive_engine.py            — Moteur pur (zéro dépendance projet)
+├── database.py                   — Couche SQLite + re-exports
+├── rag_service.py                — Recherche vectorielle cosinus
+├── document_service.py           — Import, chunking, seed démo
+├── auth_service.py               — Authentification bcrypt, rôles
+├── seed_demo_attempts.py         — Données de démo pour démarrage
+├── logger.py                     — Logging centralisé
+├── config.py                     — Configuration centralisée
+├── ui_helpers.py                 — Helpers UX partagés
 │
-├── tabs/                     — Onglets Streamlit
-│   ├── tab_training.py       — Session d'entraînement
-│   ├── tab_dashboard.py      — Analytics et profil
-│   ├── tab_documents.py      — Import et gestion des documents
-│   ├── tab_history.py        — Historique des tentatives
-│   ├── tab_trainer.py        — Cockpit formateur
-│   └── tab_engine.py         — Paramètres moteur
+├── tabs/                         — Onglets Streamlit
+│   ├── styles.py                 — CSS globaux, dark dashboard, header
+│   ├── tab_training.py           — Session d'entraînement + corpus actif
+│   ├── tab_dashboard.py          — Analytics dark premium (Plotly)
+│   ├── tab_corpus.py             — Corpus personnalisés (créer, activer, supprimer)
+│   ├── tab_history.py            — Historique paginé des tentatives
+│   ├── tab_documents.py          — Import et gestion des documents
+│   ├── tab_engine.py             — Paramètres moteur + métriques runtime
+│   ├── tab_trainer.py            — Cockpit formateur (cohorte)
+│   └── tab_admin.py              — Gestion des utilisateurs et rôles
 │
-├── db/                       — Sous-modules base de données
-│   ├── admin.py              — Gestion utilisateurs
-│   ├── analytics.py          — Requêtes analytics
-│   ├── chunks.py             — Accès aux chunks
-│   ├── profile.py            — Profil d'apprentissage
-│   └── skills.py             — Moteur de compétences
+├── db/                           — Sous-modules base de données (séparés de database.py)
+│   ├── analytics.py              — get_attempts, get_score_evolution, get_error_frequency,
+│   │                               get_topic_stats (filtrage document_ids)
+│   ├── chunks.py                 — get_chunk_stats, get_revision_suggestion
+│   ├── corpus.py                 — CRUD corpus personnalisés
+│   ├── skills.py                 — Moteur de compétences
+│   ├── profile.py                — Profil d'apprentissage
+│   ├── runtime_metrics.py        — Métriques runtime LLM
+│   └── admin.py                  — Gestion utilisateurs
 │
-├── engine/                   — Modules du moteur adaptatif
-│   ├── spaced_rep.py         — Répétition espacée
-│   ├── question_type.py      — Sélection du type pédagogique
-│   ├── profile_metrics.py    — Momentum, velocity, consistency
-│   ├── retention.py          — Métriques de rétention
-│   └── session_plan.py       — Plan de session personnalisé
+├── engine/                       — Modules moteur adaptatif
+│   ├── thresholds.py             — Source unique de vérité des seuils calibrés
+│   ├── spaced_rep.py             — Répétition espacée (intervalles adaptatifs)
+│   ├── adaptive_difficulty.py    — Force easy / allow hard
+│   ├── question_type.py          — Sélection du type pédagogique
+│   ├── skill_engine.py           — Mapping chunks → compétences
+│   ├── skill_graph.py            — Graphe de dépendances entre compétences
+│   ├── skill_mapper.py           — Détection compétences par mots-clés
+│   ├── skill_keywords.py         — Référentiel de mots-clés par compétence
+│   ├── skill_analytics.py        — Métriques par compétence
+│   ├── skill_debug.py            — Diagnostic Skills Engine
+│   ├── curriculum_engine.py      — Curriculum adaptatif ordonné
+│   ├── error_pattern_memory.py   — Mémoire des patterns d'erreur
+│   ├── profile_metrics.py        — Momentum, velocity, consistency
+│   ├── retention.py              — Métriques de rétention J+1/J+7/J+30
+│   ├── session_plan.py           — Plan de session adaptatif
+│   └── user_profile_insights.py  — Insights profil utilisateur
 │
-├── tools/                    — Outils internes (jamais importés par le runtime)
+├── ai_gateway/                   — Gateway LLM (rate limiting, logging)
+│   ├── gateway.py                — Interception et logging des appels LLM
+│   ├── rate_limiter.py           — Limitation par user/type
+│   └── request_logger.py         — Journal des appels en JSONL
+│
+├── observability/                — Métriques runtime
+│   ├── metrics.py                — Collecte latences, fallback rate, error rate
+│   └── error_tracker.py          — Remontée Sentry
+│
+├── architecture_guard/           — Validation structurelle
+│   ├── file_audit.py             — Audit des fichiers critiques
+│   └── rules.py                  — Règles architecturales
+│
+├── frontend/                     — Composants dashboard formateur
+│   └── dashboard/
+│       ├── trainer_dashboard.py  — Vue cohorte
+│       └── components/           — Cartes, graphes, alertes, profil adaptatif
+│
+├── tools/                        — Outils internes (jamais importés par le runtime)
 │   ├── admin/
-│   │   ├── create_admin.py   — CLI : créer un compte admin
-│   │   └── reset_password.py — CLI : réinitialiser un mot de passe
+│   │   ├── create_admin.py       — CLI : créer un compte admin
+│   │   └── reset_password.py     — CLI : réinitialiser un mot de passe
+│   ├── testing/
+│   │   ├── run_training_calibration_suite.py  — Suite complète de calibration
+│   │   ├── simulate_adaptive_training.py      — Simulation moteur adaptatif
+│   │   ├── simulate_learning_session.py       — Simulation session complète
+│   │   ├── calibrate_mastery_threshold.py     — Calibration seuil maîtrise
+│   │   ├── calibrate_mastery_boundaries.py    — Calibration bornes maîtrise
+│   │   ├── calibrate_adaptive_difficulty.py   — Calibration difficulté adaptative
+│   │   ├── calibrate_review_intervals.py      — Calibration intervalles révision
+│   │   └── calibrate_engine.py               — Calibration moteur global
+│   ├── observability/
+│   │   ├── audit_skills_empirique.py         — Audit read-only Skills Engine
+│   │   ├── chunk_quality_analyzer.py         — Analyse qualité des chunks
+│   │   ├── runtime_analytics.py              — Métriques runtime LLM
+│   │   ├── error_pattern_observer.py         — Patterns d'erreurs observés
+│   │   └── curriculum_observer.py            — Observation curriculum
 │   ├── qa/
-│   │   └── test_robustesse_100q.py — Test 100 cycles simulés
-│   └── observability/
-│       └── audit_skills_empirique.py — Audit read-only des compétences
+│   │   ├── global_system_auditor.py          — Audit système complet (10 sections, score /100)
+│   │   ├── test_robustesse_100q.py           — 100 cycles simulés (mock ou API)
+│   │   └── audit_sqlite_connections.py       — Audit connexions SQLite
+│   ├── reports/
+│   │   └── generate_learning_report.py       — Rapport HTML par apprenant
+│   ├── roadmap/
+│   │   ├── close_task.py                     — Fermeture de tâches roadmap
+│   │   └── update_progress.py                — Mise à jour progression
+│   ├── maintenance/
+│   │   └── maintenance_report.py             — Rapport de maintenance
+│   └── guardrails/
+│       └── architecture_guardrails.py        — Vérification des contraintes architecturales
 │
-├── README.md                 — Ce fichier
-├── README_DEV.md             — Comptes de test, outils CLI, règles admin
-├── ARCHITECTURE.md           — Architecture technique détaillée
-├── ROADMAP.md                — Phases et tâches du projet
-└── DEVLOG.md                 — Journal de développement chronologique
+├── docs/assets/                  — Captures d'écran pour la documentation
+│
+├── reports/                      — Rapports générés (gitignorés, créés à la demande)
+│
+├── logs/                         — Logs runtime (app.log, ai_requests.jsonl, errors.jsonl)
+│
+├── test_regression.py            — Suite de régression principale (262 tests)
+├── test_integration.py           — Tests d'intégration
+├── test_auth_service.py          — Tests authentification
+│
+├── Dockerfile                    — Image Docker python:3.11-slim
+├── docker-compose.yml            — Stack locale avec volume database.db
+├── railway.toml                  — Configuration déploiement Railway
+├── requirements.txt              — Dépendances Python
+├── .env.example                  — Template variables d'environnement
+│
+├── README.md                     — Ce fichier
+├── README_DEV.md                 — Comptes de test, outils CLI, règles admin
+├── ARCHITECTURE.md               — Architecture technique détaillée
+├── DEVLOG.md                     — Journal de développement chronologique
+├── ROADMAP.md                    — Phases et tâches
+└── TASK_MASTER.md                — Registre principal des tâches
 ```
 
 ---
 
-## Système de rôles
+## 5. Base de données
+
+SQLite (`database.db`), mode WAL activé. Stable pour ~10 utilisateurs simultanés.
+Le chemin est configurable via `DB_PATH` (variable d'environnement).
+
+### Table `attempts`
+
+| Colonne | Type | Note |
+|---|---|---|
+| id | INTEGER PK | |
+| user_id | TEXT | |
+| document_id | INTEGER | FK → documents.id |
+| chunk_id | INTEGER | FK → chunks.id — répétition espacée |
+| question | TEXT | |
+| user_answer | TEXT | |
+| expected_answer | TEXT | |
+| correction | TEXT | |
+| score | REAL | 0.0–1.0 |
+| error_type | TEXT | correct / reponse_vague / oubli_etape / hors_sujet / non_evaluable / confusion_notion / erreur_ordre / … |
+| topic | TEXT | normalisé capitalize |
+| pedagogy_type | TEXT | 6 types |
+| response_time_seconds | REAL | |
+| success_after_retry | INTEGER | 0/1 |
+| created_at | TIMESTAMP | |
+
+### Table `documents`
+
+| Colonne | Type |
+|---|---|
+| id | INTEGER PK |
+| title | TEXT |
+| source_type | TEXT |
+| filename | TEXT |
+| raw_text | TEXT |
+| cleaned_text | TEXT |
+| char_count | INTEGER |
+| created_at | TIMESTAMP |
+
+### Table `chunks`
+
+| Colonne | Type | Note |
+|---|---|---|
+| id | INTEGER PK | Stable — ne jamais DELETE+INSERT |
+| document_id | INTEGER | FK → documents.id |
+| chunk_index | INTEGER | |
+| section_title | TEXT | |
+| chunk_text | TEXT | |
+| char_count | INTEGER | |
+| embedding | BLOB | float32 LE, 1 536 dims |
+| created_at | TIMESTAMP | |
+
+### Table `chunk_skills`
+
+| Colonne | Type | Note |
+|---|---|---|
+| chunk_id | INTEGER | FK → chunks.id |
+| skill_name | TEXT | 10 compétences V1.0 |
+| is_active | INTEGER | 0/1 |
+| confidence | REAL | score de confiance du mapping |
+
+### Table `corpus`
+
+| Colonne | Type | Note |
+|---|---|---|
+| id | INTEGER PK | |
+| user_id | TEXT | |
+| corpus_name | TEXT | ex : "VO583", "Sécurité ferroviaire" |
+| created_at | TIMESTAMP | |
+
+### Table `corpus_documents`
+
+| Colonne | Type | Note |
+|---|---|---|
+| corpus_id | INTEGER | FK → corpus.id — PK composite |
+| document_id | INTEGER | FK → documents.id — PK composite |
+
+### Table `user_learning_profile`
+
+| Colonne | Type | Note |
+|---|---|---|
+| user_id | TEXT PK | |
+| preferred_pedagogy | TEXT | logical/procedural/narrative/analogy |
+| logical_score | REAL | |
+| procedural_score | REAL | |
+| narrative_score | REAL | |
+| analogy_score | REAL | |
+| average_score | REAL | |
+| fragile_topics | TEXT | JSON array |
+| momentum | REAL | delta score 7j |
+| learning_velocity | REAL | delta inter-sessions |
+| consistency_score | REAL | jours actifs / 30 |
+| updated_at | TIMESTAMP | |
+
+### Table `users`
+
+| Colonne | Type | Note |
+|---|---|---|
+| user_id | TEXT PK | |
+| username | TEXT UNIQUE | |
+| password_hash | TEXT | bcrypt |
+| role | TEXT | apprenant / formateur / admin |
+| created_at | TIMESTAMP | |
+
+### Table `runtime_metrics`
+
+| Colonne | Type | Note |
+|---|---|---|
+| id | INTEGER PK | |
+| metric_type | TEXT | latency / fallback / error |
+| value | REAL | |
+| metadata | TEXT | JSON |
+| created_at | TIMESTAMP | |
+
+---
+
+## 6. Moteur adaptatif — seuils calibrés
+
+Les seuils sont définis dans `engine/thresholds.py` — source unique de vérité.
+Ils ont été calibrés empiriquement via les scripts `tools/testing/calibrate_*.py`
+(Phase 18B–18C). Les valeurs sont protégées par des tripwires dans `test_regression.py`.
+
+```python
+# engine/thresholds.py
+
+MASTERY_FRAGILE      = 0.60   # avg_score < seuil → Fragile
+MASTERY_MASTERED     = 0.80   # avg_score ≥ seuil ET n ≥ MIN_ATTEMPTS → Maîtrisé
+MASTERY_MIN_ATTEMPTS = 5      # tentatives minimum pour valider la maîtrise
+
+ADAPTIVE_FORCE_EASY  = 0.40   # forcer easy quelle que soit la mastery
+ADAPTIVE_ALLOW_HARD  = 0.65   # autoriser hard si Maîtrisé
+
+REVIEW_INTERVALS = {
+    "Fragile":          1,    # revoir en 1 jour
+    "En consolidation": 3,    # revoir en 3 jours
+    "Maîtrisé":         7,    # revoir en 7 jours
+}
+```
+
+### Classification de maîtrise par chunk
+
+```
+n_attempts < MIN_ATTEMPTS → Débutant
+avg_score < MASTERY_FRAGILE → Fragile
+avg_score < MASTERY_MASTERED → En consolidation
+avg_score ≥ MASTERY_MASTERED → Maîtrisé
+```
+
+### Sélection du type de question
+
+```
+adaptive_engine._choose_question_type()
+  ├── biais mastery (fragile → vrai_faux, débutant → question_directe, …)
+  ├── biais profil pédagogique (preferred_pedagogy de l'utilisateur)
+  └── rotation anti-répétition (évite le même type 2x de suite)
+```
+
+### Suite de calibration
+
+```bash
+# Vérification rapide (2s) — GO SAFE attendu
+python tools/testing/run_training_calibration_suite.py --quick
+
+# Suite complète avec rapport markdown
+python tools/testing/run_training_calibration_suite.py --full
+```
+
+---
+
+## 7. Skills Engine V1.0
+
+10 compétences définies dans `engine/skill_keywords.py` :
+
+| Compétence | Description |
+|---|---|
+| `memorisation_faits` | Mémorisation de faits, dates, définitions |
+| `comprehension_procedure` | Compréhension de procédures étape par étape |
+| `identification_concepts` | Identification et classification de concepts |
+| `application_regles` | Application de règles à des cas concrets |
+| `analyse_causale` | Analyse des causes et conséquences |
+| `resolution_problemes` | Résolution de problèmes complexes |
+| `prise_decision` | Prise de décision sous contraintes |
+| `evaluation_critique` | Évaluation critique d'une situation |
+| `synthese_reformulation` | Synthèse et reformulation |
+| `conformite_reglementaire` | Conformité aux normes et règlements |
+
+Le mapping chunks → compétences est déterministe par mots-clés (`skill_mapper.py`).
+Un chunk peut être associé à plusieurs compétences. La `confidence` indique la
+qualité du mapping.
+
+---
+
+## 8. Corpus personnalisés
+
+Un corpus est un sous-ensemble nommé de documents. Il permet de cibler
+l'entraînement, les analytics et les suggestions de révision sur une thématique précise.
+
+### Fonctionnement
+
+```
+Utilisateur crée "VO583" (3 documents sélectionnés)
+        │
+        ▼
+corpus.id enregistré en DB
+        │
+        ▼
+Corpus activé → st.session_state["active_corpus_id"]
+        │
+        ├── tab_training.py  — questions générées sur les docs du corpus
+        ├── tab_dashboard.py — analytics filtrées sur document_ids du corpus
+        └── tab_history.py   — (fallback : all docs si corpus inactif)
+```
+
+### Sentinels internes (tab_training.py)
+
+| Valeur | Signification |
+|---|---|
+| `_CORPUS = -1` | Tous les documents (comportement existant) |
+| `_NAMED_CORPUS = -2` | Corpus nommé actif |
+
+Ces valeurs ne sont jamais des IDs SQLite valides (AUTOINCREMENT part de 1).
+
+### API `db/corpus.py`
+
+```python
+create_corpus(user_id, corpus_name, document_ids) -> int
+get_user_corpus(user_id) -> list[dict]         # inclut n_docs
+get_corpus_documents(corpus_id) -> list[int]
+get_corpus_by_id(corpus_id, user_id?) -> dict|None
+delete_corpus(corpus_id, user_id) -> bool
+```
+
+Le corpus actif est stocké en `session_state` (MVP — pas de persistance DB).
+Si `active_corpus_id` est `None`, le comportement existant est inchangé.
+
+---
+
+## 9. Système de rôles
+
+### Navigation par rôle
+
+| Rôle | Onglets visibles |
+|---|---|
+| `apprenant` | Entraînement · Historique · Dashboard · Corpus · Moteur IA |
+| `formateur` | + Documents · Formateur |
+| `admin` | + Admin |
+| Mode présentation | Entraînement · Dashboard · Moteur IA |
 
 ### Apprenant
 
-- Accès à son espace d'entraînement personnel.
-- Sélectionne les documents sur lesquels s'entraîner.
-- Consulte son dashboard de progression et son historique.
-- Voit ses notions fragiles et ses alertes pédagogiques.
+- Sélectionne un document ou active un corpus pour s'entraîner.
+- Consulte son dashboard personnel (scores, profil, notions fragiles).
+- Crée et gère ses corpus personnalisés.
+- Consulte son historique de tentatives.
 
 ### Formateur
 
-- Importe et gère les documents du corpus.
+- Importe et gère les documents du corpus organisationnel.
 - Accède au cockpit pédagogique de cohorte.
 - Suit la progression des apprenants (scores, profils, alertes).
-
-![Cockpit formateur](docs/assets/dashboard_formateur.png)
-*Cockpit pédagogique formateur : vue cohorte, alertes pédagogiques par apprenant, scores moyens et indicateurs de progression.*
 
 ### Administrateur
 
 - Gère les comptes utilisateurs et les promotions de rôle.
-- Supervise les documents et les statistiques globales.
-- Accède aux outils CLI d'administration (création de compte, reset de mot de passe).
+- Accède aux outils CLI d'administration.
 
-![Dashboard administrateur](docs/assets/admin_roles.png)
-*Vue administrateur : tableau de bord avec métriques globales de la plateforme et navigation multi-onglets.*
-
-> La création de comptes administrateurs est réservée aux scripts CLI (`tools/admin/`).
-> L'inscription publique est limitée au rôle `apprenant`.
-
-![Écran de connexion](docs/assets/login.png)
-*Formulaire de connexion — onglets Connexion / Créer un compte. L'inscription publique crée automatiquement un compte apprenant.*
-
----
-
-## Analytics pédagogiques
-
-### Profil détecté
-
-À chaque session, le moteur calcule pour chaque utilisateur :
-
-- **Dimension dominante** : logique / procédurale / narrative / analogique
-  (selon les types de questions auxquels l'utilisateur répond le mieux)
-- **Notions fragiles** : topics sur lesquels le score est systématiquement bas
-- **Momentum** : tendance de progression sur les 7 derniers jours
-- **Learning velocity** : delta de score moyen entre sessions
-- **Consistency score** : régularité des connexions sur 30 jours
-
-![Dashboard apprenant](docs/assets/dashboard_apprenant.png)
-*Tableau de bord apprenant : score global, sections maîtrisées, révisions en retard et recommandations du moteur adaptatif.*
-
-### Répétition espacée
-
-Les chunks (passages de document) sont classés par niveau de maîtrise :
-`débutant`, `intermédiaire`, `maîtrisé`, `fragile`.
-
-Les intervalles de révision s'adaptent automatiquement :
-un chunk fragile est reproposé rapidement, un chunk maîtrisé revient plus tard.
-
-![Historique des tentatives](docs/assets/historique.png)
-*Historique des tentatives : question, réponse, score, type d'erreur et notion — données sources des calculs de répétition espacée.*
-
-### Métriques de rétention
-
-Le moteur calcule des taux de rétention à J+1, J+7 et J+30 par chunk et par utilisateur.
-Ces métriques nécessitent un volume suffisant de tentatives pour être interprétables.
-
-### Alertes pédagogiques
-
-Des alertes automatiques signalent : stagnation du score, notion récurrente en échec,
-absence prolongée, déséquilibre dans la couverture du corpus.
-
----
-
-## Observabilité et qualité
-
-### Tests automatisés
+### Création du premier administrateur
 
 ```bash
-python -m pytest test_auth_service.py test_regression.py -v
-# 227 tests — couverture : auth, RAG, analytics, répétition espacée, profils
+# Option 1 — interface one-shot (apparaît si aucun admin en DB)
+# Onglet "Premier administrateur" au démarrage
+
+# Option 2 — CLI (recommandé en production)
+python tools/admin/create_admin.py
+
+# Reset mot de passe
+python tools/admin/reset_password.py
 ```
 
-### Test de robustesse pédagogique
+---
 
-Simule 100 cycles complets (génération → correction → sauvegarde → profil) sans appel API.
+## 10. QA, observabilité et outils internes
+
+### Global System Auditor
+
+Audit complet du système en lecture seule — 10 sections, score /100, verdict coloré.
+
+```bash
+python tools/qa/global_system_auditor.py
+python tools/qa/global_system_auditor.py --verbose
+python tools/qa/global_system_auditor.py --check-calibration --run-tests
+```
+
+**Score actuel : 99/100** (WARNING résiduel : SENTRY_DSN absent en local — config prod).
+
+| Section | Pts | Contenu |
+|---|---|---|
+| STRUCTURE | 15 | fichiers clés, py_compile, imports, seuils moteur |
+| DATABASE | 20 | tables, index, orphelins, colonnes |
+| CORPUS | 15 | cohérence corpus/documents |
+| LEARNING | 15 | scores, error_types, question_types |
+| CHUNKS | 0* | couverture, longueurs, skills par doc |
+| SKILLS | 10 | V1.0, thresholds, mastery_score |
+| RUNTIME | 10 | latences, fallback rate, taux erreur |
+| CALIBRATION | 0* | scripts présents, suite runner |
+| SECURITY | 10 | .env, clés API, DB size, backup, Docker |
+| TESTS | 5 | présence + exécution optionnelle |
+
+*Sections informatives, sans impact sur le score.
+
+La connexion DB est toujours ouverte en `mode=ro` — aucune écriture possible pendant l'audit.
+Le rapport markdown est généré dans `reports/global_audit_YYYYMMDD_HHMM.md`.
+
+### Test de robustesse 100 questions
 
 ```bash
 python tools/qa/test_robustesse_100q.py --mock --no-confirm
+# Simule 100 cycles (génération → correction → sauvegarde → profil)
 # Verdict : GO SAFE | GO WITH WARNING | FAILED
+```
+
+### Simulation moteur adaptatif
+
+```bash
+python tools/testing/simulate_adaptive_training.py --n 50 --mock
+# Simule n sessions, vérifie la distribution mastery, les types de questions, le fallback
 ```
 
 ### Audit des compétences
 
-Analyse read-only du Skills Engine : couverture, mastery, discrimination, patterns émergents.
-
 ```bash
 python tools/observability/audit_skills_empirique.py --username test
+# Audit read-only : couverture, mastery, discrimination, patterns émergents
 ```
 
-### Séparation runtime / tooling
+### Rapport de progression HTML
 
-Le dossier `tools/` contient uniquement des scripts CLI internes.
-Aucun fichier de `tools/` n'est importé par le runtime applicatif.
-Cette séparation garantit que les outils de diagnostic ne peuvent pas
-affecter le comportement de l'application en production.
-
-![Moteur IA — analytics](docs/assets/analytics.png)
-*Onglet Moteur IA : métriques de rétention, répartition des types d'erreurs et mastery par compétence.*
-
----
-
-## État actuel du projet
-
-### Ce qui est stable et démontrable
-
-- Authentification multi-utilisateur avec rôles (bcrypt)
-- Import de documents (PDF, DOCX, TXT) et génération d'embeddings
-- Pipeline RAG complet — recherche sémantique cross-documents
-- Génération de questions (6 types) et correction structurée par IA
-- Répétition espacée avec intervalles adaptatifs
-- Historique complet des tentatives par utilisateur
-- Dashboard apprenant avec analytics et alertes
-- Profil d'apprentissage (dimensions pédagogiques, notions fragiles, momentum)
-- Outils admin et QA (CLI, tests, audit)
-
-### Ce qui est en mode démonstrateur ou partiel
-
-- **Cockpit formateur** : les métriques de cohorte sont fonctionnelles mais certains
-  indicateurs (comparaison inter-apprenants) s'appuient sur des données simulées
-  tant que la cohorte réelle est réduite.
-- **Skills Engine V1.0** : le mapping chunks → compétences est déterministe par mots-clés,
-  pas par apprentissage automatique. Les compétences détectées dépendent du référentiel
-  défini manuellement.
-- **Métriques de rétention J+7 / J+30** : calculables dès le démarrage, mais interprétables
-  seulement après plusieurs semaines d'usage réel.
-- **Plan de session adaptatif** : calculé par le moteur, l'intégration dans le flux principal
-  de l'interface apprenant est prévue en Phase 16.
-
-### Ce qui est prévu
-
-- Vue admin complète (gestion utilisateurs, activation/désactivation, stats globales)
-- Rapport PDF hebdomadaire par apprenant
-- Interface responsive (tablette, mode présentation)
-- Skills Engine V2 : cartographie des compétences assistée par LLM
-- PostgreSQL + pgvector en production
-- Docker et CI/CD complet
-
----
-
-## Parcours utilisateur type
-
-```
-Administrateur
-  │  Crée les comptes ou promeut un apprenant en formateur / admin
-  │  (via l'interface admin ou les outils CLI tools/admin/)
-  ▼
-Formateur
-  │  Importe les documents du corpus (PDF, DOCX, TXT)
-  │  Catégorise les documents par domaine métier
-  ▼
-Documents → Chunks → Embeddings
-  │  Le moteur découpe et indexe automatiquement
-  ▼
-Apprenant
-  │  Sélectionne un document ou le corpus complet
-  │  Répond aux questions générées par le moteur RAG
-  ▼
-Moteur pédagogique
-  │  Corrige la réponse, attribue un score et un type d'erreur
-  │  Enregistre la tentative avec le chunk source (répétition espacée)
-  ▼
-Skills / Mastery
-  │  Met à jour la maîtrise par compétence et par chunk
-  │  Calcule le profil pédagogique, le momentum, les fragilités
-  ▼
-Dashboard apprenant + cockpit formateur
-     Analytics, alertes, progression, plan de révision
+```bash
+python tools/reports/generate_learning_report.py --username alice
+# Génère reports/rapport_alice_YYYYMMDD.html
 ```
 
----
+### Monitoring runtime
 
-## Ce que montre la démonstration
-
-1. **Transformation documentaire** — un document PDF ou DOCX importé devient en quelques secondes
-   une source de questions contextualisées, sans configuration manuelle.
-
-2. **RAG en action** — chaque question est ancrée dans un passage précis du document,
-   visible par l'apprenant pendant la session d'entraînement.
-
-3. **Correction structurée** — la réponse est évaluée par le LLM avec un score (0–1),
-   un type d'erreur catégorisé et une explication pédagogique.
-
-4. **Répétition espacée** — les passages sur lesquels un apprenant échoue
-   reviennent plus fréquemment ; les passages maîtrisés s'espacent progressivement.
-
-5. **Détection des fragilités** — le moteur identifie automatiquement les notions
-   sur lesquelles le score est systématiquement bas et les signale dans le dashboard.
-
-6. **Analytics pédagogiques** — progression dans le temps, répartition par type d'erreur,
-   dimensions pédagogiques dominantes, momentum sur 7 jours : tout est calculé localement,
-   sans service externe.
-
-7. **Séparation des rôles** — un apprenant voit uniquement son espace ;
-   un formateur voit le cockpit de cohorte ; un admin gère les comptes et les documents.
-
-8. **Outils QA et audit** — le projet inclut un test de robustesse 100 questions simulées
-   et un audit read-only des compétences, exécutables en ligne de commande à tout moment.
+Les appels LLM sont enregistrés dans `logs/ai_requests.jsonl` (gateway).
+Les métriques de latence, fallback et erreurs sont disponibles dans l'onglet
+**Moteur IA** et dans `runtime_metrics` en DB.
 
 ---
 
-## Démonstration visuelle
+## 11. Tests automatisés
 
-Les captures sont intégrées dans les sections correspondantes du document.
-Les fichiers sont disponibles dans [`docs/assets/`](docs/assets/).
+```bash
+# Suite complète (262 tests — ~6 secondes)
+python -m pytest test_regression.py test_integration.py test_auth_service.py -v
 
-| Capture | Section | Description |
-|---|---|---|
-| `login.png` | Système de rôles | Formulaire de connexion |
-| `session_entrainement.png` | Moteur pédagogique | Session d'entraînement |
-| `dashboard_apprenant.png` | Analytics pédagogiques | Tableau de bord apprenant |
-| `historique.png` | Répétition espacée | Historique des tentatives |
-| `analytics.png` | Observabilité | Onglet Moteur IA |
-| `import_documents.png` | Gestion documentaire | Import de documents |
-| `dashboard_formateur.png` | Système de rôles / Formateur | Cockpit pédagogique |
-| `admin_roles.png` | Système de rôles / Admin | Dashboard administrateur |
+# Régression uniquement
+python -m pytest test_regression.py -q
 
----
+# Vérification rapide de la calibration moteur
+python tools/testing/run_training_calibration_suite.py --quick
+```
 
-## Limites actuelles assumées
+**Couverture :** auth, RAG, analytics, répétition espacée, profils, Skills Engine,
+corpus, mastery classification, adaptive difficulty, review intervals, calibration tripwires.
 
-- **Interface Streamlit** : l'interface est fonctionnelle et démontrable, mais reste une interface
-  MVP. Elle n'a pas été conçue pour un déploiement multi-utilisateurs concurrent à grande échelle.
-
-- **Base de données SQLite** : la base locale est adaptée au développement, aux démonstrations
-  et aux petites cohortes. La migration vers PostgreSQL est prévue en Phase 17, conditionnée
-  à la disponibilité d'un hébergeur cible.
-
-- **Cockpit formateur** : certains indicateurs de comparaison inter-apprenants s'appuient
-  sur des données simulées tant que la cohorte réelle est inférieure à un seuil significatif.
-
-- **Skills Engine V1.0** : le mapping chunks → compétences est déterministe par mots-clés.
-  Il produit des résultats exploitables sur un corpus structuré, mais ne constitue pas
-  un moteur d'inférence de compétences par apprentissage automatique.
-
-- **Docker / CI/CD / monitoring** : non encore mis en place. L'application se lance
-  localement via `streamlit run app.py`. La conteneurisation est planifiée en Phase 17.
+**Tripwires calibration** : `TestReviewIntervalsCoherence` dans `test_regression.py`
+détecte toute divergence entre `engine/thresholds.py` et la logique SQL de
+`db/chunks.get_revision_suggestion`. Toute modification des seuils doit passer ces tests.
 
 ---
 
-## Lancement local
+## 12. Déploiement Railway
 
 ### Prérequis
 
-- Python 3.10+
+- Repo GitHub (public ou privé)
+- Compte Railway (railway.app — plan Starter gratuit suffisant pour 10 testeurs)
+
+### Étapes
+
+**1. Push le code sur GitHub**
+
+```bash
+gh repo create addisco-ops --private --source=. --remote=origin --push
+# ou manuellement :
+git remote add origin https://github.com/MON_USERNAME/addisco-ops.git
+git push -u origin main
+```
+
+**2. Créer le projet Railway**
+
+Railway → New Project → Deploy from GitHub repo → sélectionner `addisco-ops`.
+Railway détecte le Dockerfile automatiquement via `railway.toml`.
+
+**3. Ajouter le Volume persistant (critique)**
+
+Railway → onglet service → Add Volume :
+- Mount path : `/app/data`
+- Taille : 1 GB
+
+Sans ce volume, la base de données est effacée à chaque redéploiement.
+
+**4. Variables d'environnement**
+
+| Variable | Valeur | Obligatoire |
+|---|---|---|
+| `OPENAI_API_KEY` | `sk-proj-...` | Oui |
+| `DB_PATH` | `/app/data/database.db` | Oui |
+| `APP_PASSWORD` | mot de passe testeurs | Recommandé |
+| `SENTRY_DSN` | DSN Sentry | Non |
+| `APP_ENV` | `production` | Non |
+
+Railway injecte `PORT` automatiquement — `railway.toml` l'utilise via `$PORT`.
+
+**5. Déploiement automatique**
+
+Chaque `git push origin main` déclenche un redéploiement automatique.
+
+### Architecture production Railway
+
+```
+GitHub (main branch)
+        │ push
+        ▼
+Railway CI — docker build
+        │
+        ▼
+Container Docker (python:3.11-slim)
+  /app/                   ← code applicatif (image)
+  /app/data/database.db   ← Volume Railway (persistant)
+        │
+        ▼
+URL publique Railway (HTTPS automatique)
+```
+
+---
+
+## 13. Lancement local
+
+### Prérequis
+
+- Python 3.11+
 - Clé API OpenAI (modèles `gpt-4o-mini` et `text-embedding-3-small`)
 
 ### Installation
 
 ```bash
-# Cloner le dépôt
 git clone <url-du-repo>
 cd addisco-ops
 
-# Créer et activer l'environnement virtuel
 python -m venv .venv
-
 # Windows
 .venv\Scripts\activate
 # macOS / Linux
 source .venv/bin/activate
 
-# Installer les dépendances
 pip install -r requirements.txt
 ```
 
 ### Configuration
 
 ```bash
-# Copier le fichier d'environnement
 cp .env.example .env
-
-# Renseigner votre clé OpenAI dans .env
-OPENAI_API_KEY=sk-...
+# Renseigner dans .env :
+# OPENAI_API_KEY=sk-proj-...
+# APP_PASSWORD=mot_de_passe_optionnel
 ```
 
 ### Démarrage
@@ -525,58 +818,83 @@ OPENAI_API_KEY=sk-...
 streamlit run app.py
 ```
 
-L'application s'ouvre dans le navigateur. Au premier lancement, elle propose
-un seed de documents de démonstration.
+L'application s'ouvre sur `http://localhost:8501`. Au premier lancement,
+un document de démonstration est automatiquement importé.
 
-### Comptes de démonstration
+### Docker local
 
-| Username | Mot de passe | Rôle |
+```bash
+docker-compose up --build
+# Application disponible sur http://localhost:8501
+# database.db persistée dans le répertoire courant via volume
+```
+
+### Mode fallback (sans clé API)
+
+Sans `OPENAI_API_KEY`, l'application passe automatiquement en mode fallback :
+les questions sont générées depuis le texte brut des chunks (sans RAG ni LLM).
+Toutes les fonctionnalités de suivi, profil et analytics restent opérationnelles.
+
+---
+
+## 14. Stack technique
+
+| Composant | Technologie | Version |
 |---|---|---|
-| `admin` | `admin123` | Administrateur |
-| `test` | `test123` | Apprenant |
+| Interface | Streamlit | 1.57.0 |
+| LLM | OpenAI gpt-4o-mini | API v2 |
+| Embeddings | OpenAI text-embedding-3-small | 1 536 dims |
+| Base de données | SQLite (stdlib) | WAL mode |
+| Recherche vectorielle | numpy — similarité cosinus | ≥1.26.0 |
+| Graphiques | Plotly | 6.7.0 |
+| Authentification | bcrypt | 5.0.0 |
+| Import PDF | pypdf | 6.11.0 |
+| Import DOCX | python-docx | 1.2.0 |
+| Monitoring | sentry-sdk | ≥2.0.0 |
+| Tests | pytest | — |
+| Conteneurisation | Docker / docker-compose | — |
+| Déploiement | Railway | — |
+| Langage | Python | 3.11+ |
 
 ---
 
-## Roadmap future
+## 15. État du projet
 
-### Phase 16 — Interface professionnelle complète
+### Stable et démontrable
 
-- Vue admin : gestion des utilisateurs depuis l'interface (activation, désactivation)
-- Rapport PDF automatique par apprenant (bilan hebdomadaire)
-- Layout responsive optimisé tablette
+- Authentification multi-utilisateur bcrypt avec rôles
+- Import PDF / DOCX / TXT + embeddings automatiques
+- Pipeline RAG complet — recherche sémantique cross-documents
+- Génération de questions (6 types) et correction structurée
+- Répétition espacée avec seuils calibrés empiriquement
+- Corpus personnalisés — entraînement et analytics filtrés
+- Dashboard dark premium avec analytics Plotly
+- Skills Engine V1.0 — 10 compétences, mapping par mots-clés
+- Global System Auditor — 10 sections, score 99/100
+- Suite de calibration moteur — GO SAFE validé
+- Docker + Railway-ready (Volume persistant configuré)
+- 262 tests de régression — couverture moteur complète
 
-### Phase 17 — Production industrielle
+### Limites assumées
 
-- **Docker** : conteneurisation complète, déploiement en une commande
-- **PostgreSQL** : base de données scalable avec SQLAlchemy Core
-- **pgvector** : recherche sémantique cosinus native, indexée
-- **Alembic** : migrations versionnées et réversibles
-- **CI/CD** : tests automatiques à chaque commit, déploiement sur push `main`
-- **Monitoring** : remontée d'erreurs production, métriques d'usage (latence, taux d'erreur)
-- **Rate limiting** : protection des appels LLM par utilisateur
+- **SQLite** : stable pour ~10 utilisateurs simultanés. Migration PostgreSQL prévue
+  si la cohorte dépasse 50 utilisateurs actifs.
+- **Skills Engine V1.0** : mapping déterministe par mots-clés. Efficace sur un corpus
+  structuré ; ne constitue pas un moteur d'inférence par apprentissage automatique.
+- **Métriques de rétention J+7/J+30** : calculables dès le démarrage, interprétables
+  seulement après plusieurs semaines d'usage réel.
+- **Corpus actif** : stocké en `session_state` (perdu à la déconnexion). Persistance
+  DB non implémentée — à évaluer selon le besoin validé.
+- **Cockpit formateur** : métriques de cohorte fonctionnelles ; indicateurs de
+  comparaison inter-apprenants nécessitent une cohorte réelle suffisante.
 
-### Évolutions pédagogiques prévues
+### Prochaines étapes
 
-- Skills Engine V2 : cartographie des compétences assistée par LLM
-- Guardrails architecture : validation automatique du pipeline pédagogique
-- Observabilité avancée : tableau de bord qualité en temps réel
-- Moteur adaptatif V2 : prise en compte des patterns de progression multi-sessions
-
----
-
-## Stack technique
-
-| Composant | Technologie |
-|---|---|
-| Interface | Streamlit |
-| LLM | OpenAI gpt-4o-mini |
-| Embeddings | OpenAI text-embedding-3-small (1 536 dims) |
-| Base de données | SQLite (sqlite3 stdlib) |
-| Recherche vectorielle | numpy — similarité cosinus |
-| Authentification | bcrypt |
-| Tests | unittest / pytest |
-| Langage | Python 3.10+ |
+1. **Tests humains** sur 10 testeurs (données réelles nécessaires pour valider l'Ebbinghaus)
+2. **Skills Engine V2** : cartographie par LLM au lieu de mots-clés
+3. **Profil utilisateur enrichi** (TASK-049 différé depuis Phase 15B)
+4. **PostgreSQL + pgvector** si passage à l'échelle nécessaire
 
 ---
 
-*ADDISCO OPS — Projet en développement actif — Phase 16 en cours*
+*ADDISCO OPS — Phase 19 QA complète — Commit `ff6a271` — 262 tests — Auditor 99/100*
