@@ -4,6 +4,31 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-23 — TASK-076 — Adaptive Difficulty Calibration (FORCE_EASY + ALLOW_HARD)
+
+**Fichier créé :** `tools/testing/calibrate_adaptive_difficulty.py`
+
+**2 sections + vérifications croisées :**
+- SECTION A : ADAPTIVE_FORCE_EASY — 4 candidats × 8 scores test → transition easy→medium
+- SECTION B : ADAPTIVE_ALLOW_HARD — 4 candidats × 8 scores test → transition medium→hard
+- Vérifications croisées : 9 invariants (mastery × graph_level × threshold)
+
+**Résultats :**
+- FORCE_EASY=0.40 : transition E→M à avg 0.40 → **OK** (validé)
+- ALLOW_HARD=0.65 : transition M→H à avg 0.65 → **OK** (validé)
+- FORCE_EASY=0.50 trop strict ; FORCE_EASY=0.35 limite basse mais OK
+- ALLOW_HARD=0.60 trop permissif ; ALLOW_HARD=0.75 trop strict
+- Écart ALLOW_HARD - FORCE_EASY = 0.25 → zone medium bien définie
+- 9/9 invariants croisés **PASS**
+
+**Conclusion :** les deux seuils actuels sont validés — aucune modification requise.
+
+**Invariants respectés :** fonction pure (aucun DB), patch mémoire, restauration garantie, 254/254 tests.
+
+**Prochaine étape :** TASK-077 — REVIEW_INTERVALS Calibration, ou bilan Phase 18C.
+
+---
+
 ## 2026-05-23 — TASK-075 — Mastery Boundary Calibration (FRAGILE + MASTERED)
 
 **Fichier créé :** `tools/testing/calibrate_mastery_boundaries.py`
