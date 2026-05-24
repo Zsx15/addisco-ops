@@ -34,7 +34,7 @@ L'IA génère des questions sur le contenu réel du document, corrige les répon
 et adapte les révisions selon ce que tu maîtrises ou pas.
 
 J'ai fait ça seul, en coordonnant des outils IA — Claude et ChatGPT — comme on pilote des prestataires.
-19 étapes documentées. Plusieurs mois de travail."
+19 étapes documentées. Un sprint de 3 semaines — environ 80 heures de travail."
 
 **[pause]**
 

@@ -38,7 +38,7 @@ C'est accessible en ligne — je peux vous montrer en deux minutes si vous le so
 **[pause]**
 
 "J'ai piloté ce projet seul, en coordonnant des outils d'IA.
-19 étapes documentées, sur plusieurs mois.
+19 étapes documentées. Un sprint de 3 semaines — environ 80 heures.
 Sans formation informatique préalable."
 
 ---

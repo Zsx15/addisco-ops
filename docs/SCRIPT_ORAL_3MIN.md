@@ -55,7 +55,7 @@ en définissant les besoins, en validant les résultats, en refusant ce qui ne c
 **[pause]**
 
 Ce que j'ai piloté, c'est la démarche.
-19 phases de développement.
+19 phases de développement — en 3 semaines de sprint intensif, environ 80 heures.
 Chacune avec un objectif, un livrable, un critère de validation.
 Et un journal de bord tenu à jour tout au long.
 

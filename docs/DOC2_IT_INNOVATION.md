@@ -84,6 +84,9 @@ La méthode que j'ai appliquée est proche de ce qu'on appelle le développement
 À chaque phase : un objectif défini, un livrable attendu, une validation avant de passer à la suivante.
 Ce n'est pas du perfectionnisme. C'est de la réduction du risque.
 
+**Cadre de réalisation :**
+Ce projet a été conduit en sprint — environ 80 heures de travail concentrées sur 3 semaines. L'objectif n'était pas de construire longuement, mais de valider rapidement : tester l'hypothèse, livrer quelque chose de fonctionnel, identifier les limites réelles.
+
 **Outil de pilotage :**
 J'ai maintenu une roadmap vivante, un journal de développement (DEVLOG), et une documentation d'architecture mise à jour à chaque évolution significative.
 

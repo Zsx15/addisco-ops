@@ -84,6 +84,8 @@ Ce que j'ai construit au fil des phases :
 
 À chaque phase, l'objectif était : **ne pas avancer sans avoir validé ce qui précède.**
 
+Ce projet a été conduit en sprint — environ 80 heures de travail concentrées sur 3 semaines. L'objectif n'était pas de construire longuement, mais de valider rapidement et avec rigueur. C'est la posture d'un profil produit, pas d'un développeur.
+
 ---
 
 ## 6. Difficultés rencontrées

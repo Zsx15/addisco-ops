@@ -102,7 +102,7 @@ ADDISCO OPS est une application web fonctionnelle qui permet à un formateur d'i
 
 En coordonnant des outils d'IA (Claude, ChatGPT) dans une logique de chef de projet :
 définir les besoins, valider les livrables, comprendre les choix techniques, documenter chaque décision.
-19 phases progressives sur [X] mois, avec une philosophie simple :
+19 phases progressives sur 3 semaines de sprint intensif (~80 heures), avec une philosophie simple :
 > avancer par petits bouts, consolider, vérifier, puis évoluer.
 
 **Ce que ce POC n'est pas :**
