@@ -11,6 +11,44 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
+    # ── Parcours global ───────────────────────────────────────────────────
+    st.markdown(
+        "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 6px;text-transform:uppercase;"
+        "letter-spacing:.05em'>Parcours global de l'apprenant</p>",
+        unsafe_allow_html=True,
+    )
+    _journey = [
+        ("📂", "Import",       "Le formateur charge un PDF ou TXT. Le système le découpe et le comprend."),
+        ("🎯", "Session",      "L'apprenant répond à des questions générées sur le contenu réel du document."),
+        ("✅", "Correction",   "L'IA identifie le type d'erreur et explique ce qui manque, ancré dans le document."),
+        ("🧠", "Mémorisation", "Résultats enregistrés par notion : score, type d'erreur, date, section source."),
+        ("🔄", "Révision",     "Le système rappelle au bon moment selon le niveau de maîtrise de chaque notion."),
+        ("📈", "Maîtrise",     "Progression visible sur le tableau de bord — pour l'apprenant et le formateur."),
+    ]
+    _steps_html = ""
+    for i, (ic, ti, de) in enumerate(_journey):
+        arrow = (
+            "<div style='display:flex;align-items:center;justify-content:center;"
+            "color:#94a3b8;font-size:16px;padding:0 2px'>→</div>"
+            if i < len(_journey) - 1 else ""
+        )
+        _steps_html += (
+            f'<div style="flex:1;min-width:0;border:1px solid #e2e8f0;border-radius:8px;'
+            f'padding:10px 10px;background:#fafbfc">'
+            f'<div style="font-size:18px;margin-bottom:3px">{ic}</div>'
+            f'<div style="font-size:11.5px;font-weight:700;color:#1e293b;margin-bottom:3px">{ti}</div>'
+            f'<div style="font-size:11px;color:#64748b;line-height:1.4">{de}</div>'
+            f'</div>'
+            f'{arrow}'
+        )
+    st.markdown(
+        f'<div style="display:flex;align-items:stretch;gap:4px;margin-bottom:14px;overflow-x:auto">'
+        f'{_steps_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+
     # ── Pipeline 7 étapes — grille 2 colonnes ────────────────────────────
     st.markdown(
         "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 6px;text-transform:uppercase;"
