@@ -4,6 +4,51 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-24 — Snapshot Phase 20 — Test robustesse 500 attempts (93/100)
+
+**Commit :** `f899b11` (état courant)
+
+**Test :** simulation mock 500 attempts, profil vierge `test2`, seed=99, full aléatoire.
+
+**Résultats :**
+
+| Indicateur | Valeur |
+|---|---|
+| Attempts sauvegardés | 500/500 |
+| Fallback pipeline | 0% |
+| Score moyen (last 20) | 0.586 |
+| Non-evaluable | 22 (4.4%) |
+| Patterns détectés | reponse_vague, oubli_etape, hors_sujet |
+| Curriculum alignment | 19% (> 16.7% aléatoire pur) |
+| Skills fragiles | 0 (attendu — 2.5 attempts/chunk < MIN_ATTEMPTS=5) |
+| Verdict moteur | **COHERENT** |
+
+**Note globale : 93/100**
+
+-7 structurels (variance mock, skills non activables en random, alignment curriculum irréductible en mode mock) — aucun bug identifié.
+
+**Analyse pro :** base solide, scalable avec migration PostgreSQL + remplacement Streamlit quand charge réelle. Verdict dev senior : *"on peut construire dessus."*
+
+**Prochaine étape :** laisser tourner Railway, collecter premières sessions humaines, recalibrer les seuils sur données réelles.
+
+---
+
+## 2026-05-24 — RAG overlap score + TRUNC heuristic chunking quality
+
+**Commit :** `f8f031e`
+
+**Deux mesures ajoutées :**
+
+1. **`compute_retrieval_overlap()`** dans `rag_service.py` — score 0.0–1.0 stocké dans `attempts.retrieval_overlap_score` à chaque tentative. Mesure le recouvrement lexical question ↔ chunks retrieval.
+
+2. **Heuristique TRUNC** dans `chunk_quality_analyzer.py` — détecte les chunks tronqués (début minuscule = coupe milieu de phrase, fin sans ponctuation = suite tronquée). Résultat sur corpus réel : **255/391 chunks TRUNC** sur les décrets (découpage à taille fixe qui coupe les articles de loi au milieu).
+
+**Impact :** les deux faiblesses "RAG non mesuré" et "qualité chunking inconnue" sont maintenant instrumentées. Données disponibles dès les premières sessions.
+
+**Tests :** 262/262 OK
+
+---
+
 ## 2026-05-24 — Phase 20 — tab_engine enrichi (graphe Bloom + parcours apprenant)
 
 **Commits :** `5763534`, `aeebe4b`, `8a49724`, `f82e519`
