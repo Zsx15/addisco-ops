@@ -72,7 +72,23 @@ healthcheck, volume mount SQLite, APP_PASSWORD, Sentry. Ce n'est pas un projet
 
 ---
 
-### 7. Arrêt volontaire au bon moment
+### 7. RAG et chunking mesurés, pas juste "fonctionnels"
+
+**L'argument :** `compute_retrieval_overlap()` calcule le recouvrement lexical entre
+la question générée et les chunks retrieval. Stocké en DB à chaque tentative.
+Le `chunk_quality_analyzer` détecte les chunks tronqués (TRUNC), bruités (NOISY),
+orphelins (ORPHAN), trop courts/longs — avec verdict global GO SAFE / WARNING / FAILED.
+
+Résultat sur le corpus réel : 255/391 chunks tronqués sur les décrets — découpage
+à taille fixe qui coupe les articles de loi au milieu. Cause identifiée, correction
+possible (revoir le chunker sur ce type de document).
+
+**Ce que ça prouve :** je ne me contente pas de dire "le RAG fonctionne" —
+je l'instrumente pour savoir *à quel point* il fonctionne et *pourquoi* il échoue.
+
+---
+
+### 8. Arrêt volontaire au bon moment
 
 **L'argument :** J'ai arrêté de builder quand le moteur était stable, déployé,
 et la baseline établie. Continuer sans données utilisateurs réelles aurait été
@@ -110,15 +126,23 @@ existe précisément pour ça."
 
 ---
 
-### Qualité RAG non mesurée
+### Qualité RAG et chunking — maintenant mesurés
 
-**La réalité :** Pas de precision@k, pas de recall, pas de benchmark retrieval.
-Le RAG fonctionne mais on ne sait pas à quel point il est bon.
+**Ce qui a été fait :** `compute_retrieval_overlap()` dans `rag_service.py` mesure
+le recouvrement lexical entre la question générée et les chunks retrieval (0.0–1.0),
+stocké en DB à chaque tentative. Le `chunk_quality_analyzer` détecte désormais les
+chunks tronqués (heuristique TRUNC : début minuscule = coupe milieu de phrase,
+fin sans ponctuation = suite tronquée).
 
-**Comment le formuler :** "La qualité du retrieval est le prochain chantier.
-J'ai instrumenté les métriques runtime (latence, fallback rate) mais pas encore
-la pertinence des chunks retournés. C'est ce que les premières sessions utilisateurs
-vont permettre d'évaluer."
+**Résultat concret :** 255/391 chunks TRUNC détectés sur le corpus de décrets.
+Cause identifiée : découpage à taille fixe (1000 chars) qui coupe les articles de
+loi au milieu. Donnée actionnable — le chunker doit être revu sur ce type de document.
+
+**Comment le formuler :** "Mon analyzer détecte 65% de chunks tronqués sur le corpus
+de décrets, ce qui explique les scores RAG plus faibles sur ce document. J'ai aussi
+instrumenté un overlap score stocké à chaque tentative — quand j'aurai 30 jours de
+données, je pourrai corréler overlap faible et mauvaises corrections pour identifier
+les documents à re-chunker en priorité."
 
 ---
 
