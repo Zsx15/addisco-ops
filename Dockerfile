@@ -9,6 +9,8 @@ COPY . .
 
 RUN mkdir -p /app/data
 
+ENV DB_PATH=/app/data/database.db
+
 EXPOSE 8501
 
 CMD streamlit run app.py \
