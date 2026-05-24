@@ -185,6 +185,13 @@ def init_db():
             )
         except sqlite3.OperationalError:
             pass
+        # ── RAG overlap score (mesure qualité retrieval) ──────────────────
+        try:
+            conn.execute(
+                "ALTER TABLE attempts ADD COLUMN retrieval_overlap_score REAL"
+            )
+        except sqlite3.OperationalError:
+            pass
         # ── Session tracking (TASK-084) ──────────────────────────────────
         conn.execute("""
             CREATE TABLE IF NOT EXISTS learning_sessions (

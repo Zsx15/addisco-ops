@@ -39,6 +39,7 @@ def save_attempt(
     document_id: Optional[int] = None,
     chunk_id: Optional[int] = None,
     user_id: str = "default",
+    retrieval_overlap_score: Optional[float] = None,
 ) -> Optional[int]:
     """Enregistre une tentative et retourne son ID (lastrowid)."""
     topic = _normalize_topic(topic)
@@ -48,12 +49,12 @@ def save_attempt(
             INSERT INTO attempts
                 (user_id, question, user_answer, expected_answer, correction, score,
                  response_time_seconds, error_type, topic, pedagogy_type,
-                 document_id, chunk_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 document_id, chunk_id, retrieval_overlap_score)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (user_id, question, user_answer, expected_answer, correction, score,
              response_time_seconds, error_type, topic, pedagogy_type,
-             document_id, chunk_id),
+             document_id, chunk_id, retrieval_overlap_score),
         )
         attempt_id = cur.lastrowid
     conn.close()

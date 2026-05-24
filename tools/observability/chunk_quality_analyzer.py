@@ -42,7 +42,7 @@ DB_PATH = Path(os.getenv("DB_PATH", "database.db"))
 SEP  = "-" * 76
 SEP2 = "=" * 76
 
-VERDICTS_ORDER = ["WEAK", "NOISY", "ORPHAN", "OVERSIZED", "UNDERSIZED", "WATCH", "OK"]
+VERDICTS_ORDER = ["WEAK", "NOISY", "ORPHAN", "TRUNC", "OVERSIZED", "UNDERSIZED", "WATCH", "OK"]
 
 
 # ── Connexion read-only ───────────────────────────────────────────────────────
@@ -83,6 +83,21 @@ def _is_noisy(text: str) -> tuple[bool, str]:
     if nonalpha_ratio >= NOISE_NONALPHA_RATIO:
         reasons.append(f"non-alpha ({nonalpha_ratio:.0%} chars)")
 
+    return bool(reasons), " + ".join(reasons)
+
+
+# ── Détection de troncature ───────────────────────────────────────────────────
+
+def _is_truncated(text: str) -> tuple[bool, str]:
+    """Détecte si un chunk est probablement tronqué (début milieu de phrase ou fin sans ponctuation)."""
+    stripped = text.strip()
+    if not stripped:
+        return False, ""
+    reasons = []
+    if stripped[0].islower():
+        reasons.append("début minuscule")
+    if stripped[-1] not in ".!?:;»\"'":
+        reasons.append("fin sans ponctuation")
     return bool(reasons), " + ".join(reasons)
 
 
@@ -161,6 +176,11 @@ def _analyze_chunk(chunk: dict, n_skills: int, attempts: Optional[dict],
     if n_skills == 0:
         issues.append("ORPHAN")
 
+    # Troncature
+    truncated, trunc_reason = _is_truncated(text)
+    if truncated:
+        issues.append("TRUNC")
+
     # Taux d'échec
     if attempts and attempts["n_attempts"] >= min_attempts:
         if attempts["avg_score"] is not None and attempts["avg_score"] < WEAK_SCORE_THRESHOLD:
@@ -185,8 +205,9 @@ def _analyze_chunk(chunk: dict, n_skills: int, attempts: Optional[dict],
         "avg_score":    attempts["avg_score"] if attempts else None,
         "issues":       issues,
         "primary":      primary,
-        "noise_reason": noise_reason,
-        "preview":      text[:120].replace("\n", " "),
+        "noise_reason":  noise_reason,
+        "trunc_reason":  trunc_reason if truncated else "",
+        "preview":       text[:120].replace("\n", " "),
     }
 
 
@@ -204,10 +225,11 @@ def _score_str(s: Optional[float]) -> str:
 
 def _verdict_icon(v: str) -> str:
     return {
-        "OK":         "[OK]  ",
-        "WATCH":      "[~~]  ",
+        "OK":         "[OK]   ",
+        "WATCH":      "[~~]   ",
         "NOISY":      "[BRUIT]",
         "ORPHAN":     "[SKL0] ",
+        "TRUNC":      "[TRONC]",
         "OVERSIZED":  "[LONG] ",
         "UNDERSIZED": "[COURT]",
         "WEAK":       "[FAIL] ",
@@ -307,7 +329,9 @@ def main() -> None:
                 f"  {avg:>6}  {section:<22}  {preview}"
             )
             if r["noise_reason"]:
-                print(f"         └── bruit : {r['noise_reason']}")
+                print(f"         └── bruit  : {r['noise_reason']}")
+            if r.get("trunc_reason"):
+                print(f"         └── tronc  : {r['trunc_reason']}")
 
     # ── Rapport par document ──────────────────────────────────────────────────
     _section("RAPPORT PAR DOCUMENT")
@@ -334,6 +358,10 @@ def main() -> None:
     n_orphan = len(by_verdict.get("ORPHAN", []))
     if n_orphan:
         recs.append(f"[ORPHAN]    {n_orphan} chunk(s) sans skill → lancer remap_skills ou réviser le mapping keyword.")
+
+    n_trunc = len(by_verdict.get("TRUNC", []))
+    if n_trunc:
+        recs.append(f"[TRUNC]     {n_trunc} chunk(s) tronqués (début minuscule ou fin sans ponctuation) → revoir les seuils de découpage ou fusionner avec le chunk adjacent.")
 
     n_noisy = len(by_verdict.get("NOISY", []))
     if n_noisy:
@@ -371,7 +399,7 @@ def main() -> None:
     _section("VERDICT GLOBAL")
 
     critical = n_weak + n_noisy
-    moderate = n_orphan + n_over + n_under
+    moderate = n_orphan + n_trunc + n_over + n_under
 
     if critical >= 10 or (critical / len(results) > 0.15 if results else False):
         verdict_global = "FAILED"

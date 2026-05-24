@@ -6,6 +6,7 @@ from typing import Optional
 import streamlit as st
 
 from ai_service import correct_answer, explain_type_choice, generate_question
+from rag_service import compute_retrieval_overlap
 from database import (
     classify_mastery,
     compute_and_save_learning_profile,
@@ -235,6 +236,10 @@ def render() -> None:
                 st.session_state["start_time"]    = time.time()
                 st.session_state["result"]        = None
                 st.session_state["answer_input"]  = ""
+                _overlap = compute_retrieval_overlap(
+                    question, [c["chunk_text"] for c in rag_chunks]
+                ) if rag_chunks else None
+                st.session_state["retrieval_overlap_score"] = _overlap
                 # ── Session tracking ─────────────────────────────────────
                 try:
                     if st.session_state.get("current_session_id") is None:
@@ -436,6 +441,7 @@ def render() -> None:
                         document_id=_save_doc_id,
                         chunk_id=_chunk_ids[0] if _chunk_ids else None,
                         user_id=st.session_state["user_id"],
+                        retrieval_overlap_score=st.session_state.get("retrieval_overlap_score"),
                     )
                     st.session_state["last_attempt_id"]      = _attempt_id
                     st.session_state["feedback_given"]       = False

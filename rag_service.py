@@ -18,6 +18,36 @@ import numpy as np
 import database
 
 
+_FR_STOPWORDS = frozenset({
+    "le", "la", "les", "un", "une", "des", "de", "du", "au", "aux",
+    "et", "ou", "en", "dans", "par", "sur", "sous", "avec", "que",
+    "qui", "est", "sont", "pas", "ne", "se", "ce", "sa", "son", "ses",
+    "il", "elle", "ils", "elles", "je", "tu", "nous", "vous", "si",
+    "car", "mais", "donc", "or", "puis", "bien", "tout", "plus",
+})
+
+
+def compute_retrieval_overlap(question: str, chunk_texts: list[str]) -> float:
+    """
+    Score de recouvrement lexical entre la question générée et les chunks retrieval.
+    Retourne 0.0–1.0 : proportion des mots significatifs de la question
+    présents dans le texte des chunks.
+    0.0 si aucun mot significatif ou aucun chunk.
+    """
+    if not question or not chunk_texts:
+        return 0.0
+    combined = " ".join(chunk_texts).lower()
+    words = [
+        w.lower()
+        for w in question.replace("'", " ").replace("-", " ").split()
+        if len(w) > 2 and w.lower() not in _FR_STOPWORDS and w.isalpha()
+    ]
+    if not words:
+        return 0.0
+    matched = sum(1 for w in words if w in combined)
+    return round(matched / len(words), 3)
+
+
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     """Similarité cosinus entre deux vecteurs via numpy (float32, ~100x plus rapide)."""
     va = np.array(a, dtype=np.float32)
