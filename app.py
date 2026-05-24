@@ -11,7 +11,7 @@ from database import DB_PATH, count_admins, get_documents, init_db
 from document_service import seed_demo_document
 from seed_demo_attempts import seed as _seed_demo_attempts
 from seed_presentation import seed_presentation as _seed_presentation
-from auth_service import register_user, verify_password
+from auth_service import register_user, verify_password, seed_demo_accounts
 from ui_helpers import check_app_password, sanitize_user_id
 from tabs.styles import APP_CSS, APP_HEADER, RESPONSIVE_CSS, PRESENTATION_CSS, PRESENTATION_BANNER
 from tabs.tab_training import render as render_training
@@ -26,6 +26,7 @@ from tabs.tab_learning_analytics import render as render_analytics
 
 init_db()
 seed_demo_document()
+seed_demo_accounts()
 try:
     _seed_demo_attempts()
 except Exception:

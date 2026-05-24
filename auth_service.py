@@ -1,4 +1,5 @@
 """Service d'authentification — hash/verify password, gestion table users."""
+import logging
 import sqlite3
 import uuid
 from typing import Optional
@@ -6,6 +7,8 @@ from typing import Optional
 import bcrypt
 
 import database
+
+logger = logging.getLogger(__name__)
 
 # Transitions de rôle autorisées — pas de rétrogradation possible.
 _VALID_PROMOTIONS: frozenset[tuple[str, str]] = frozenset({
@@ -83,6 +86,24 @@ def promote_user(admin_username: str, target_username: str, new_role: str) -> No
         )
 
     database.set_user_role(target_username, new_role)
+
+
+def seed_demo_accounts() -> None:
+    """Crée les comptes de démonstration si aucun administrateur n'existe.
+    Idempotente — sans effet si un admin est déjà présent en base.
+    """
+    if database.count_admins() > 0:
+        return
+    _accounts = [
+        ("admin",      "admin123",      "admin"),
+        ("formateur",  "formateur123",  "formateur"),
+    ]
+    for _username, _password, _role in _accounts:
+        try:
+            register_user(_username, _password, role=_role)
+            logger.info("Compte démo créé : %s (%s)", _username, _role)
+        except ValueError:
+            pass  # compte déjà présent
 
 
 def verify_password(username: str, password: str) -> Optional[dict]:
