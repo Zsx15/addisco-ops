@@ -168,8 +168,8 @@ Je suis dans la position de comprendre les deux — et d'avoir prouvé que je pe
 
 Trois choses, dans l'ordre :
 
-**1. Échanger avec les équipes IT / innovation**
-Comprendre leurs projets, leurs méthodes, leurs besoins. Identifier où un profil comme le mien peut être utile — et où il ne l'est pas encore.
+**1. Échanger avec la FAN — Fabrique de l'Adoption Numérique**
+La mission de la FAN — acculturation au numérique, déploiement des usages IA, transformation des besoins terrain en valeur mesurable — est exactement ce qu'ADDISCO OPS adresse à petite échelle. Je veux comprendre comment ce type de profil peut contribuer à leurs projets en cours.
 
 **2. Continuer à monter en compétence**
 Je suis prêt à suivre des formations, à prendre des missions en appui, à contribuer sur des projets existants dans un rôle d'apprentissage actif.
@@ -180,10 +180,9 @@ Pas en solo. En équipe. Avec des personnes qui savent ce que je ne sais pas enc
 ---
 
 **Les fonctions vers lesquelles je me projette :**
-- MOA / AMOA (traduction des besoins terrain en spécifications IT)
-- Référent digital terrain (accompagnement des équipes opérationnelles)
-- Coordination de projets numériques (avec une ancre métier forte)
-- Innovation terrain (identification et prototypage de solutions)
+- **Référent adoption numérique / coordinateur FAN** — cible prioritaire, connexion directe avec ADDISCO OPS et la mission d'acculturation terrain
+- **Coordinateur de projets de transformation digitale** — faire le lien entre besoins métier et équipes IT
+- **MOA / AMOA** — cible à moyen terme, après montée en compétence sur les méthodes IT formelles
 
 ---
 

@@ -188,11 +188,14 @@ Ma connaissance du terrain — les procédures, les contraintes opérationnelles
 
 La plupart des projets numériques échouent non pas parce que la technologie est mauvaise, mais parce que les équipes qui la conçoivent ne comprennent pas vraiment les besoins du terrain. Je suis dans la position rare de comprendre les deux.
 
-Je ne cherche pas à devenir développeur. Je cherche à contribuer là où cette double compréhension crée de la valeur :
-- MOA / AMOA : traduire les besoins terrain en spécifications compréhensibles par les équipes IT
-- Référent digital : accompagner les équipes opérationnelles dans l'adoption des outils numériques
-- Coordination de projet : piloter des projets IT avec une compréhension métier solide
-- Innovation : identifier des opportunités de transformation à partir d'observations terrain
+Je ne cherche pas à devenir développeur. Je cherche à contribuer là où cette double compréhension crée de la valeur.
+
+La structure qui correspond le mieux à ce que j'ai construit et à ce que je veux apporter est la **Fabrique de l'Adoption Numérique (FAN)** — l'entité e.SNCF Solutions basée à Lyon dont la mission est d'accélérer l'adoption du numérique dans les équipes du Groupe, notamment via l'acculturation à l'IA générative et le déploiement des usages terrain. ADDISCO OPS est, dans sa logique, un prototype de ce que la FAN cherche à faire à grande échelle.
+
+Au-delà de la FAN, les fonctions qui correspondent à mon profil :
+- **Référent adoption numérique** : accompagner les équipes opérationnelles dans la prise en main des outils numériques, identifier les freins terrain
+- **Coordinateur de projets de transformation** : faire le lien entre les besoins métier et les équipes IT, avec une ancre terrain solide
+- **MOA / AMOA** : traduire les besoins terrain en spécifications — cible à moyen terme, après une montée en compétence sur les méthodes IT formelles
 
 ---
 
@@ -201,13 +204,13 @@ Je ne cherche pas à devenir développeur. Je cherche à contribuer là où cett
 Je me projette dans des fonctions qui permettent de faire le lien entre le terrain et le numérique.
 
 **À court terme (0-6 mois) :**
-Échanges avec les équipes IT / innovation pour comprendre leurs problématiques, leurs méthodes, leurs outils. Contribution sur des projets existants, même en appui.
+Rejoindre une structure d'adoption numérique — en priorité la FAN (Fabrique de l'Adoption Numérique, Lyon) — en tant que référent ou coordinateur. Comprendre les projets en cours, contribuer sur des missions d'acculturation ou de déploiement d'usages IA auprès des équipes terrain.
 
 **À moyen terme (6-18 mois) :**
-Prise en charge de missions MOA / coordination sur un projet numérique. Montée en compétence sur les outils métier IT de l'entreprise (gestion de projet, bases de données, outils analytiques).
+Prise en charge de missions de coordination sur des projets de transformation numérique. Montée en compétence sur les méthodes IT formelles (Agile, gestion de backlog, rédaction de specs fonctionnelles).
 
 **À long terme :**
-Évoluer vers un rôle de chef de projet numérique ou de responsable de l'innovation terrain, en capitalisant sur la double compréhension opérationnelle et technique acquise.
+Évoluer vers un rôle MOA / chef de projet numérique, en capitalisant sur la double compréhension opérationnelle et technique acquise et sur l'expérience terrain des projets de transformation.
 
 ---
 

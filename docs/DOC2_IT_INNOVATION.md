@@ -302,15 +302,21 @@ Ce POC a une valeur démonstrative. Il n'est pas, en l'état, un produit déploy
 
 **Ce qu'il pourrait devenir avec les bonnes ressources :**
 - Un outil interne de formation aux procédures, adapté au contexte ferroviaire
-- Un module complémentaire à des outils de formation existants
+- Un module complémentaire à des outils de formation existants (Cap Compétences, LMS interne)
 - Un terrain d'expérimentation pour des équipes IT souhaitant tester des approches RAG sur des documents métier réels
+
+**La connexion directe avec la FAN :**
+
+La Fabrique de l'Adoption Numérique (FAN — e.SNCF Solutions, Zone 2 Lyon) a pour mission d'accélérer l'adoption du numérique dans les équipes du Groupe : acculturation, déploiement des usages IA générative, diagnostic de maturité, transformation des besoins terrain en valeur mesurable.
+
+ADDISCO OPS est, dans sa logique, un prototype de ce que la FAN cherche à déployer à grande échelle : un outil qui part d'un document métier réel, génère de l'apprentissage adaptatif, et mesure la progression. Ce n'est pas un hasard — j'ai construit ce projet parce que j'avais identifié ce besoin depuis le terrain.
 
 **Ce que je cherche :**
 Pas à imposer ce projet. Pas à être le seul à en décider l'avenir.
 
-Je cherche des échanges avec des équipes IT / innovation pour :
-- comprendre comment ce type d'approche s'intègre (ou non) dans les projets existants
-- identifier ce qui serait utile et ce qui serait inutile dans un contexte réel
+Je cherche en priorité un échange avec les équipes de la FAN ou de structures équivalentes pour :
+- comprendre comment ce type d'approche s'intègre dans les projets d'acculturation numérique existants
+- identifier où un profil terrain/numérique peut apporter de la valeur concrète
 - apprendre des personnes qui travaillent sur ces sujets au quotidien
 - contribuer, en fonction de mes compétences actuelles et en développement
 
