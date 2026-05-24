@@ -4,6 +4,89 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-24 — Phase 20 — tab_engine enrichi (graphe Bloom + parcours apprenant)
+
+**Commits :** `5763534`, `aeebe4b`, `8a49724`, `f82e519`
+
+**Fichier modifié :** `tabs/tab_engine.py`
+
+**2 blocs ajoutés :**
+1. **Parcours global apprenant 6 étapes** — flux horizontal (Import → Session → Correction → Mémorisation → Révision → Maîtrise) positionné en tête d'onglet, vue utilisateur avant les détails techniques du pipeline.
+2. **Graphe de compétences Bloom statique** — 5 niveaux Bloom (Mémoriser → Comprendre → Appliquer → Analyser → Évaluer) × 10 skills, rendu HTML en grille. Couleurs renforcées + bordure gauche accent pour hiérarchie visuelle.
+
+**Invariants respectés :** aucune modification moteur, DB ni tests. Ajouts purement visuels dans `tab_engine.py`.
+
+---
+
+## 2026-05-24 — seed_presentation — POC démo freezée
+
+**Commit :** `af8680e`
+
+**Objectif :** Préparer une démo présentable avec des données réalistes sans dépendre de sessions réelles.
+
+**Ajout :** `seed_presentation.py` — crée un user demo avec sessions simulées, tentatives avec scores cohérents et analytics peuplées. Utilisable avant une démo jury ou une présentation RH/technique.
+
+**Invariants :** script standalone, aucune modification de la logique de production.
+
+---
+
+## 2026-05-23 — TASK-084 — Human Testing Analytics & Session Tracking
+
+**Commit :** `17c1df5`
+
+**Fichiers créés :**
+- `db/sessions.py` — `start_session`, `close_session`, `log_event`, `get_user_sessions`, `get_session_analytics`, `get_activity_data`
+- `tabs/tab_learning_analytics.py` — onglet Analytics (290 lignes) : 4 KPIs, score evolution chart, heatmap 8 semaines, insights storytelling auto, sessions récentes
+
+**Fichiers modifiés :**
+- `database.py` — tables `learning_sessions` + `session_events` dans `init_db`
+- `tabs/tab_training.py` — session start/close/events (try/except — 0 risque moteur)
+- `app.py` — onglet Analytics pour tous les rôles, `current_session_id` init
+
+**Décisions d'architecture :**
+- Tracking session via `try/except` dans `tab_training.py` — le moteur pédagogique ne peut pas être cassé par un bug de tracking
+- Heatmap 8 semaines : calendrier d'activité inspiré GitHub contributions
+
+**Tests :** 262/262 OK
+
+---
+
+## 2026-05-23 — TASK-083 — Feedback session utilisateur
+
+**Commit :** `9436f48`
+
+**Table ajoutée :** `recommendation_feedback (user_id, type, score, reason, created_at)`
+
+**Fichiers modifiés :**
+- `db/analytics.py` — `save_recommendation_feedback()` + re-export dans `database.py`
+- `tabs/tab_training.py` — carte session apparaissant après 3+ réponses, une seule fois par session
+
+**UX deux étapes :** score (👍/😐/👎) → raison facultative (8 choix rapides) → Enregistrer/Passer
+
+**Précédent (6653c82) :** feedback qualitatif question (pertinent / non pertinent) ajouté en premier.
+
+**Tests :** 262/262 OK
+
+---
+
+## 2026-05-23 — Railway — Déploiement production
+
+**Commits :** `401cb3c`, `3daea35`, `bc135dc`, `50cd97c`
+
+**Configuration Railway complète :**
+- `Dockerfile` mis à jour : `python:3.12-slim`, `CMD` shell form avec `${PORT:-8501}`, flags CORS, `mkdir /app/data`
+- `railway.toml` : builder DOCKERFILE, healthcheck `/_stcore/health` (timeout 120s), restart ON_FAILURE
+- `.dockerignore` mis à jour : exclure `*.db`, `reports/`, `.claude/`, `rapport.txt`
+
+**Fixes Railway :**
+- `3daea35` : strip `APP_PASSWORD` pour gérer les trailing whitespace Railway
+- `bc135dc` : mode démo toujours visible même quand des users existent en base
+- `50cd97c` : persistance SQLite dans `/app/data` pour le volume mount Railway
+
+**Résultat :** application déployée et accessible. Lien démo + identifiants documentés dans les présentations.
+
+---
+
 ## 2026-05-23 — TASK-082 — Hardening pré-déploiement (auditor 98→99/100)
 
 **Commit :** `ff6a271`

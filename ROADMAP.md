@@ -375,7 +375,7 @@ Risques :
 
 ---
 
-## Phase 16 — Consolidation pédagogique / Analytics / UX  ← PHASE ACTUELLE
+## Phase 16 — Consolidation pédagogique / Analytics / UX
 
 Objectif : moteur pédagogique explicable, robuste et calibrable.
 Chaque livrable renforce la confiance dans les décisions du moteur.
@@ -473,6 +473,63 @@ Dépendance : Phase 17 complète.
 **Phase 18C — COMPLÈTE.** Tous les 6 seuils de `engine/thresholds.py` validés par harness de calibration isolé (DB temporaire, patch en mémoire, aucune modification du fichier source). Conclusion : MASTERY_FRAGILE=0.60, MASTERY_MASTERED=0.80, MASTERY_MIN_ATTEMPTS=5, ADAPTIVE_FORCE_EASY=0.40, ADAPTIVE_ALLOW_HARD=0.65, REVIEW_INTERVALS=1/3/7 — tous confirmés corrects.
 
 **Phase 18 — COMPLÈTE.** Commits `7dac9df` → `ab81614`. Table `runtime_metrics`, gateway instrumenté, CLI analytique, dashboard admin enrichi (8 KPIs + 8 charts Plotly), simulation contrôlée (mock/API, profils pondérés, verdict COHERENT/WARNING/REGRESSION), calibration harness (5 séquences backdatées, injection SQL directe), MASTERY_MIN_ATTEMPTS validé à 5, calibration complète des 6 seuils moteur (18C).
+
+### Phase 18D — Dashboard dark premium
+
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-078 | Dark Premium Dashboard ADDISCO OPS | `9e463a4` | DONE |
+
+Fichiers : `tabs/tab_dashboard.py` (rewrite), `tabs/styles.py` (+CSS dark), `ui_helpers.py` (+2 fonctions). Header "Bonjour [username]" + 5 KPI cards dark, graphique Plotly fill-area avec seuils annotés, storytelling moteur (fragile/progression/régression), recommandation IA Coach + expander "Pourquoi ?", compétences bar chart dark, profil pédagogique dark.
+
+### Phase 18E — Suite Runner QA
+
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-079 | Training & Calibration Suite Runner | `435515c` | DONE |
+
+Script orchestrateur `tools/testing/run_training_calibration_suite.py` — 3 phases subprocess (simulation adaptative → 4 calibrations moteur → régression). Options `--quick` (2.1s) / `--full` (~10s). Verdict GO SAFE / WARNING / FAILED. 254/254 tests.
+
+---
+
+## Phase 19 — Corpus personnalisés + QA + Hardening
+
+Objectif : passer d'un document actif unique à des corpus nommés per-user, valider la cohérence système par audit automatisé, durcir avant mise en production.
+
+Dépendance : Phase 18 complète.
+
+| Task | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| TASK-080 | Corpus personnalisés multi-documents | `cb8ed05` | DONE |
+| TASK-081 | Global System Auditor (10 sections, 99/100) | `c57a56a` | DONE |
+| TASK-082 | Hardening pré-déploiement (auditor 98→99/100) | `ff6a271` | DONE |
+
+**Phase 19 — COMPLÈTE.** Commits `cb8ed05` → `ff6a271`. Tables `corpus` + `corpus_documents`, service `db/corpus.py`, onglet Corpus dark premium (3 sections), analytics filtrées par `document_ids` (backward compat totale). Auditor CLI 10 sections read-only (`global_system_auditor.py`, ~1 300 lignes), rapport markdown, verdict GO SAFE/WARNING/FAILED. Hardening : encoding subprocess, `_KNOWN_ERROR_TYPES` enrichi, chunks sans skill détaillés. Score auditor : **99/100** (WARNING résiduel : SENTRY_DSN absent en local — config prod uniquement).
+
+---
+
+## Phase 20 — Déploiement Railway, Tests humains, Feedback utilisateur
+
+Objectif : mettre l'application en production, collecter les premières sessions réelles, instrumenter le feedback utilisateur et le tracking de sessions.
+
+Dépendance : Phase 19 complète (auditor 99/100 — socle validé).
+
+| Task / Commit | Titre | Commit | Statut |
+|------|-------|--------|--------|
+| `401cb3c` | Railway deployment config (Dockerfile, railway.toml) | `401cb3c` | DONE |
+| `50cd97c` | Fix SQLite volume mount Railway (`/app/data`) | `50cd97c` | DONE |
+| `3daea35` | Fix APP_PASSWORD trailing whitespace Railway | `3daea35` | DONE |
+| `bc135dc` | Fix mode démo toujours visible (users en base) | `bc135dc` | DONE |
+| `6653c82` | Feedback qualitatif question (pertinent / non pertinent) | `6653c82` | DONE |
+| TASK-083 | Feedback session utilisateur (`recommendation_feedback`) | `9436f48` | DONE |
+| TASK-084 | Human Testing Analytics & Session Tracking | `17c1df5` | DONE |
+| `af8680e` | Seed présentation POC (user demo + sessions + analytics) | `af8680e` | DONE |
+| `eb3cd8f` | Corpus cards — compteur chunks (n_chunks) | `eb3cd8f` | DONE |
+| `5763534` | tab_engine — parcours global apprenant 6 étapes | `5763534` | DONE |
+| `aeebe4b` | tab_engine — graphe de compétences Bloom statique | `aeebe4b` | DONE |
+| `f82e519` | tab_engine — graphe Bloom couleurs renforcées | `f82e519` | DONE |
+
+**Phase 20 — COMPLÈTE.** Commits `401cb3c` → `f82e519`. Déploiement Railway opérationnel (Dockerfile python:3.12-slim, `railway.toml`, healthcheck, volume `/app/data`). Feedback qualitatif questions (pertinent/non pertinent) + feedback session 2 étapes (score + raison — table `recommendation_feedback`). Session tracking complet : tables `learning_sessions` + `session_events`, service `db/sessions.py`, onglet Analytics (4 KPIs, score evolution, heatmap 8 semaines, insights storytelling). Seed présentation POC freezée. tab_engine enrichi : parcours apprenant 6 étapes + graphe Bloom 5 niveaux / 10 skills.
 
 ---
 
