@@ -153,3 +153,74 @@ def render() -> None:
             "🟡 **En consolidation** → types variés  \n"
             "🟢 **Maîtrisé** → questions pièges, cas pratiques"
         )
+
+    st.divider()
+
+    # ── Graphe de compétences Bloom (statique) ────────────────────────────
+    st.markdown(
+        "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 4px;"
+        "text-transform:uppercase;letter-spacing:.05em'>Graphe de compétences — Taxonomie de Bloom</p>"
+        "<p style='font-size:12px;color:#64748b;margin:0 0 12px'>"
+        "10 compétences pédagogiques organisées en 5 niveaux de maîtrise progressive. "
+        "Chaque niveau nécessite que les niveaux inférieurs soient acquis.</p>",
+        unsafe_allow_html=True,
+    )
+
+    _levels = [
+        (4, "Expertise",      "#be123c", "#fff1f2", "#fecdd3", [
+            ("Prise de décision",     "Choisir l'action adaptée face à une situation non standard"),
+            ("Évaluation critique",   "Juger la pertinence d'une procédure dans un contexte donné"),
+        ]),
+        (3, "Maîtrise",       "#7e22ce", "#faf5ff", "#d8b4fe", [
+            ("Conformité réglementaire", "Appliquer les règles dans tous les cas, y compris les exceptions"),
+            ("Résolution de problèmes",  "Trouver une issue face à un incident ou une situation imprévue"),
+        ]),
+        (2, "Application",    "#c2410c", "#fff7ed", "#fed7aa", [
+            ("Application des règles",   "Mettre en œuvre la procédure dans une situation standard"),
+            ("Analyse causale",          "Identifier les causes et les enchaînements d'une situation"),
+            ("Synthèse / Reformulation", "Restituer un concept avec ses propres mots"),
+        ]),
+        (1, "Compréhension",  "#0f766e", "#f0fdfa", "#99f6e4", [
+            ("Compréhension de la procédure", "Expliquer le sens et la logique d'une règle ou d'une étape"),
+        ]),
+        (0, "Fondations",     "#1d4ed8", "#eff6ff", "#bfdbfe", [
+            ("Mémorisation des faits",     "Retenir les informations clés d'un document de procédure"),
+            ("Identification des concepts","Reconnaître et nommer les notions essentielles d'un domaine"),
+        ]),
+    ]
+
+    for i, (lvl, label, color, bg, border, skills) in enumerate(_levels):
+        cards = "".join(
+            f'<div style="flex:1;min-width:0;border:1px solid {border};border-radius:8px;'
+            f'padding:8px 10px;background:{bg}">'
+            f'<div style="font-size:11.5px;font-weight:600;color:{color};margin-bottom:3px">{name}</div>'
+            f'<div style="font-size:11px;color:#64748b;line-height:1.35">{desc}</div>'
+            f'</div>'
+            for name, desc in skills
+        )
+        st.markdown(
+            f'<div style="margin-bottom:4px">'
+            f'<div style="font-size:10.5px;font-weight:700;color:{color};text-transform:uppercase;'
+            f'letter-spacing:.06em;margin-bottom:4px;padding:3px 8px;background:{bg};'
+            f'border:1px solid {border};border-radius:4px;display:inline-block">'
+            f'Niveau {lvl} — {label}</div>'
+            f'<div style="display:flex;gap:7px">{cards}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if i < len(_levels) - 1:
+            st.markdown(
+                '<div style="text-align:center;color:#cbd5e1;font-size:13px;'
+                'margin:2px 0;letter-spacing:8px">↑</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown(
+        '<div style="margin-top:10px;border:1px solid #e2e8f0;border-radius:8px;'
+        'padding:8px 12px;background:#f8fafc;font-size:11px;color:#64748b">'
+        '⚙️ <b>Module fonctionnel — non connecté à l\'interface.</b> '
+        'Choix délibéré : les métriques par compétence ne sont significatives qu\'à partir '
+        'd\'un volume suffisant de sessions réelles (~500 tentatives). '
+        'Le branchement est prévu dès que les données le permettent.</div>',
+        unsafe_allow_html=True,
+    )
