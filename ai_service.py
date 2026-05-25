@@ -88,14 +88,15 @@ def generate_question(
     document_id: Optional[int] = None,
     document_ids: Optional[list[int]] = None,
     user_id: str = "default",
-) -> tuple[str, list[int], str]:
+) -> tuple[str, list[int], str, list[dict]]:
     """
     Génère une question de compréhension à partir du texte source.
 
-    Retourne un tuple (question, chunk_ids, question_type) :
+    Retourne un tuple (question, chunk_ids, question_type, rag_chunks) :
     - question      : str — la question générée
     - chunk_ids     : list[int] — IDs des chunks utilisés (vide si fallback)
     - question_type : str — type pédagogique utilisé (issu de QUESTION_TYPES)
+    - rag_chunks    : list[dict] — chunks RAG utilisés (vide si fallback texte brut)
 
     Variation pédagogique : le type est choisi par rotation sur l'historique
     du chunk primaire (chunk_ids[0]). En fallback texte brut, sélection aléatoire.

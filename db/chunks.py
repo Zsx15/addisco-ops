@@ -260,21 +260,22 @@ def get_revision_suggestion(
               AND a.score    IS NOT NULL
               AND a.user_id  = ?{_doc_clause}
             GROUP BY a.chunk_id
-            HAVING NOT (ROUND(AVG(a.score), 2) >= {_mast} AND COUNT(*) >= {_mast_n})
+            HAVING NOT (ROUND(AVG(a.score), 2) >= ? AND COUNT(*) >= ?)
             ORDER BY
                 CASE
-                    WHEN ROUND(AVG(a.score), 2) < {_frag}
-                         AND datetime(MAX(a.created_at), '+{_frag_days} days') <= datetime('now') THEN 0
-                    WHEN ROUND(AVG(a.score), 2) >= {_frag}
-                         AND datetime(MAX(a.created_at), '+{_consol_days} days') <= datetime('now') THEN 0
+                    WHEN ROUND(AVG(a.score), 2) < ?
+                         AND datetime(MAX(a.created_at), printf('+%d days', ?)) <= datetime('now') THEN 0
+                    WHEN ROUND(AVG(a.score), 2) >= ?
+                         AND datetime(MAX(a.created_at), printf('+%d days', ?)) <= datetime('now') THEN 0
                     ELSE 1
                 END ASC,
-                CASE WHEN ROUND(AVG(a.score), 2) < {_frag} THEN 0 ELSE 1 END ASC,
+                CASE WHEN ROUND(AVG(a.score), 2) < ? THEN 0 ELSE 1 END ASC,
                 MAX(a.created_at) ASC,
                 ROUND(AVG(a.score), 2) ASC
             LIMIT 1
             """,
-            (user_id, *_doc_params),
+            (user_id, *_doc_params, _mast, _mast_n,
+             _frag, _frag_days, _frag, _consol_days, _frag),
         ).fetchone()
     conn.close()
     return dict(row) if row else None

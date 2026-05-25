@@ -223,6 +223,8 @@ def get_timeseries(hours: int = 24, bucket: str = "hour") -> dict:
     }
     try:
         interval = f"-{hours} hours"
+        if bucket not in ("hour", "day"):
+            bucket = "hour"
         fmt = "%Y-%m-%d %H:00" if bucket == "hour" else "%Y-%m-%d"
         with sqlite3.connect(_db.DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
