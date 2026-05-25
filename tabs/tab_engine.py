@@ -1,5 +1,6 @@
 """Onglet Moteur IA — explication du pipeline pédagogique."""
 import streamlit as st
+from database import get_user_skill_mastery
 
 
 def render() -> None:
@@ -156,7 +157,115 @@ def render() -> None:
 
     st.divider()
 
-    # ── Graphe de compétences Bloom (statique) ────────────────────────────
+    # ── Graphe de compétences Bloom (données réelles) ────────────────────────
+    _uid = st.session_state.get("user_id", "default")
+    _skill_rows = get_user_skill_mastery(_uid)
+    _mastery_map: dict[str, float] = {
+        r["slug"]: float(r["mastery_score"] or 0) for r in _skill_rows
+    }
+
+    def _mastery_badge(slug: str) -> str:
+        score = _mastery_map.get(slug)
+        if score is None:
+            return '<span style="font-size:10px;color:#94a3b8;margin-left:4px">—</span>'
+        pct = round(score * 100)
+        if score >= 0.80:
+            color, bg = "#16a34a", "rgba(22,163,74,0.13)"
+        elif score >= 0.60:
+            color, bg = "#d97706", "rgba(217,119,6,0.13)"
+        else:
+            color, bg = "#dc2626", "rgba(220,38,38,0.13)"
+        return (
+            f'<span style="font-size:10px;font-weight:700;color:{color};'
+            f'background:{bg};border-radius:3px;padding:1px 5px;margin-left:5px">'
+            f'{pct}%</span>'
+        )
+
+    _BLOOM_LEVELS = [
+        {
+            "label": "Niveau 4 — Expertise", "cols": "1fr 1fr",
+            "ct": "#be123c", "bg": "#fee2e2", "bd": "#fca5a5",
+            "arrow": "↑ &nbsp; ↑",
+            "skills": [
+                ("prise_decision", "Prise de décision", "Choisir l'action adaptée face à une situation non standard"),
+                ("evaluation_critique", "Évaluation critique", "Juger la pertinence d'une procédure dans un contexte donné"),
+            ],
+        },
+        {
+            "label": "Niveau 3 — Maîtrise", "cols": "1fr 1fr",
+            "ct": "#7e22ce", "bg": "#ede9fe", "bd": "#c4b5fd",
+            "arrow": "↑ &nbsp; ↑ &nbsp; ↑",
+            "skills": [
+                ("conformite_reglementaire", "Conformité réglementaire", "Appliquer les règles dans tous les cas, y compris les exceptions"),
+                ("resolution_problemes", "Résolution de problèmes", "Trouver une issue face à un incident ou une situation imprévue"),
+            ],
+        },
+        {
+            "label": "Niveau 2 — Application", "cols": "1fr 1fr 1fr",
+            "ct": "#c2410c", "bg": "#ffedd5", "bd": "#fdba74",
+            "arrow": "↑",
+            "skills": [
+                ("application_regles", "Application des règles", "Mettre en œuvre la procédure dans une situation standard"),
+                ("analyse_causale", "Analyse causale", "Identifier les causes et les enchaînements d'une situation"),
+                ("synthese_reformulation", "Synthèse / Reformulation", "Restituer un concept avec ses propres mots"),
+            ],
+        },
+        {
+            "label": "Niveau 1 — Compréhension", "cols": "1fr",
+            "ct": "#0f766e", "bg": "#ccfbf1", "bd": "#5eead4",
+            "arrow": "↑ &nbsp; ↑",
+            "skills": [
+                ("comprehension_procedure", "Compréhension de la procédure", "Expliquer le sens et la logique d'une règle ou d'une étape"),
+            ],
+        },
+        {
+            "label": "Niveau 0 — Fondations", "cols": "1fr 1fr",
+            "ct": "#1d4ed8", "bg": "#dbeafe", "bd": "#93c5fd",
+            "arrow": None,
+            "skills": [
+                ("memorisation_faits", "Mémorisation des faits", "Retenir les informations clés d'un document de procédure"),
+                ("identification_concepts", "Identification des concepts", "Reconnaître et nommer les notions essentielles d'un domaine"),
+            ],
+        },
+    ]
+
+    _bloom_html = ""
+    for _lvl in _BLOOM_LEVELS:
+        _ct, _bg, _bd, _cols = _lvl["ct"], _lvl["bg"], _lvl["bd"], _lvl["cols"]
+        _cards = "".join(
+            f'<div style="border:1px solid {_bd};border-left:4px solid {_ct};'
+            f'border-radius:8px;padding:8px 10px;background:{_bg}">'
+            f'<div style="font-size:11.5px;font-weight:600;color:{_ct};margin-bottom:3px">'
+            f'{_lbl}{_mastery_badge(_slug)}</div>'
+            f'<div style="font-size:11px;color:#64748b;line-height:1.35">{_desc}</div>'
+            f'</div>'
+            for _slug, _lbl, _desc in _lvl["skills"]
+        )
+        _bloom_html += (
+            f'<div style="margin-bottom:6px">'
+            f'<div style="font-size:10.5px;font-weight:700;color:{_ct};text-transform:uppercase;'
+            f'letter-spacing:.06em;margin-bottom:5px;padding:3px 8px;background:{_bg};'
+            f'border:1px solid {_bd};border-radius:4px;display:inline-block">{_lvl["label"]}</div>'
+            f'<div style="display:grid;grid-template-columns:{_cols};gap:7px">{_cards}</div>'
+            f'</div>'
+        )
+        if _lvl["arrow"]:
+            _bloom_html += (
+                f'<div style="text-align:center;color:#94a3b8;font-size:14px;margin:3px 0">'
+                f'{_lvl["arrow"]}</div>'
+            )
+
+    _bloom_footer = (
+        '<div style="border:1px solid #d1fae5;border-radius:8px;padding:8px 12px;'
+        'background:#f0fdf4;font-size:11px;color:#166534">'
+        '📊 <b>Données en temps réel.</b> Les scores reflètent vos sessions de travail.</div>'
+    ) if _mastery_map else (
+        '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;'
+        'background:#f8fafc;font-size:11px;color:#64748b">'
+        '⏳ <b>En attente de données.</b> Les badges de maîtrise apparaissent '
+        'dès la première session.</div>'
+    )
+
     st.markdown(
         "<p style='font-size:13px;font-weight:700;color:#1e293b;margin:0 0 4px;"
         "text-transform:uppercase;letter-spacing:.05em'>Graphe de compétences — Taxonomie de Bloom</p>"
@@ -165,87 +274,4 @@ def render() -> None:
         "Chaque niveau nécessite que les niveaux inférieurs soient acquis.</p>",
         unsafe_allow_html=True,
     )
-
-    st.markdown(
-        # Niveau 4 — Expertise
-        '<div style="margin-bottom:6px">'
-        '<div style="font-size:10.5px;font-weight:700;color:#be123c;text-transform:uppercase;'
-        'letter-spacing:.06em;margin-bottom:5px;padding:3px 8px;background:#fee2e2;'
-        'border:1px solid #fca5a5;border-radius:4px;display:inline-block">Niveau 4 — Expertise</div>'
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
-        '<div style="border:1px solid #fca5a5;border-left:4px solid #be123c;border-radius:8px;padding:8px 10px;background:#fee2e2">'
-        '<div style="font-size:11.5px;font-weight:600;color:#be123c;margin-bottom:3px">Prise de décision</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Choisir l\'action adaptée face à une situation non standard</div></div>'
-        '<div style="border:1px solid #fca5a5;border-left:4px solid #be123c;border-radius:8px;padding:8px 10px;background:#fee2e2">'
-        '<div style="font-size:11.5px;font-weight:600;color:#be123c;margin-bottom:3px">Évaluation critique</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Juger la pertinence d\'une procédure dans un contexte donné</div></div>'
-        '</div></div>'
-        # Flèche
-        '<div style="text-align:center;color:#94a3b8;font-size:14px;margin:3px 0">↑ &nbsp; ↑</div>'
-        # Niveau 3 — Maîtrise
-        '<div style="margin-bottom:6px">'
-        '<div style="font-size:10.5px;font-weight:700;color:#7e22ce;text-transform:uppercase;'
-        'letter-spacing:.06em;margin-bottom:5px;padding:3px 8px;background:#ede9fe;'
-        'border:1px solid #c4b5fd;border-radius:4px;display:inline-block">Niveau 3 — Maîtrise</div>'
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
-        '<div style="border:1px solid #c4b5fd;border-left:4px solid #7e22ce;border-radius:8px;padding:8px 10px;background:#ede9fe">'
-        '<div style="font-size:11.5px;font-weight:600;color:#7e22ce;margin-bottom:3px">Conformité réglementaire</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Appliquer les règles dans tous les cas, y compris les exceptions</div></div>'
-        '<div style="border:1px solid #c4b5fd;border-left:4px solid #7e22ce;border-radius:8px;padding:8px 10px;background:#ede9fe">'
-        '<div style="font-size:11.5px;font-weight:600;color:#7e22ce;margin-bottom:3px">Résolution de problèmes</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Trouver une issue face à un incident ou une situation imprévue</div></div>'
-        '</div></div>'
-        # Flèche
-        '<div style="text-align:center;color:#94a3b8;font-size:14px;margin:3px 0">↑ &nbsp; ↑ &nbsp; ↑</div>'
-        # Niveau 2 — Application
-        '<div style="margin-bottom:6px">'
-        '<div style="font-size:10.5px;font-weight:700;color:#c2410c;text-transform:uppercase;'
-        'letter-spacing:.06em;margin-bottom:5px;padding:3px 8px;background:#ffedd5;'
-        'border:1px solid #fdba74;border-radius:4px;display:inline-block">Niveau 2 — Application</div>'
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">'
-        '<div style="border:1px solid #fdba74;border-left:4px solid #c2410c;border-radius:8px;padding:8px 10px;background:#ffedd5">'
-        '<div style="font-size:11.5px;font-weight:600;color:#c2410c;margin-bottom:3px">Application des règles</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Mettre en œuvre la procédure dans une situation standard</div></div>'
-        '<div style="border:1px solid #fdba74;border-left:4px solid #c2410c;border-radius:8px;padding:8px 10px;background:#ffedd5">'
-        '<div style="font-size:11.5px;font-weight:600;color:#c2410c;margin-bottom:3px">Analyse causale</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Identifier les causes et les enchaînements d\'une situation</div></div>'
-        '<div style="border:1px solid #fdba74;border-left:4px solid #c2410c;border-radius:8px;padding:8px 10px;background:#ffedd5">'
-        '<div style="font-size:11.5px;font-weight:600;color:#c2410c;margin-bottom:3px">Synthèse / Reformulation</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Restituer un concept avec ses propres mots</div></div>'
-        '</div></div>'
-        # Flèche
-        '<div style="text-align:center;color:#94a3b8;font-size:14px;margin:3px 0">↑</div>'
-        # Niveau 1 — Compréhension
-        '<div style="margin-bottom:6px">'
-        '<div style="font-size:10.5px;font-weight:700;color:#0f766e;text-transform:uppercase;'
-        'letter-spacing:.06em;margin-bottom:5px;padding:3px 8px;background:#ccfbf1;'
-        'border:1px solid #5eead4;border-radius:4px;display:inline-block">Niveau 1 — Compréhension</div>'
-        '<div style="display:grid;grid-template-columns:1fr;gap:7px">'
-        '<div style="border:1px solid #5eead4;border-left:4px solid #0f766e;border-radius:8px;padding:8px 10px;background:#ccfbf1">'
-        '<div style="font-size:11.5px;font-weight:600;color:#0f766e;margin-bottom:3px">Compréhension de la procédure</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Expliquer le sens et la logique d\'une règle ou d\'une étape</div></div>'
-        '</div></div>'
-        # Flèche
-        '<div style="text-align:center;color:#94a3b8;font-size:14px;margin:3px 0">↑ &nbsp; ↑</div>'
-        # Niveau 0 — Fondations
-        '<div style="margin-bottom:10px">'
-        '<div style="font-size:10.5px;font-weight:700;color:#1d4ed8;text-transform:uppercase;'
-        'letter-spacing:.06em;margin-bottom:5px;padding:3px 8px;background:#dbeafe;'
-        'border:1px solid #93c5fd;border-radius:4px;display:inline-block">Niveau 0 — Fondations</div>'
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
-        '<div style="border:1px solid #93c5fd;border-left:4px solid #1d4ed8;border-radius:8px;padding:8px 10px;background:#dbeafe">'
-        '<div style="font-size:11.5px;font-weight:600;color:#1d4ed8;margin-bottom:3px">Mémorisation des faits</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Retenir les informations clés d\'un document de procédure</div></div>'
-        '<div style="border:1px solid #93c5fd;border-left:4px solid #1d4ed8;border-radius:8px;padding:8px 10px;background:#dbeafe">'
-        '<div style="font-size:11.5px;font-weight:600;color:#1d4ed8;margin-bottom:3px">Identification des concepts</div>'
-        '<div style="font-size:11px;color:#64748b;line-height:1.35">Reconnaître et nommer les notions essentielles d\'un domaine</div></div>'
-        '</div></div>'
-        # Note
-        '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;'
-        'background:#f8fafc;font-size:11px;color:#64748b">'
-        '&#9881;&#65039; <b>Module fonctionnel — non connecté à l\'interface.</b> '
-        'Choix délibéré : les métriques par compétence ne sont significatives qu\'à partir '
-        'd\'un volume suffisant de sessions réelles (~500 tentatives). '
-        'Le branchement est prévu dès que les données le permettent.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(_bloom_html + _bloom_footer, unsafe_allow_html=True)
