@@ -88,6 +88,7 @@ def generate_question(
     document_id: Optional[int] = None,
     document_ids: Optional[list[int]] = None,
     user_id: str = "default",
+    use_rag: bool = True,
 ) -> tuple[str, list[int], str, list[dict]]:
     """
     Génère une question de compréhension à partir du texte source.
@@ -112,37 +113,38 @@ def generate_question(
     chunk_ids: list[int] = []
     _rag_raw:  list[dict] = []
 
-    if document_ids:
-        try:
-            query_vector = _call_embedding_api(source_text)
-            chunks       = search_similar_chunks_multi(query_vector, document_ids, top_k=RAG_TOP_K)
-            if chunks:
-                context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
-                chunk_ids = [c["id"] for c in chunks]
-                _rag_raw  = chunks
-        except Exception:
-            logger.warning("generate_question: RAG multi fallback (docs=%s)", document_ids)
-    elif document_id is not None:
-        try:
-            query_vector = _call_embedding_api(source_text)
-            chunks       = search_similar_chunks(query_vector, document_id, top_k=RAG_TOP_K)
-            if chunks:
-                context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
-                chunk_ids = [c["id"] for c in chunks]
-                _rag_raw  = chunks
-        except Exception:
-            logger.warning("generate_question: RAG fallback (doc=%s)", document_id)
-    else:
-        # Corpus complet — aucun document_id fourni
-        try:
-            query_vector = _call_embedding_api(source_text)
-            chunks       = search_similar_chunks_multi(query_vector, None, top_k=RAG_TOP_K)
-            if chunks:
-                context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
-                chunk_ids = [c["id"] for c in chunks]
-                _rag_raw  = chunks
-        except Exception:
-            logger.warning("generate_question: RAG corpus fallback")
+    if use_rag:
+        if document_ids:
+            try:
+                query_vector = _call_embedding_api(source_text)
+                chunks       = search_similar_chunks_multi(query_vector, document_ids, top_k=RAG_TOP_K)
+                if chunks:
+                    context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                    chunk_ids = [c["id"] for c in chunks]
+                    _rag_raw  = chunks
+            except Exception:
+                logger.warning("generate_question: RAG multi fallback (docs=%s)", document_ids)
+        elif document_id is not None:
+            try:
+                query_vector = _call_embedding_api(source_text)
+                chunks       = search_similar_chunks(query_vector, document_id, top_k=RAG_TOP_K)
+                if chunks:
+                    context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                    chunk_ids = [c["id"] for c in chunks]
+                    _rag_raw  = chunks
+            except Exception:
+                logger.warning("generate_question: RAG fallback (doc=%s)", document_id)
+        else:
+            # Corpus complet — aucun document_id fourni
+            try:
+                query_vector = _call_embedding_api(source_text)
+                chunks       = search_similar_chunks_multi(query_vector, None, top_k=RAG_TOP_K)
+                if chunks:
+                    context   = "\n\n---\n\n".join(c["chunk_text"] for c in chunks)
+                    chunk_ids = [c["id"] for c in chunks]
+                    _rag_raw  = chunks
+            except Exception:
+                logger.warning("generate_question: RAG corpus fallback")
 
     # ── Choix du type pédagogique ─────────────────────────────────────────────
     history: list[dict] = []

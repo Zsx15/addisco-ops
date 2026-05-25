@@ -176,6 +176,7 @@ def render() -> None:
                 st.session_state["active_document_id"]    = None
                 st.session_state["active_document_title"] = ""
                 st.session_state["source_text_input"]     = ""
+                st.session_state["rag_chunks"]            = []
             elif _selected == _CORPUS:
                 st.session_state["active_document_id"]    = _CORPUS
                 st.session_state["active_document_title"] = _corpus_label
@@ -221,13 +222,15 @@ def render() -> None:
     if st.button("Générer une question", disabled=_btn_disabled):
         with st.spinner("Génération en cours…"):
             try:
-                _gen_doc_ids = st.session_state.get("active_document_ids") if _is_corpus else None
-                _gen_doc_id  = None if _is_corpus else st.session_state.get("active_document_id")
+                _gen_doc_ids  = st.session_state.get("active_document_ids") if _is_corpus else None
+                _gen_doc_id   = None if _is_corpus else st.session_state.get("active_document_id")
+                _is_free_text = st.session_state.get("active_document_id") is None
                 question, chunk_ids, question_type, rag_chunks = generate_question(
                     source_text or " ",
                     document_id=_gen_doc_id,
                     document_ids=_gen_doc_ids,
                     user_id=st.session_state["user_id"],
+                    use_rag=not _is_free_text,
                 )
                 st.session_state["question"]      = question
                 st.session_state["chunk_ids"]     = chunk_ids
@@ -336,7 +339,9 @@ def render() -> None:
         st.divider()
 
         _rag_chunks = st.session_state.get("rag_chunks") or []
-        if _rag_chunks:
+        if st.session_state.get("active_document_id") is None:
+            st.caption("📝 Mode texte libre — aucun contexte RAG utilisé.")
+        elif _rag_chunks:
             _n = len(_rag_chunks)
             with st.expander("📄 Contexte RAG utilisé", expanded=False):
                 st.caption(
