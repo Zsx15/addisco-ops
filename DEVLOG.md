@@ -4,6 +4,26 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-05-25 — Audit sécurité + couverture tests engine/ et db/
+
+**Commits :** `9cbf915`, `5e0afb4`, `12aed6e`, `c6eee67`
+
+**Actions réalisées :**
+- Graphe Bloom branché aux données réelles (`tabs/tab_engine.py`) — badges couleur par score mastery, footer dynamique
+- Fix C3 : logique rôle inversée dans `app.py` (non-authentifié = privilégié) → `_is_privileged = _role in ("formateur", "admin")`
+- Fix C2 : `auth_service.py` — `is_active` sélectionné et vérifié avant bcrypt (comptes désactivés ne pouvaient pas être bloqués)
+- Fix C1 : type hint `generate_question()` corrigé → `tuple[str, list[int], str, list[dict]]`
+- Fix C4 : whitelist bucket avant f-string dans `db/runtime_metrics.py`
+- Fix C5 : constantes SQL paramétrées dans `db/chunks.py` via `?` (HAVING, ORDER CASE)
+- Ajout `test_engine_units.py` : 57 tests, zéro import DB/API — skill_engine, question_type, profile_metrics, adaptive_difficulty, retention_metrics
+- Ajout `test_db_units.py` : 19 tests sur DB SQLite isolée — db/skills seed+mastery, db/sessions start/close/analytics
+
+**Invariants préservés :** MVP stable, fallback actif, aucun changement schéma DB.
+
+**Prochaine étape :** push origin + Railway redeploy si nécessaire.
+
+---
+
 ## 2026-05-24 — Snapshot Phase 20 — Test robustesse 500 attempts (93/100)
 
 **Commit :** `f899b11` (état courant)
