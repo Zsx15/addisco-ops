@@ -7,9 +7,10 @@
 **Demo live :** [addisco-ops-production.up.railway.app](https://addisco-ops-production.up.railway.app)
 &nbsp;·&nbsp; Compte démo : `demo` / `Demo2026!`
 
+![CI](https://github.com/Zsx15/addisco-ops/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.57-red)
-![Tests](https://img.shields.io/badge/tests-262%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-383%20passing-brightgreen)
 ![Deployed](https://img.shields.io/badge/Railway-live-success)
 ![Auditor](https://img.shields.io/badge/System%20Auditor-99%2F100-brightgreen)
 
