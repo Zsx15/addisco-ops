@@ -90,17 +90,22 @@ def promote_user(admin_username: str, target_username: str, new_role: str) -> No
 
 
 def seed_demo_accounts() -> None:
-    """Garantit que les comptes demo existent toujours, indépendamment des autres admins."""
+    """Garantit que les comptes demo existent et ont le bon rôle."""
     _accounts = [
         ("admin",      "admin123",      "admin"),
         ("formateur",  "formateur123",  "formateur"),
     ]
     for _username, _password, _role in _accounts:
-        try:
-            register_user(_username, _password, role=_role)
-            logger.info("Compte démo créé : %s (%s)", _username, _role)
-        except ValueError:
-            pass  # compte déjà présent
+        existing = get_user_by_username(_username)
+        if existing is None:
+            try:
+                register_user(_username, _password, role=_role)
+                logger.info("Compte démo créé : %s (%s)", _username, _role)
+            except ValueError:
+                pass
+        elif existing["role"] != _role:
+            database.set_user_role(_username, _role)
+            logger.info("Rôle démo corrigé : %s → %s", _username, _role)
 
 
 def verify_password(username: str, password: str) -> Optional[dict]:

@@ -418,3 +418,47 @@ def seed_demo_document() -> None:
         logger.info("Document de démonstration inséré.")
     except Exception as exc:
         logger.warning("Seed démo échouée (non bloquant) : %s", exc)
+
+
+# Documents du projet à injecter au démarrage
+_PROJECT_DOCS: list[tuple[str, str]] = [
+    ("DOC1 — RH Mobilité Interne",           "docs/DOC1_RH_MOBILITE_INTERNE.md"),
+    ("DOC2 — IT & Innovation",               "docs/DOC2_IT_INNOVATION.md"),
+    ("DOC3 — Direction Exécutive",           "docs/DOC3_DIRECTION_EXECUTIF.md"),
+    ("Présentation Technique — ADDISCO OPS", "docs/PRESENTATION_TECHNIQUE.md"),
+    ("Présentation RH — ADDISCO OPS",        "docs/PRESENTATION_RH.md"),
+    ("Manuel Personnel",                     "docs/MON_MANUEL_PERSONNEL.md"),
+    ("Référence Complète ADDISCO OPS",       "docs/ADDISCO_OPS_REFERENCE_COMPLETE.md"),
+]
+
+
+def seed_project_documents() -> None:
+    """Injecte les documents du projet si absents (vérification par titre)."""
+    import sqlite3 as _sqlite3
+    from pathlib import Path as _Path
+    from database import DB_PATH as _DB_PATH
+
+    for title, rel_path in _PROJECT_DOCS:
+        try:
+            with _sqlite3.connect(str(_DB_PATH)) as _conn:
+                _exists = _conn.execute(
+                    "SELECT 1 FROM documents WHERE title = ?", (title,)
+                ).fetchone()
+            if _exists:
+                continue
+
+            doc_path = _Path(rel_path)
+            if not doc_path.exists():
+                logger.warning("Fichier introuvable, skip : %s", rel_path)
+                continue
+
+            file_bytes = doc_path.read_bytes()
+            ingest_document(
+                title=title,
+                source_type="txt",
+                filename=doc_path.name,
+                file_bytes=file_bytes,
+            )
+            logger.info("Document projet injecté : %s", title)
+        except Exception as exc:
+            logger.warning("Seed document '%s' échouée (non bloquant) : %s", title, exc)
