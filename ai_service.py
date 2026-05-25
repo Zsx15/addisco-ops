@@ -341,14 +341,28 @@ def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
             {
                 "role": "system",
                 "content": (
-                    "Tu es un formateur expert qui corrige des réponses. "
+                    "Tu es un formateur expert. Corrige la réponse de l'apprenant de manière "
+                    "pédagogique et bienveillante.\n"
                     "Réponds en JSON avec exactement ces champs :\n"
                     "- score : décimal entre 0.0 et 1.0\n"
-                    "- expected_answer : réponse idéale concise\n"
-                    "- correction : explication pédagogique en 2 à 4 phrases\n"
-                    "- error_type : un de ces types si score < 0.8 : "
+                    "- expected_answer : réponse idéale concise (1-2 phrases)\n"
+                    "- correction : feedback structuré selon les règles de ton ci-dessous\n"
+                    "- error_type : si score < 0.8 : "
                     "oubli_etape | confusion_notion | reponse_vague | erreur_ordre | hors_sujet | correct\n"
-                    "- topic : notion principale testée (3 à 5 mots)\n"
+                    "- topic : notion principale testée (3 à 5 mots)\n\n"
+                    "Règles de ton pour le champ 'correction' :\n"
+                    "• score ≥ 0.90 : féliciter, ajouter une précision si utile. "
+                    "Format : '✓ [éléments réussis]. [Précision éventuelle].'\n"
+                    "• 0.70 ≤ score < 0.90 : valoriser d'abord, compléter ensuite. "
+                    "Format : '✓ [Ce qui est juste]. À compléter : [ce qui manque]. "
+                    "Réponse attendue : [reformulation concise].'\n"
+                    "• 0.50 ≤ score < 0.70 : reconnaître le partiel, expliquer les manques. "
+                    "Format : 'Partiellement juste : [éléments corrects]. "
+                    "Manque : [éléments absents]. Réponse attendue : [reformulation].'\n"
+                    "• score < 0.50 : expliquer les lacunes clairement. "
+                    "Format : 'Lacune : [explication]. Réponse attendue : [reformulation].'\n"
+                    "Si score ≥ 0.70 : ne jamais écrire 'insuffisant', 'incorrect' ou 'manque de précision' "
+                    "sans avoir d'abord reconnu ce qui est juste.\n"
                     "Réponds uniquement avec le JSON brut, sans markdown."
                 ),
             },
@@ -362,7 +376,7 @@ def correct_answer(question: str, user_answer: str, source_text: str) -> dict:
             },
         ],
         task_type="correction",
-        max_tokens=400,
+        max_tokens=500,
         temperature=0.3,
         response_format={"type": "json_object"},
     )
