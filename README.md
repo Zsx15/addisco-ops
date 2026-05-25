@@ -1,8 +1,17 @@
 # ADDISCO OPS — Moteur de révision pédagogique par IA
 
-Plateforme de formation professionnelle basée sur un corpus documentaire personnel,
-la génération de questions par IA et la correction adaptative. Chaque apprenant
-progresse à son rythme sur ses propres documents métier.
+> Plateforme de formation professionnelle déployée en production.
+> Chaque organisation importe ses propres documents métier ; le moteur génère
+> des sessions de révision personnalisées et adapte la pédagogie en temps réel.
+
+**Demo live :** [addisco-ops-production.up.railway.app](https://addisco-ops-production.up.railway.app)
+&nbsp;·&nbsp; Compte démo : `demo` / `Demo2026!`
+
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.57-red)
+![Tests](https://img.shields.io/badge/tests-262%20passing-brightgreen)
+![Deployed](https://img.shields.io/badge/Railway-live-success)
+![Auditor](https://img.shields.io/badge/System%20Auditor-99%2F100-brightgreen)
 
 ---
 
@@ -771,7 +780,7 @@ GitHub (main branch)
 Railway CI — docker build
         │
         ▼
-Container Docker (python:3.11-slim)
+Container Docker (python:3.12-slim)
   /app/                   ← code applicatif (image)
   /app/data/database.db   ← Volume Railway (persistant)
         │
@@ -785,7 +794,7 @@ URL publique Railway (HTTPS automatique)
 
 ### Prérequis
 
-- Python 3.11+
+- Python 3.12+
 - Clé API OpenAI (modèles `gpt-4o-mini` et `text-embedding-3-small`)
 
 ### Installation
@@ -854,26 +863,27 @@ Toutes les fonctionnalités de suivi, profil et analytics restent opérationnell
 | Tests | pytest | — |
 | Conteneurisation | Docker / docker-compose | — |
 | Déploiement | Railway | — |
-| Langage | Python | 3.11+ |
+| Langage | Python | 3.12 |
 
 ---
 
 ## 15. État du projet
 
-### Stable et démontrable
+### Stable et démontrable — Phase 20 · Railway en production
 
-- Authentification multi-utilisateur bcrypt avec rôles
-- Import PDF / DOCX / TXT + embeddings automatiques
-- Pipeline RAG complet — recherche sémantique cross-documents
-- Génération de questions (6 types) et correction structurée
-- Répétition espacée avec seuils calibrés empiriquement
-- Corpus personnalisés — entraînement et analytics filtrés
-- Dashboard dark premium avec analytics Plotly
-- Skills Engine V1.0 — 10 compétences, mapping par mots-clés
-- Global System Auditor — 10 sections, score 99/100
-- Suite de calibration moteur — GO SAFE validé
-- Docker + Railway-ready (Volume persistant configuré)
-- 262 tests de régression — couverture moteur complète
+- **Déployé en production** sur Railway avec volume persistant (`/app/data`)
+- Authentification multi-utilisateur bcrypt avec rôles (apprenant / formateur / admin)
+- Import PDF / DOCX / TXT + embeddings automatiques (text-embedding-3-small, 1 536 dims)
+- Pipeline RAG complet — recherche sémantique cross-documents (cosinus numpy)
+- Génération de questions (6 types pédagogiques) et correction structurée par LLM
+- Répétition espacée avec seuils calibrés empiriquement (GO SAFE validé)
+- Corpus personnalisés — entraînement et analytics filtrés par thématique
+- Dashboard dark premium avec analytics Plotly (momentum, velocity, rétention J+1/J+7/J+30)
+- Skills Engine V1.0 — 10 compétences, mapping déterministe par mots-clés
+- Global System Auditor — 10 sections, **score 99/100**
+- AI Gateway — rate limiting, logging JSONL, monitoring Sentry
+- Fallback mode automatique (texte brut) si API indisponible
+- **262 tests de régression** — couverture moteur complète (~6 secondes)
 
 ### Limites assumées
 
@@ -890,11 +900,11 @@ Toutes les fonctionnalités de suivi, profil et analytics restent opérationnell
 
 ### Prochaines étapes
 
-1. **Tests humains** sur 10 testeurs (données réelles nécessaires pour valider l'Ebbinghaus)
-2. **Skills Engine V2** : cartographie par LLM au lieu de mots-clés
-3. **Profil utilisateur enrichi** (TASK-049 différé depuis Phase 15B)
-4. **PostgreSQL + pgvector** si passage à l'échelle nécessaire
+1. **Tests humains** sur 10 testeurs réels (données réelles nécessaires pour valider les intervalles Ebbinghaus)
+2. **GitHub Actions CI** — pipeline automatique sur `push main` (py_compile + pytest)
+3. **Skills Engine V2** — cartographie par LLM au lieu de mots-clés déterministes
+4. **PostgreSQL + pgvector** si la cohorte dépasse 50 utilisateurs actifs simultanés
 
 ---
 
-*ADDISCO OPS — Phase 19 QA complète — Commit `ff6a271` — 262 tests — Auditor 99/100*
+*ADDISCO OPS — Phase 20 · Déployé Railway · 262 tests · Auditor 99/100*
