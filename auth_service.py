@@ -41,7 +41,7 @@ def get_user_by_username(username: str) -> Optional[dict]:
     """Retourne le dict utilisateur complet ou None si introuvable."""
     with sqlite3.connect(str(database.DB_PATH)) as conn:
         row = conn.execute(
-            "SELECT user_id, username, password_hash, role, created_at "
+            "SELECT user_id, username, password_hash, role, created_at, is_active "
             "FROM users WHERE username = ?",
             (username,),
         ).fetchone()
@@ -53,6 +53,7 @@ def get_user_by_username(username: str) -> Optional[dict]:
         "password_hash": row[2],
         "role":          row[3],
         "created_at":    row[4],
+        "is_active":     row[5],
     }
 
 
@@ -110,6 +111,8 @@ def verify_password(username: str, password: str) -> Optional[dict]:
     """Vérifie identifiants. Retourne {user_id, username, role} ou None (sans exposer le hash)."""
     user = get_user_by_username(username)
     if user is None:
+        return None
+    if not user.get("is_active", 1):
         return None
     if user["password_hash"] is None:
         return None

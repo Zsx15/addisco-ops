@@ -305,7 +305,7 @@ with st.sidebar:
     st.caption(f"📄 {_n_docs} document{'s' if _n_docs > 1 else ''} chargé{'s' if _n_docs > 1 else ''}")
 
 _role           = st.session_state.get("role")
-_is_privileged  = not st.session_state.get("authenticated") or _role in ("formateur", "admin")
+_is_privileged  = _role in ("formateur", "admin")
 _is_admin       = _role == "admin"
 
 if _pres_mode:
