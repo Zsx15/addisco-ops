@@ -20,16 +20,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Compile all Python files
+      - name: Compile all Python files (py_compile)
         run: |
           find . -name "*.py" \
             -not -path "./.venv/*" \
@@ -39,8 +39,12 @@ jobs:
             -print0 | xargs -0 python -m py_compile
           echo "py_compile OK"
 
-      - name: Run regression tests
-        run: python -m unittest test_regression.py -v
-
-      - name: Run integration tests
-        run: python -m unittest test_integration.py -v
+      - name: Run test suite (pytest)
+        run: |
+          python -m pytest \
+            test_regression.py \
+            test_integration.py \
+            test_auth_service.py \
+            test_engine_units.py \
+            test_db_units.py \
+            -q --tb=short
