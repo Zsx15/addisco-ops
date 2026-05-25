@@ -392,12 +392,21 @@ Le rapport doit être validé électroniquement avant la sortie du poste. Un rap
 
 def seed_demo_document() -> None:
     """
-    Insère le document de démonstration si aucun document n'existe en base.
-    Idempotente : sans effet si au moins un document est déjà présent.
+    Insère le document de démonstration s'il n'existe pas déjà (par titre).
+    Idempotente : vérifie par titre exact, pas par présence globale de documents.
     Les embeddings sont calculés si l'API key est disponible,
     sinon stockés NULL (reindex disponible via l'UI).
     """
-    if has_documents():
+    import sqlite3 as _sqlite3
+    from database import DB_PATH as _DB_PATH
+    try:
+        with _sqlite3.connect(str(_DB_PATH)) as _conn:
+            _exists = _conn.execute(
+                "SELECT 1 FROM documents WHERE title = ?", (_DEMO_TITLE,)
+            ).fetchone()
+        if _exists:
+            return
+    except Exception:
         return
     try:
         ingest_document(

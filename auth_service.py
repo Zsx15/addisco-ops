@@ -90,11 +90,7 @@ def promote_user(admin_username: str, target_username: str, new_role: str) -> No
 
 
 def seed_demo_accounts() -> None:
-    """Crée les comptes de démonstration si aucun administrateur n'existe.
-    Idempotente — sans effet si un admin est déjà présent en base.
-    """
-    if database.count_admins() > 0:
-        return
+    """Garantit que les comptes demo existent toujours, indépendamment des autres admins."""
     _accounts = [
         ("admin",      "admin123",      "admin"),
         ("formateur",  "formateur123",  "formateur"),
