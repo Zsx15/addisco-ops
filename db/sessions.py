@@ -6,7 +6,7 @@ Utilise database.DB_PATH via import tardif pour respecter le monkey-patch des te
 import json
 import logging
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import database as _db
@@ -37,7 +37,7 @@ def close_session(
     feedback_score: Optional[float] = None,
 ) -> None:
     """Ferme une session : calcule la durée et enregistre les stats finales."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(_db.DB_PATH) as conn:
         row = conn.execute(
             "SELECT started_at FROM learning_sessions WHERE id = ?",
@@ -47,7 +47,7 @@ def close_session(
         if row and row[0]:
             try:
                 started = datetime.fromisoformat(str(row[0]))
-                duration = int((datetime.utcnow() - started).total_seconds())
+                duration = int((datetime.now(timezone.utc) - started.replace(tzinfo=timezone.utc)).total_seconds())
             except Exception:
                 pass
         rec_followed = None

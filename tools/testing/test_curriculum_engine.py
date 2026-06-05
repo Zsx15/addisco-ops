@@ -125,11 +125,13 @@ def _make_db(tmp_path: str, attempts: list = None, skill_overrides: dict = None)
                 (i, slug, slug.replace("_", " "), f"Description {slug}"),
             )
             score = skill_overrides.get(slug, 0.0) if skill_overrides else 0.0
+            # MASTERY_MIN_ATTEMPTS=5 : il faut >= 5 tentatives pour atteindre Acquis
+            from engine.thresholds import MASTERY_MIN_ATTEMPTS
             conn.execute(
                 "INSERT INTO user_skill_mastery "
                 "(user_id, skill_id, mastery_score, attempts_count) "
                 "VALUES (?,?,?,?)",
-                ("test_user", i, score, 3 if score > 0 else 0),
+                ("test_user", i, score, MASTERY_MIN_ATTEMPTS if score > 0 else 0),
             )
 
         if attempts:

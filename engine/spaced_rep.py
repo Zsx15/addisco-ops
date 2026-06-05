@@ -42,7 +42,7 @@ def classify_mastery(df: pd.DataFrame) -> pd.DataFrame:
     - next_review, days_until_review, review_status
 
     Règles :
-    - Maîtrisé       : avg_score >= 0.8 ET attempts_count >= 3
+    - Maîtrisé       : avg_score >= 0.8 ET attempts_count >= MASTERY_MIN_ATTEMPTS (5)
     - Fragile        : avg_score < 0.6
     - En consolidation : reste
     """

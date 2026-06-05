@@ -4,6 +4,24 @@ Journal de développement chronologique du projet.
 
 ---
 
+## 2026-06-05 — Analyse structurelle Phase 20 + bug fix curriculum engine + ARCHITECTURE.md
+
+**Actions réalisées :**
+
+- Analyse structurelle complète du moteur pédagogique (Phase 20, 407 tests).
+- **Bug fix** `tools/testing/test_curriculum_engine.py` : helper `_make_db` insérait `attempts_count=3` pour les skills overridés, mais `MASTERY_MIN_ATTEMPTS=5`. Un skill Acquis (score 0.90) n'était pas reconnu comme tel — le filtre `if mcls == "Acquis": continue` dans `curriculum_engine.py` ne se déclenchait pas. Corrigé : `attempts_count` devient `MASTERY_MIN_ATTEMPTS` (import dynamique depuis `thresholds.py`).
+- **Docstrings stales corrigées** : `engine/spaced_rep.py` et `engine/skill_engine.py` mentionnaient "3 tentatives" alors que le seuil réel est 5 depuis le passage de `MASTERY_MIN_ATTEMPTS` à 5.
+- **`ARCHITECTURE.md` mis à jour** (Phase 15B → Phase 20) : couverture de `ai_gateway/`, couche `db/` complète (9 modules), tous les modules `engine/` (17 modules), tables `skills`/`user_skill_mastery`/`user_sessions`, seuils centralisés `thresholds.py`, pipeline adaptatif complet avec curriculum engine, contrainte non-bloquant, section sur les deux systèmes de maîtrise parallèles (chunk vs skill).
+- **Fix `datetime.utcnow()`** dans `db/sessions.py` : remplacé par `datetime.now(timezone.utc)` — suppression des 18 `DeprecationWarning` Python 3.14 (sera breaking en Python 3.15).
+
+**Résultat :** 407 / 407 tests passés, 0 warning.
+
+**Invariants préservés :** MVP stable, fallback actif, aucun changement logique métier, aucune modification schéma DB.
+
+**Prochaine étape logique :** commit + push, ou continuer vers ai-v4 Phase V4.
+
+---
+
 ## 2026-05-25 — Audit sécurité + couverture tests engine/ et db/
 
 **Commits :** `9cbf915`, `5e0afb4`, `12aed6e`, `c6eee67`

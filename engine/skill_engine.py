@@ -13,7 +13,7 @@ def classify_skill_mastery(mastery_score: float, attempts_count: int = 0) -> str
     """
     Classe un skill en trois états.
 
-    - Acquis  : score >= 0.8 ET au moins 3 tentatives
+    - Acquis  : score >= 0.8 ET au moins MASTERY_MIN_ATTEMPTS (5) tentatives
     - Fragile : score < 0.6
     - En cours : reste
     """
