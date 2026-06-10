@@ -25,7 +25,7 @@ EMBEDDING_DIMS   = 1536
 # ── RAG ───────────────────────────────────────────────────────────────────────
 # Source : ai_service.py
 RAG_TOP_K           = 3
-TEXT_MAX_CHARS      = 6_000
+TEXT_MAX_CHARS      = 15_000
 EMBEDDING_MAX_CHARS = 24_000
 
 # ── Répétition espacée ────────────────────────────────────────────────────────

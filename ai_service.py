@@ -22,7 +22,11 @@ from adaptive_engine import (
 )
 from engine.adaptive_difficulty import choose_adaptive_question_type
 
-TEXT_MAX_CHARS = 6000
+TEXT_MAX_CHARS = 15_000
+
+def _truncate(text: str) -> str:
+    return text[:TEXT_MAX_CHARS] if len(text) > TEXT_MAX_CHARS else text
+
 
 # text-embedding-3-small : 1 536 dimensions, ~8 000 tokens max en entrée
 EMBEDDING_MODEL     = "text-embedding-3-small"
@@ -58,9 +62,6 @@ _TYPE_PROMPTS = {
     ),
 }
 
-
-def _truncate(text: str) -> str:
-    return text[:TEXT_MAX_CHARS] if len(text) > TEXT_MAX_CHARS else text
 
 
 def _call_embedding_api(text: str) -> list[float]:
