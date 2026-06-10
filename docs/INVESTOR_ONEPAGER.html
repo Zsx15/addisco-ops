@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADDISCO OPS — Investor One-Pager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --blue:    #1A56DB;
+    --dark:    #0F172A;
+    --mid:     #334155;
+    --light:   #64748B;
+    --bg:      #F8FAFC;
+    --border:  #E2E8F0;
+    --accent:  #0EA5E9;
+    --green:   #059669;
+    --tag-bg:  #EFF6FF;
+    --tag-txt: #1D4ED8;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: white;
+    color: var(--dark);
+    font-size: 10.5px;
+    line-height: 1.5;
+  }
+
+  /* ─── PAGE SHELL ─── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 12mm 14mm 10mm;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 10px;
+    border-bottom: 2.5px solid var(--blue);
+    margin-bottom: 2px;
+  }
+  .brand h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: -0.5px;
+  }
+  .brand .tagline {
+    font-size: 10px;
+    color: var(--light);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .header-meta {
+    text-align: right;
+    font-size: 9.5px;
+    color: var(--light);
+    line-height: 1.7;
+  }
+  .header-meta strong {
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  /* ─── GRID ─── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* ─── SECTION LABEL ─── */
+  .section-label {
+    font-size: 7.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--blue);
+    margin-bottom: 5px;
+  }
+
+  /* ─── CARD ─── */
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 13px 14px;
+  }
+  .card.blue-border { border-left: 3px solid var(--blue); }
+  .card.green-border { border-left: 3px solid var(--green); }
+  .card.accent-border { border-left: 3px solid var(--accent); }
+
+  .card h3 {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 5px;
+  }
+  .card p, .card li {
+    font-size: 9.5px;
+    color: var(--mid);
+    line-height: 1.55;
+  }
+  .card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .card ul li::before {
+    content: "→ ";
+    color: var(--blue);
+    font-weight: 600;
+  }
+
+  /* ─── INSIGHT BOX ─── */
+  .insight {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 10px;
+    color: var(--blue);
+    font-weight: 500;
+    font-style: italic;
+  }
+
+  /* ─── KPI STRIP ─── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .kpi {
+    background: var(--dark);
+    border-radius: 6px;
+    padding: 13px 6px;
+    text-align: center;
+    color: white;
+  }
+  .kpi .num {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    line-height: 1.1;
+  }
+  .kpi .lbl {
+    font-size: 7.5px;
+    color: #94A3B8;
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+
+  /* ─── COMPARISON TABLE ─── */
+  .cmp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+  }
+  .cmp-table th {
+    background: var(--dark);
+    color: white;
+    padding: 5px 7px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 8.5px;
+  }
+  .cmp-table th:first-child { border-radius: 4px 0 0 0; }
+  .cmp-table th:last-child  { border-radius: 0 4px 0 0; background: var(--blue); }
+  .cmp-table td {
+    padding: 4px 7px;
+    border-bottom: 1px solid var(--border);
+    color: var(--mid);
+    vertical-align: middle;
+  }
+  .cmp-table td:last-child { font-weight: 600; color: var(--blue); }
+  .cmp-table tr:nth-child(even) td { background: var(--bg); }
+  .tick   { color: var(--green); font-weight: 700; }
+  .cross  { color: #CBD5E1; }
+
+  /* ─── PIPELINE ─── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--dark);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .pipe-step {
+    flex: 1;
+    padding: 11px 8px;
+    text-align: center;
+    position: relative;
+  }
+  .pipe-step .p-icon { font-size: 16px; display: block; }
+  .pipe-step .p-title {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: white;
+    margin-top: 3px;
+  }
+  .pipe-step .p-sub {
+    font-size: 7px;
+    color: #94A3B8;
+    margin-top: 2px;
+  }
+  .pipe-step::after {
+    content: "›";
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 1;
+  }
+  .pipe-step:last-child::after { display: none; }
+
+  /* ─── TAGS ─── */
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .tag {
+    background: var(--tag-bg);
+    color: var(--tag-txt);
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    border: 1px solid #BFDBFE;
+  }
+
+  /* ─── ASK BOX ─── */
+  .ask-box {
+    background: var(--blue);
+    border-radius: 6px;
+    padding: 13px 16px;
+    color: white;
+  }
+  .ask-box .ask-title {
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+  }
+  .ask-box ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ask-box ul li {
+    font-size: 9.5px;
+    color: rgba(255,255,255,0.92);
+    line-height: 1.5;
+  }
+  .ask-box ul li::before {
+    content: "✦ ";
+    color: var(--accent);
+    font-size: 8px;
+  }
+
+  /* ─── ROADMAP STRIP ─── */
+  .roadmap {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .roadmap-step {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .roadmap-step .r-num {
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .roadmap-step .r-title {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--dark);
+    margin: 3px 0 2px;
+  }
+  .roadmap-step .r-sub {
+    font-size: 8px;
+    color: var(--light);
+    line-height: 1.4;
+  }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding-top: 7px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8.5px;
+    color: var(--light);
+    margin-top: auto;
+  }
+  .footer strong { color: var(--dark); }
+
+  /* ─── PRINT ─── */
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { margin: 0; padding: 10mm 13mm 8mm; }
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="header">
+    <div class="brand">
+      <h1>ADDISCO OPS</h1>
+      <div class="tagline">Moteur pédagogique adaptatif · Révision métier par l'IA · B2B SaaS</div>
+    </div>
+    <div class="header-meta">
+      <strong>En production · Juin 2026</strong><br>
+      20 phases livrées · Railway · Docker<br>
+      marcelino.guilhem@gmail.com
+    </div>
+  </div>
+
+  <!-- ═══ INSIGHT ═══ -->
+  <div class="insight">
+    Le chat IA pédagogique a prouvé que les LLM peuvent enseigner. ADDISCO OPS transforme cette capacité en maîtrise vérifiable sur le contenu propriétaire d'une organisation.
+  </div>
+
+  <!-- ═══ PROBLÈME + SOLUTION ═══ -->
+  <div class="grid-2">
+    <div class="card blue-border">
+      <div class="section-label">Le problème</div>
+      <ul>
+        <li>Les procédures internes existent en PDF — non mobilisables pour former.</li>
+        <li>Les LMS délivrent le même contenu à tous, sans adaptation.</li>
+        <li>Aucune trace de ce qui est réellement compris, oublié ou fragile.</li>
+      </ul>
+    </div>
+    <div class="card green-border">
+      <div class="section-label">La solution</div>
+      <p>ADDISCO OPS ingère les documents d'une organisation, les transforme en base de connaissances sémantique et génère des sessions de révision adaptées à chaque apprenant — avec mémoire d'erreur et répétition espacée.</p>
+      <div class="tags">
+        <span class="tag">RAG + Embeddings</span>
+        <span class="tag">6 types de questions</span>
+        <span class="tag">Répétition espacée</span>
+        <span class="tag">Score de maîtrise</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PIPELINE ═══ -->
+  <div class="pipeline">
+    <div class="pipe-step">
+      <span class="p-icon">📄</span>
+      <div class="p-title">Import</div>
+      <div class="p-sub">PDF · DOCX · TXT</div>
+    </div>
+    <div class="pipe-step">
+      <span class="p-icon">🧩</span>
+      <div class="p-title">Corpus</div>
+      <div class="p-sub">Chunks + embeddings</div>
+    </div>
+    <div class="pipe-step">
+      <span class="p-icon">❓</span>
+      <div class="p-title">Question</div>
+      <div class="p-sub">RAG · 6 types · adaptatif</div>
+    </div>
+    <div class="pipe-step">
+      <span class="p-icon">✅</span>
+      <div class="p-title">Correction IA</div>
+      <div class="p-sub">Score · source · confiance</div>
+    </div>
+    <div class="pipe-step">
+      <span class="p-icon">🧠</span>
+      <div class="p-title">Mémoire</div>
+      <div class="p-sub">Profil · erreurs · J+1/7/30</div>
+    </div>
+  </div>
+
+  <!-- ═══ KPIs ═══ -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <span class="num">262</span>
+      <div class="lbl">Tests automatisés<br>zéro régression</div>
+    </div>
+    <div class="kpi">
+      <span class="num">99<small style="font-size:10px">/100</small></span>
+      <div class="lbl">Score audit<br>système</div>
+    </div>
+    <div class="kpi">
+      <span class="num">20</span>
+      <div class="lbl">Phases livrées<br>en production</div>
+    </div>
+    <div class="kpi">
+      <span class="num">500+</span>
+      <div class="lbl">Sessions simulées<br>calibration moteur</div>
+    </div>
+    <div class="kpi">
+      <span class="num">3</span>
+      <div class="lbl">Rôles actifs<br>apprenant / formateur / admin</div>
+    </div>
+  </div>
+
+  <!-- ═══ MARCHÉ + DIFFÉRENCIATION ═══ -->
+  <div class="grid-2">
+    <div class="card accent-border">
+      <div class="section-label">Marché cible</div>
+      <p style="margin-bottom:6px">Corporate L&D : <strong>~380 Md$ / an</strong>.<br>Segment visé : secteurs dont les collaborateurs doivent maîtriser des procédures documentées.</p>
+      <ul>
+        <li><strong>Transport & mobilité</strong> — protocoles, sécurité opérationnelle</li>
+        <li><strong>Énergie & industrie</strong> — consignes, maintenance</li>
+        <li><strong>Santé</strong> — protocoles de soin, conformité</li>
+        <li><strong>Services publics</strong> — réglementation, guides métier</li>
+      </ul>
+      <p style="margin-top:6px;font-size:9px;color:var(--light)">Ces organisations <em>ont déjà le contenu</em>. La friction n'est pas de créer des formations — c'est de les rendre efficaces et mesurables.</p>
+    </div>
+
+    <div>
+      <div class="section-label">Vs. chat IA pédagogique</div>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th>Critère</th>
+            <th>Chat IA</th>
+            <th>ADDISCO OPS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Contenu propriétaire org.</td><td class="cross">✗</td><td class="tick">✓</td></tr>
+          <tr><td>Score de maîtrise mesurable</td><td class="cross">✗</td><td class="tick">✓</td></tr>
+          <tr><td>Mémoire d'erreur persistante</td><td class="cross">✗</td><td class="tick">✓</td></tr>
+          <tr><td>Répétition espacée ciblée</td><td class="cross">✗</td><td class="tick">✓</td></tr>
+          <tr><td>Dashboard formateur / audit</td><td class="cross">✗</td><td class="tick">✓</td></tr>
+          <tr><td>Correction ancrée dans source</td><td class="cross">✗</td><td class="tick">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ MODÈLE ÉCON + ASK ═══ -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-label">Modèle économique</div>
+      <ul style="margin-bottom:5px">
+        <li><strong>SaaS par siège</strong> — 15–40 €/utilisateur/mois</li>
+        <li><strong>50 apprenants</strong> → 9 000–24 000 € ARR / client</li>
+        <li><strong>On-premise</strong> — Docker + PostgreSQL pour données souveraines</li>
+      </ul>
+      <p style="font-size:9px;color:var(--light)">Stickiness élevée : corpus ingéré + profils apprenants = actif organisationnel. Coût de migration fort dès J+90.</p>
+      <div class="tags" style="margin-top:6px">
+        <span class="tag">Amorçage</span>
+        <span class="tag">B2B récurrent</span>
+        <span class="tag">Déployé</span>
+      </div>
+    </div>
+
+    <div class="ask-box">
+      <div class="ask-title">Ce que nous cherchons</div>
+      <ul>
+        <li>Financement amorçage — tests utilisateurs réels + passage PostgreSQL</li>
+        <li>1er client pilote — corpus procédures internes réelles, feedback structuré</li>
+        <li>Conseil go-to-market B2B — canaux RH / Direction Formation / DSI</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══ ROADMAP ═══ -->
+  <div>
+    <div class="section-label" style="margin-bottom:8px">Prochaines étapes</div>
+    <div class="roadmap">
+      <div class="roadmap-step">
+        <div class="r-num">Étape 1</div>
+        <div class="r-title">PostgreSQL + API REST</div>
+        <div class="r-sub">Scalabilité production, intégration SI existants (SIRH, LMS legacy)</div>
+      </div>
+      <div class="roadmap-step">
+        <div class="r-num">Étape 2</div>
+        <div class="r-title">Client pilote</div>
+        <div class="r-sub">1 organisation, corpus réel, feedback structuré 30 jours</div>
+      </div>
+      <div class="roadmap-step">
+        <div class="r-num">Étape 3</div>
+        <div class="r-title">Dashboard formateur V2</div>
+        <div class="r-sub">Suivi cohorte, comparaison apprenants, rapport PDF automatique</div>
+      </div>
+      <div class="roadmap-step">
+        <div class="r-num">Étape 4</div>
+        <div class="r-title">Go-to-market B2B</div>
+        <div class="r-sub">Canaux RH / Direction Formation — 3 premiers clients payants</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FOOTER ═══ -->
+  <div class="footer">
+    <div>
+      <strong>Guilhem Marcelino</strong> · Fondateur &amp; porteur du projet<br>
+      Opérateur terrain → porteur du problème, architecte de la solution
+    </div>
+    <div style="text-align:right">
+      marcelino.guilhem@gmail.com<br>
+      <span style="color:var(--blue);font-weight:600">Demo disponible sur demande</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
