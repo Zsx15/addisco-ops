@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADDISCO OPS — Démonstration</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a0a;
+    color: #f0f0f0;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── PROGRESS DOTS ── */
+  #dots {
+    position: fixed;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #2a2a2a;
+    transition: background 0.3s;
+  }
+  .dot.active { background: #4f8ef7; }
+  .dot.done { background: #333; }
+
+  /* ── NAV BUTTONS ── */
+  #nav-prev {
+    position: fixed;
+    bottom: 32px; left: 40px;
+    background: transparent;
+    border: 1px solid #252525;
+    color: #444;
+    padding: 11px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.2s;
+    display: none;
+  }
+  #nav-prev:hover { border-color: #444; color: #888; }
+
+  #nav-next {
+    position: fixed;
+    bottom: 32px; right: 40px;
+    background: #4f8ef7;
+    border: none;
+    color: #fff;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 100;
+    transition: background 0.2s, transform 0.1s;
+  }
+  #nav-next:hover { background: #3a7de8; transform: scale(1.02); }
+  #nav-next:active { transform: scale(0.98); }
+
+  /* ── MODE BADGE ── */
+  #mode-badge {
+    position: fixed;
+    top: 24px; right: 32px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 100px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #mode-badge.apprenant { background: #1a2a4a; color: #4f8ef7; opacity: 1; }
+  #mode-badge.formateur { background: #1a3a2a; color: #30c060; opacity: 1; }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  /* ── CARD ── */
+  .card {
+    background: #131313;
+    border: 1px solid #1e1e1e;
+    border-radius: 18px;
+    padding: 48px 56px;
+    width: 860px;
+    max-width: 94vw;
+  }
+  .card.wide { width: 980px; }
+
+  .step-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #4f8ef7;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .step-tag.green { color: #30c060; }
+
+  .card h2 {
+    font-size: 27px;
+    font-weight: 700;
+    margin-bottom: 28px;
+    line-height: 1.3;
+  }
+
+  /* ── INTRO ── */
+  #s-intro { background: #0a0a0a; }
+  #s-intro .logo { font-size: 12px; letter-spacing: 4px; color: #4f8ef7; text-transform: uppercase; margin-bottom: 20px; }
+  #s-intro h1 { font-size: 54px; font-weight: 700; text-align: center; line-height: 1.15; margin-bottom: 14px; }
+  #s-intro h1 span { color: #4f8ef7; }
+  #s-intro .sub { font-size: 17px; color: #444; text-align: center; }
+
+  /* ── IMPORT ── */
+  .file-box {
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    border-radius: 12px;
+    padding: 22px 26px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .file-icon {
+    width: 46px; height: 54px;
+    background: #1a2540;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .file-name { font-size: 16px; font-weight: 600; color: #fff; }
+  .file-meta { font-size: 13px; color: #444; margin-top: 4px; }
+
+  .prog-wrap { background: #1a1a1a; border-radius: 100px; height: 5px; overflow: hidden; margin-bottom: 10px; }
+  .prog-fill { height: 100%; background: #4f8ef7; border-radius: 100px; width: 0%; transition: width 1.8s ease; }
+  .prog-lbl { font-size: 13px; color: #444; }
+
+  .stat-row { display: flex; gap: 14px; margin-top: 22px; }
+  .stat { flex: 1; background: #1a1a1a; border-radius: 10px; padding: 14px; text-align: center; }
+  .stat .val { font-size: 24px; font-weight: 700; color: #4f8ef7; }
+  .stat .lbl { font-size: 12px; color: #444; margin-top: 3px; }
+
+  /* ── QUESTION ── */
+  .q-bubble {
+    background: #141e14;
+    border: 1px solid #1e3a1e;
+    border-radius: 12px;
+    padding: 22px 26px;
+    font-size: 18px;
+    color: #ccc;
+    line-height: 1.75;
+    margin-bottom: 18px;
+    min-height: 72px;
+  }
+  .src-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #141420; border: 1px solid #22224a;
+    border-radius: 6px; padding: 7px 14px;
+    font-size: 12px; color: #7799ee;
+  }
+
+  /* ── REPONSE ── */
+  .avatar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .avatar-circle {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #222; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #888;
+  }
+  .avatar-info .name { font-size: 14px; color: #ccc; font-weight: 600; }
+  .avatar-info .sub { font-size: 12px; color: #444; margin-top: 2px; }
+
+  .ans-bubble {
+    background: #1a1a1a; border: 1px solid #252525;
+    border-radius: 12px; padding: 22px 26px;
+    font-size: 17px; color: #ccc; line-height: 1.75; min-height: 72px;
+  }
+  .cursor {
+    display: inline-block; width: 2px; height: 1.1em;
+    background: #4f8ef7; vertical-align: middle; margin-left: 2px;
+    animation: blink 0.8s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* ── CORRECTION ── */
+  .score-block { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 22px; }
+  .score-ring {
+    width: 90px; height: 90px; border-radius: 50%;
+    border: 3px solid #f0a030;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .score-ring .num { font-size: 26px; font-weight: 700; color: #f0a030; line-height: 1; }
+  .score-ring .over { font-size: 11px; color: #555; }
+  .verdict { font-size: 15px; color: #bbb; line-height: 1.75; }
+  .verdict strong { color: #fff; }
+
+  .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+  }
+  .tag.ok { background: #0f2a1a; color: #30c060; border: 1px solid #1a5a30; }
+  .tag.ko { background: #2a1810; color: #f0a030; border: 1px solid #5a3520; }
+
+  .rev-note {
+    margin-top: 18px; background: #181818; border-radius: 10px;
+    padding: 13px 18px; font-size: 13px; color: #555;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .rev-note em { color: #4f8ef7; font-style: normal; font-weight: 600; }
+
+  /* ── MASTERY APPRENANT ── */
+  .mastery-list { display: flex; flex-direction: column; gap: 11px; margin-bottom: 16px; }
+  .m-item {
+    display: flex; align-items: center; gap: 14px;
+    background: #191919; border-radius: 10px; padding: 13px 18px;
+  }
+  .m-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .m-label { flex: 1; font-size: 15px; color: #ccc; }
+  .m-bar-w { width: 90px; height: 4px; background: #222; border-radius: 100px; overflow: hidden; }
+  .m-bar { height: 100%; border-radius: 100px; }
+  .m-badge { font-size: 11px; padding: 3px 10px; border-radius: 100px; font-weight: 600; white-space: nowrap; }
+  .m-rev { font-size: 12px; color: #3a3a3a; min-width: 55px; text-align: right; }
+
+  .badge-ok { background: #0f2a1a; color: #30c060; }
+  .badge-ko { background: #2a1f10; color: #f0a030; }
+  .badge-new { background: #141a30; color: #4f8ef7; }
+
+  /* ── MODE FORMATEUR ── */
+  .formateur-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid #1e1e1e;
+  }
+  .formateur-header .title { font-size: 16px; font-weight: 700; color: #fff; }
+  .formateur-header .subtitle { font-size: 13px; color: #444; margin-top: 2px; }
+
+  .team-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .team-row {
+    display: flex; align-items: center; gap: 16px;
+    background: #191919; border-radius: 10px; padding: 12px 18px;
+  }
+  .team-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #252525; display: flex; align-items: center;
+    justify-content: center; font-size: 13px; color: #666; flex-shrink: 0;
+  }
+  .team-name { width: 130px; font-size: 14px; color: #ccc; font-weight: 600; flex-shrink: 0; }
+  .team-role { width: 130px; font-size: 12px; color: #444; flex-shrink: 0; }
+  .team-bars { flex: 1; display: flex; gap: 6px; align-items: center; }
+  .mini-bar-w { flex: 1; height: 5px; background: #222; border-radius: 100px; overflow: hidden; }
+  .mini-bar { height: 100%; border-radius: 100px; }
+  .team-score { font-size: 13px; font-weight: 700; min-width: 38px; text-align: right; }
+  .team-alert { font-size: 11px; padding: 3px 10px; border-radius: 100px; font-weight: 600; white-space: nowrap; }
+  .alert-red { background: #2a1010; color: #e05050; border: 1px solid #5a2020; }
+  .alert-ok { background: #0f2a1a; color: #30c060; border: 1px solid #1a5a30; }
+  .alert-warn { background: #2a1f10; color: #f0a030; border: 1px solid #5a3520; }
+
+  .insight-row { display: flex; gap: 12px; }
+  .insight {
+    flex: 1; background: #191919; border-radius: 10px; padding: 14px 16px;
+  }
+  .insight .i-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .insight .i-lbl { font-size: 12px; color: #444; line-height: 1.4; }
+  .insight.red .i-val { color: #e05050; }
+  .insight.orange .i-val { color: #f0a030; }
+  .insight.green .i-val { color: #30c060; }
+
+  /* ── END ── */
+  #s-end h1 { font-size: 46px; font-weight: 700; text-align: center; line-height: 1.2; margin-bottom: 14px; }
+  #s-end h1 span { color: #4f8ef7; }
+  #s-end .tagline { font-size: 18px; color: #444; text-align: center; margin-bottom: 44px; }
+
+  .end-stats { display: flex; gap: 20px; justify-content: center; margin-bottom: 44px; }
+  .end-stat { text-align: center; background: #131313; border: 1px solid #1e1e1e; border-radius: 14px; padding: 22px 30px; }
+  .end-stat .v { font-size: 30px; font-weight: 700; color: #4f8ef7; }
+  .end-stat .l { font-size: 12px; color: #444; margin-top: 4px; }
+
+  #restart-btn {
+    background: transparent; border: 1px solid #252525; color: #444;
+    padding: 12px 30px; border-radius: 8px; font-size: 14px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  #restart-btn:hover { border-color: #4f8ef7; color: #4f8ef7; }
+</style>
+</head>
+<body>
+
+<!-- Dots -->
+<div id="dots"></div>
+
+<!-- Mode badge -->
+<div id="mode-badge"></div>
+
+<!-- Prev / Next -->
+<button id="nav-prev" onclick="go(-1)">← Retour</button>
+<button id="nav-next" onclick="go(1)">Continuer →</button>
+
+<!-- ══════════════════════════════════════════════
+     ÉCRANS
+══════════════════════════════════════════════ -->
+
+<!-- 0 · INTRO -->
+<div class="screen active" id="s0">
+  <div style="text-align:center">
+    <div style="font-size:12px;letter-spacing:4px;color:#4f8ef7;text-transform:uppercase;margin-bottom:20px">ADDISCO OPS</div>
+    <h1 style="font-size:54px;font-weight:700;line-height:1.15;margin-bottom:14px">
+      Votre document.<br>Un <span style="color:#4f8ef7">moteur d'apprentissage</span>.
+    </h1>
+    <p style="font-size:17px;color:#444;margin-bottom:0">
+      Démonstration — navigation par clic ou touche <kbd style="background:#1a1a1a;border:1px solid #333;padding:2px 8px;border-radius:4px;font-size:13px;color:#666">→</kbd>
+    </p>
+  </div>
+</div>
+
+<!-- 1 · IMPORT -->
+<div class="screen" id="s1">
+  <div class="card">
+    <div class="step-tag">Mode apprenant · Étape 1</div>
+    <h2>Importez votre document métier.</h2>
+    <div class="file-box">
+      <div class="file-icon">📄</div>
+      <div>
+        <div class="file-name">Procédure_accueil_client.pdf</div>
+        <div class="file-meta">24 pages · Protocoles internes · Version 2024</div>
+      </div>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="import-bar"></div></div>
+    <div class="prog-lbl" id="import-lbl">Analyse du document en cours…</div>
+    <div class="stat-row">
+      <div class="stat"><div class="val" id="stat-chunks">0</div><div class="lbl">passages extraits</div></div>
+      <div class="stat"><div class="val" id="stat-embed">0</div><div class="lbl">notions indexées</div></div>
+      <div class="stat"><div class="val" id="stat-ok" style="color:#555">—</div><div class="lbl">prêt à interroger</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 2 · QUESTION -->
+<div class="screen" id="s2">
+  <div class="card">
+    <div class="step-tag">Mode apprenant · Étape 2</div>
+    <h2>L'IA génère une question depuis votre document.</h2>
+    <div class="q-bubble" id="q-text"></div>
+    <div class="src-tag">
+      <span>↗</span> Extrait de&nbsp;: <strong style="color:#88aaff">Procédure_accueil_client.pdf</strong>&nbsp;— section 3.2
+    </div>
+  </div>
+</div>
+
+<!-- 3 · REPONSE -->
+<div class="screen" id="s3">
+  <div class="card">
+    <div class="step-tag">Mode apprenant · Étape 3</div>
+    <h2>L'apprenant répond avec ses propres mots.</h2>
+    <div class="avatar">
+      <div class="avatar-circle">👤</div>
+      <div class="avatar-info">
+        <div class="name">Sophie M.</div>
+        <div class="sub">Conseillère clientèle · J+3 de formation</div>
+      </div>
+    </div>
+    <div class="ans-bubble">
+      <span id="answer-text"></span><span class="cursor" id="cursor"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 4 · CORRECTION -->
+<div class="screen" id="s4">
+  <div class="card">
+    <div class="step-tag">Mode apprenant · Étape 4</div>
+    <h2>L'IA corrige, explique et planifie la révision.</h2>
+    <div class="score-block">
+      <div class="score-ring">
+        <div class="num">68<span style="font-size:13px">/100</span></div>
+        <div class="over">Score</div>
+      </div>
+      <div class="verdict">
+        <strong>Réponse partiellement correcte.</strong><br>
+        Vous avez bien identifié 2 étapes sur 3. L'étape manquante est la <strong>vérification de l'heure de rendez-vous</strong> avant de proposer un siège.<br>
+        Cette notion est souvent oubliée car elle n'est pas intuitive dans un accueil spontané.
+      </div>
+    </div>
+    <div class="tags">
+      <span class="tag ok">✓ Vérification d'identité</span>
+      <span class="tag ok">✓ Présentation des services</span>
+      <span class="tag ko">✗ Heure de rendez-vous</span>
+    </div>
+    <div class="rev-note">
+      📅 Révision planifiée dans <em>1 jour</em> — notion fragile détectée. La prochaine question sera adaptée.
+    </div>
+  </div>
+</div>
+
+<!-- 5 · MASTERY APPRENANT -->
+<div class="screen" id="s5">
+  <div class="card">
+    <div class="step-tag">Mode apprenant · Tableau de maîtrise</div>
+    <h2>Le système sait ce que Sophie maîtrise — et ce qu'elle doit retravailler.</h2>
+    <div class="mastery-list">
+      <div class="m-item">
+        <div class="m-dot" style="background:#30c060"></div>
+        <div class="m-label">Procédure de réclamation</div>
+        <div class="m-bar-w"><div class="m-bar" style="width:88%;background:#30c060"></div></div>
+        <span class="m-badge badge-ok">Maîtrisé</span>
+        <div class="m-rev">J+7</div>
+      </div>
+      <div class="m-item">
+        <div class="m-dot" style="background:#f0a030"></div>
+        <div class="m-label">Protocole d'accueil client</div>
+        <div class="m-bar-w"><div class="m-bar" style="width:52%;background:#f0a030"></div></div>
+        <span class="m-badge badge-ko">Fragile</span>
+        <div class="m-rev">Demain</div>
+      </div>
+      <div class="m-item">
+        <div class="m-dot" style="background:#30c060"></div>
+        <div class="m-label">Gestion des files d'attente</div>
+        <div class="m-bar-w"><div class="m-bar" style="width:75%;background:#30c060"></div></div>
+        <span class="m-badge badge-ok">Acquis</span>
+        <div class="m-rev">J+3</div>
+      </div>
+      <div class="m-item">
+        <div class="m-dot" style="background:#4f8ef7"></div>
+        <div class="m-label">Traitement des cas complexes</div>
+        <div class="m-bar-w"><div class="m-bar" style="width:22%;background:#4f8ef7"></div></div>
+        <span class="m-badge badge-new">En cours</span>
+        <div class="m-rev">J+1</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#333">La difficulté des prochaines questions s'adapte automatiquement à ce profil.</div>
+  </div>
+</div>
+
+<!-- 6 · MOTEUR ADAPTATIF -->
+<div class="screen" id="s6">
+  <div class="card wide">
+    <div class="step-tag">Mode apprenant · Moteur adaptatif</div>
+    <h2 style="margin-bottom:8px">Le système ne répète pas. Il s'adapte.</h2>
+    <p style="font-size:14px;color:#444;margin-bottom:28px">Même notion — 3 sessions — 3 approches différentes selon les erreurs détectées.</p>
+
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px">
+
+      <!-- Session 1 -->
+      <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e">
+        <div style="background:#1a1a1a;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #222">
+          <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Session 1</div>
+          <div style="font-size:22px;font-weight:700;color:#e05050">52%</div>
+        </div>
+        <div style="padding:16px 20px;flex:1">
+          <div style="font-size:13px;color:#e05050;font-weight:600;margin-bottom:6px">✗ Confusion de notion détectée</div>
+          <div style="font-size:14px;color:#888">"Quelles sont les 3 étapes obligatoires lors de l'accueil ?" <span style="color:#444">— Question procédurale directe</span></div>
+        </div>
+        <div style="background:#1a1a1a;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #222;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:11px;color:#555;margin-bottom:6px">Décision moteur</div>
+          <div style="font-size:13px;color:#f0a030">→ Reformulation narrative<br>→ Révision J+1</div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align:center;color:#333;font-size:18px">↓</div>
+
+      <!-- Session 2 -->
+      <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e">
+        <div style="background:#1a1a1a;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #222">
+          <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Session 2</div>
+          <div style="font-size:22px;font-weight:700;color:#f0a030">74%</div>
+        </div>
+        <div style="padding:16px 20px;flex:1">
+          <div style="font-size:13px;color:#f0a030;font-weight:600;margin-bottom:6px">⚠ Étape manquante sur 3</div>
+          <div style="font-size:14px;color:#888">"Un client arrive sans rendez-vous. Décrivez les 3 premières actions à faire." <span style="color:#444">— Cas pratique</span></div>
+        </div>
+        <div style="background:#1a1a1a;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #222;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:11px;color:#555;margin-bottom:6px">Décision moteur</div>
+          <div style="font-size:13px;color:#4f8ef7">→ Question de comparaison<br>→ Révision J+3</div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align:center;color:#333;font-size:18px">↓</div>
+
+      <!-- Session 3 -->
+      <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1a3a1a">
+        <div style="background:#141e14;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #1a3a1a">
+          <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Session 3</div>
+          <div style="font-size:22px;font-weight:700;color:#30c060">91%</div>
+        </div>
+        <div style="padding:16px 20px;flex:1">
+          <div style="font-size:13px;color:#30c060;font-weight:600;margin-bottom:6px">✓ Notion maîtrisée</div>
+          <div style="font-size:14px;color:#888">"En quoi l'accueil avec rendez-vous diffère-t-il de l'accueil spontané ?" <span style="color:#444">— Comparaison</span></div>
+        </div>
+        <div style="background:#141e14;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #1a3a1a;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:11px;color:#555;margin-bottom:6px">Décision moteur</div>
+          <div style="font-size:13px;color:#30c060">→ Notion validée ✓<br>→ Révision J+7</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:#191919;border-radius:10px;padding:14px 16px;text-align:center">
+        <div style="font-size:11px;color:#444;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Type d'erreur détecté</div>
+        <div style="font-size:15px;color:#ccc;font-weight:600">Confusion → Omission → Maîtrise</div>
+      </div>
+      <div style="flex:1;background:#191919;border-radius:10px;padding:14px 16px;text-align:center">
+        <div style="font-size:11px;color:#444;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Type de question adapté</div>
+        <div style="font-size:15px;color:#ccc;font-weight:600">Procédural → Cas pratique → Comparaison</div>
+      </div>
+      <div style="flex:1;background:#191919;border-radius:10px;padding:14px 16px;text-align:center">
+        <div style="font-size:11px;color:#444;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Résultat</div>
+        <div style="font-size:15px;color:#30c060;font-weight:700">+39 points en 3 sessions</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 7 · MODE FORMATEUR — intro -->
+<div class="screen" id="s7">
+  <div style="text-align:center">
+    <div style="font-size:11px;letter-spacing:3px;color:#30c060;text-transform:uppercase;margin-bottom:20px">Changement de perspective</div>
+    <h1 style="font-size:46px;font-weight:700;line-height:1.2;margin-bottom:16px">
+      Et du côté du <span style="color:#30c060">formateur</span> ?
+    </h1>
+    <p style="font-size:18px;color:#444;max-width:600px;margin:0 auto;line-height:1.7">
+      Le formateur n'attend pas les évaluations. Il voit en temps réel où chaque membre de son équipe accroche.
+    </p>
+  </div>
+</div>
+
+<!-- 7 · MODE FORMATEUR — dashboard équipe -->
+<div class="screen" id="s8">
+  <div class="card wide">
+    <div class="step-tag green">Mode formateur · Vue équipe</div>
+    <h2 style="margin-bottom:20px">Vous voyez les lacunes avant qu'elles deviennent des erreurs terrain.</h2>
+
+    <div class="team-grid">
+      <!-- Header -->
+      <div style="display:flex;gap:16px;padding:0 18px;font-size:11px;color:#333;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">
+        <div style="width:34px"></div>
+        <div style="width:130px">Prénom</div>
+        <div style="width:130px">Poste</div>
+        <div style="flex:1">Maîtrise globale</div>
+        <div style="min-width:38px;text-align:right">Score</div>
+        <div style="min-width:80px;text-align:right">Statut</div>
+      </div>
+
+      <div class="team-row">
+        <div class="team-avatar">👤</div>
+        <div class="team-name">Sophie M.</div>
+        <div class="team-role">Conseillère</div>
+        <div class="team-bars">
+          <div class="mini-bar-w"><div class="mini-bar" style="width:68%;background:#f0a030"></div></div>
+        </div>
+        <div class="team-score" style="color:#f0a030">68%</div>
+        <span class="team-alert alert-warn">À surveiller</span>
+      </div>
+
+      <div class="team-row">
+        <div class="team-avatar">👤</div>
+        <div class="team-name">Marc T.</div>
+        <div class="team-role">Conseiller</div>
+        <div class="team-bars">
+          <div class="mini-bar-w"><div class="mini-bar" style="width:42%;background:#e05050"></div></div>
+        </div>
+        <div class="team-score" style="color:#e05050">42%</div>
+        <span class="team-alert alert-red">Lacune critique</span>
+      </div>
+
+      <div class="team-row">
+        <div class="team-avatar">👤</div>
+        <div class="team-name">Léa F.</div>
+        <div class="team-role">Référente</div>
+        <div class="team-bars">
+          <div class="mini-bar-w"><div class="mini-bar" style="width:91%;background:#30c060"></div></div>
+        </div>
+        <div class="team-score" style="color:#30c060">91%</div>
+        <span class="team-alert alert-ok">Maîtrisé</span>
+      </div>
+
+      <div class="team-row">
+        <div class="team-avatar">👤</div>
+        <div class="team-name">Julien R.</div>
+        <div class="team-role">Conseiller</div>
+        <div class="team-bars">
+          <div class="mini-bar-w"><div class="mini-bar" style="width:55%;background:#f0a030"></div></div>
+        </div>
+        <div class="team-score" style="color:#f0a030">55%</div>
+        <span class="team-alert alert-warn">À surveiller</span>
+      </div>
+    </div>
+
+    <div class="insight-row">
+      <div class="insight red">
+        <div class="i-val">3 / 4</div>
+        <div class="i-lbl">membres ont une lacune sur <strong style="color:#ccc">Protocole d'accueil</strong></div>
+      </div>
+      <div class="insight orange">
+        <div class="i-val">Marc T.</div>
+        <div class="i-lbl">nécessite une session de rattrapage cette semaine</div>
+      </div>
+      <div class="insight green">
+        <div class="i-val">Léa F.</div>
+        <div class="i-lbl">peut servir de référente pour les cas complexes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9 · END -->
+<div class="screen" id="s9">
+  <div style="text-align:center">
+    <div style="font-size:12px;letter-spacing:4px;color:#4f8ef7;text-transform:uppercase;margin-bottom:22px">ADDISCO OPS</div>
+    <h1 style="font-size:46px;font-weight:700;line-height:1.2;margin-bottom:14px">
+      Le document devient<br>un <span style="color:#4f8ef7">moteur de compétences</span>.
+    </h1>
+    <p style="font-size:18px;color:#444;margin-bottom:44px">
+      Pas de QCM. Pas de PDF à relire. Une progression mesurée, adaptée, mémorisée.
+    </p>
+    <div class="end-stats">
+      <div class="end-stat"><div class="v">6</div><div class="l">types de questions</div></div>
+      <div class="end-stat"><div class="v">J+1/3/7</div><div class="l">révision espacée</div></div>
+      <div class="end-stat"><div class="v">93/100</div><div class="l">score de robustesse</div></div>
+      <div class="end-stat"><div class="v">2 vues</div><div class="l">apprenant + formateur</div></div>
+    </div>
+    <button id="restart-btn" onclick="restart()">↺ Recommencer</button>
+  </div>
+</div>
+
+<script>
+  const SCREENS = ['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+  const N = SCREENS.length;
+
+  // Which screens show mode badge
+  const MODES = {
+    s1:'apprenant', s2:'apprenant', s3:'apprenant', s4:'apprenant', s5:'apprenant', s6:'apprenant',
+    s7:'formateur', s8:'formateur'
+  };
+
+  let cur = 0;
+  let animDone = {};
+
+  // ── BUILD DOTS ──
+  const dotsEl = document.getElementById('dots');
+  for (let i = 0; i < N; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(d);
+  }
+
+  function updateDots() {
+    document.querySelectorAll('#dots .dot').forEach((d, i) => {
+      d.className = 'dot' + (i === cur ? ' active' : i < cur ? ' done' : '');
+    });
+  }
+
+  function updateNav() {
+    document.getElementById('nav-prev').style.display = cur === 0 ? 'none' : 'block';
+    const btn = document.getElementById('nav-next');
+    if (cur === N - 1) {
+      btn.textContent = '';
+      btn.style.display = 'none';
+    } else {
+      btn.style.display = 'block';
+      btn.textContent = cur === 0 ? 'Démarrer →' : (cur === N - 2 ? 'Terminer →' : 'Continuer →');
+    }
+  }
+
+  function updateBadge() {
+    const badge = document.getElementById('mode-badge');
+    const mode = MODES[SCREENS[cur]];
+    if (mode) {
+      badge.className = 'active ' + mode;
+      badge.textContent = mode === 'apprenant' ? '● Mode apprenant' : '● Mode formateur';
+    } else {
+      badge.className = '';
+      badge.textContent = '';
+    }
+  }
+
+  function showScreen(idx) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(SCREENS[idx]).classList.add('active');
+    updateDots();
+    updateNav();
+    updateBadge();
+    runAnim(SCREENS[idx]);
+  }
+
+  function go(dir) {
+    const next = cur + dir;
+    if (next < 0 || next >= N) return;
+    cur = next;
+    showScreen(cur);
+  }
+
+  // ── ANIMATIONS (run once per screen) ──
+  function runAnim(id) {
+    if (animDone[id]) return;
+    animDone[id] = true;
+
+    if (id === 's1') {
+      setTimeout(() => {
+        document.getElementById('import-bar').style.width = '100%';
+      }, 200);
+      countUp('stat-chunks', 127, 1800);
+      countUp('stat-embed', 127, 1800);
+      setTimeout(() => {
+        document.getElementById('import-lbl').textContent = '127 passages extraits — document prêt à interroger';
+        const ok = document.getElementById('stat-ok');
+        ok.textContent = '✓';
+        ok.style.color = '#30c060';
+      }, 2000);
+    }
+
+    if (id === 's2') {
+      typeText('q-text', "Quelles sont les 3 étapes obligatoires lors de l'accueil d'un client en agence, selon la section 3.2 de la procédure interne ?", 28);
+    }
+
+    if (id === 's3') {
+      const cursor = document.getElementById('cursor');
+      cursor.style.display = 'inline-block';
+      setTimeout(() => {
+        typeText('answer-text',
+          "Il faut d'abord vérifier l'identité du client, ensuite lui proposer un siège, et enfin lui présenter les services disponibles selon son besoin.",
+          30,
+          () => { cursor.style.display = 'none'; }
+        );
+      }, 700);
+    }
+  }
+
+  function typeText(id, text, speed, cb) {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    let i = 0;
+    const iv = setInterval(() => {
+      el.textContent += text[i];
+      i++;
+      if (i >= text.length) { clearInterval(iv); if (cb) cb(); }
+    }, speed);
+  }
+
+  function countUp(id, target, duration) {
+    const el = document.getElementById(id);
+    const step = target / (duration / 30);
+    let val = 0;
+    const iv = setInterval(() => {
+      val = Math.min(val + step, target);
+      el.textContent = Math.floor(val);
+      if (val >= target) clearInterval(iv);
+    }, 30);
+  }
+
+  function restart() {
+    cur = 0;
+    animDone = {};
+    document.getElementById('import-bar').style.transition = 'none';
+    document.getElementById('import-bar').style.width = '0%';
+    document.getElementById('import-lbl').textContent = 'Analyse du document en cours…';
+    document.getElementById('stat-chunks').textContent = '0';
+    document.getElementById('stat-embed').textContent = '0';
+    const ok = document.getElementById('stat-ok');
+    ok.textContent = '—'; ok.style.color = '#555';
+    document.getElementById('q-text').textContent = '';
+    document.getElementById('answer-text').textContent = '';
+    document.getElementById('cursor').style.display = 'inline-block';
+    setTimeout(() => { document.getElementById('import-bar').style.transition = 'width 1.8s ease'; }, 50);
+    showScreen(0);
+  }
+
+  // ── KEYBOARD ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowLeft') go(-1);
+  });
+
+  // Init
+  updateNav();
+</script>
+</body>
+</html>

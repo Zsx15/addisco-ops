@@ -1,7 +1,9 @@
 import os
 import sqlite3
+from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from logger import setup_logging
 
@@ -94,6 +96,19 @@ def _render_admin_bootstrap() -> None:
                 st.error(str(_e))
 
 
+def _render_demo_tab(btn_key: str = "demo_btn") -> None:
+    _demo_path = Path(__file__).parent / "docs" / "demo_automatique.html"
+    if _demo_path.exists():
+        components.html(_demo_path.read_text(encoding="utf-8"), height=620, scrolling=False)
+    else:
+        st.info("Fichier de démonstration introuvable.")
+    st.divider()
+    if st.button("Entrer dans l'application →", key=btn_key, type="primary"):
+        st.session_state["demo_active"] = True
+        st.session_state["user_id"]     = "default"
+        st.rerun()
+
+
 _demo_mode = _count_users() == 0
 _no_admin  = count_admins() == 0
 _is_authed = (
@@ -143,15 +158,7 @@ if not _is_authed:
                 _render_admin_bootstrap()
 
         with _tb_demo:
-            st.info(
-                "Aucun utilisateur enregistré.  \n"
-                "Créez un compte pour une session personnalisée, "
-                "ou continuez en mode démo (session partagée, user_id = default)."
-            )
-            if st.button("Continuer en mode démo", type="primary"):
-                st.session_state["demo_active"] = True
-                st.session_state["user_id"]     = "default"
-                st.rerun()
+            _render_demo_tab(btn_key="demo_btn_boot")
 
     else:
         # ── Users présents : login, inscription, mode démo ────────────────
@@ -210,14 +217,7 @@ if not _is_authed:
                 _render_admin_bootstrap()
 
         with _tb_demo:
-            st.info(
-                "Continuez sans créer de compte.  \n"
-                "Session partagée — données de démonstration disponibles."
-            )
-            if st.button("Continuer en mode démo", key="demo_btn_auth", type="primary"):
-                st.session_state["demo_active"] = True
-                st.session_state["user_id"]     = "default"
-                st.rerun()
+            _render_demo_tab(btn_key="demo_btn_auth")
 
     st.stop()
 

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADDISCO OPS — Pitch Investisseur</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f0f0f;
+    color: #f0f0f0;
+    overflow: hidden;
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slide {
+    display: none;
+    width: 900px;
+    min-height: 540px;
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 60px 72px;
+    border: 1px solid #2a2a2a;
+    position: relative;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .slide.active { display: flex; flex-direction: column; justify-content: center; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .slide-number {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    font-size: 13px;
+    color: #444;
+    letter-spacing: 1px;
+  }
+
+  .slide-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #4f8ef7;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .slide h1 {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffffff;
+    margin-bottom: 32px;
+  }
+
+  .slide h1 span { color: #4f8ef7; }
+
+  .quote {
+    background: #242424;
+    border-left: 3px solid #4f8ef7;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    font-size: 17px;
+    color: #ccc;
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .quote small { display: block; margin-top: 6px; font-size: 12px; color: #555; }
+
+  ul { list-style: none; margin-bottom: 28px; }
+
+  ul li {
+    padding: 10px 0 10px 20px;
+    border-bottom: 1px solid #222;
+    font-size: 16px;
+    color: #ccc;
+    line-height: 1.5;
+    position: relative;
+  }
+
+  ul li::before { content: "→"; position: absolute; left: 0; color: #4f8ef7; }
+
+  .highlight {
+    background: #1e2a3a;
+    border: 1px solid #2a4060;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 16px;
+    color: #88bbff;
+    margin-top: 12px;
+  }
+
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .step {
+    background: #242424;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #ccc;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .arrow { color: #4f8ef7; font-size: 18px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: #242424;
+    border-radius: 10px;
+    padding: 16px 20px;
+    border: 1px solid #2a2a2a;
+  }
+
+  .card .label { font-size: 12px; color: #666; margin-bottom: 6px; letter-spacing: 0.5px; }
+  .card .value { font-size: 22px; font-weight: 700; color: #4f8ef7; }
+  .card .sub { font-size: 12px; color: #555; margin-top: 2px; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  th { text-align: left; padding: 10px 14px; font-size: 12px; color: #555; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid #2a2a2a; }
+  td { padding: 12px 14px; font-size: 15px; color: #ccc; border-bottom: 1px solid #1e1e1e; }
+  td:last-child { color: #88bbff; font-weight: 600; }
+
+  .roadmap-row { display: flex; gap: 10px; margin-bottom: 24px; }
+  .quarter {
+    flex: 1;
+    background: #242424;
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid #2a2a2a;
+    text-align: center;
+  }
+  .quarter .q { font-size: 13px; font-weight: 700; color: #4f8ef7; margin-bottom: 6px; }
+  .quarter .desc { font-size: 12px; color: #888; line-height: 1.4; }
+
+  .ask {
+    background: linear-gradient(135deg, #1a2a4a, #1a1a2a);
+    border: 1px solid #2a4060;
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: #4f8ef7;
+  }
+
+  .ask span { color: #fff; }
+
+  .nav {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav button {
+    background: #242424;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .nav button:hover { background: #2e2e2e; color: #fff; }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+
+  .dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #333;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+
+  .dot.active { background: #4f8ef7; }
+
+  .footer {
+    position: absolute;
+    bottom: 24px;
+    left: 72px;
+    font-size: 12px;
+    color: #333;
+  }
+
+  .demo-steps { counter-reset: step; }
+  .demo-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #222;
+  }
+  .demo-step .num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #4f8ef7;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .demo-step .text { font-size: 15px; color: #ccc; line-height: 1.5; padding-top: 3px; }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1 -->
+  <div class="slide active" id="s1">
+    <span class="slide-number">01 / 05</span>
+    <div class="slide-tag">Le problème</div>
+    <h1>La formation mesure la <span>conformité</span>,<br>pas la compétence.</h1>
+    <div class="quote">
+      70% des connaissances acquises en formation sont oubliées dans les 24 heures.
+      <small>Courbe d'Ebbinghaus — principe validé en sciences cognitives</small>
+    </div>
+    <ul>
+      <li>Les entreprises forment avec des PDFs, des QCMs, des e-learnings statiques.</li>
+      <li>L'évaluation mesure "a-t-il lu ?" — pas "sait-il faire ?".</li>
+      <li>Un agent validé en formation peut être en échec face à une situation réelle.</li>
+    </ul>
+    <div class="highlight">Ce qui manque : un système qui s'adapte à ce que l'apprenant <strong>ne maîtrise pas encore</strong>.</div>
+    <div class="footer">ADDISCO OPS · marcelino.guilhem@gmail.com</div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide" id="s2">
+    <span class="slide-number">02 / 05</span>
+    <div class="slide-tag">La solution</div>
+    <h1>Un moteur pédagogique adaptatif<br>sur vos <span>documents métier</span>.</h1>
+    <div class="pipeline">
+      <div class="step">Document métier</div>
+      <div class="arrow">→</div>
+      <div class="step">Découpage RAG</div>
+      <div class="arrow">→</div>
+      <div class="step">Question contextualisée</div>
+      <div class="arrow">→</div>
+      <div class="step">Correction IA</div>
+      <div class="arrow">→</div>
+      <div class="step">Maîtrise adaptative</div>
+    </div>
+    <ul>
+      <li>6 types de questions — définition, procédure, cas pratique, comparaison, exception, synthèse</li>
+      <li>Diagnostic d'erreur — oubli, confusion, imprécision, hors-sujet</li>
+      <li>Révision espacée automatique — J+1 · J+3 · J+7</li>
+    </ul>
+    <div class="highlight"><strong>L'utilisateur importe son document. Il répond. Il progresse.</strong></div>
+    <div class="footer">ADDISCO OPS · marcelino.guilhem@gmail.com</div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide" id="s3">
+    <span class="slide-number">03 / 05</span>
+    <div class="slide-tag">La démonstration</div>
+    <h1>Le système en production —<br><span>démonstration live</span>.</h1>
+    <div class="demo-steps">
+      <div class="demo-step"><div class="num">1</div><div class="text">Import d'un document métier réel (procédure, réglementation)</div></div>
+      <div class="demo-step"><div class="num">2</div><div class="text">Génération automatique d'une question contextualisée</div></div>
+      <div class="demo-step"><div class="num">3</div><div class="text">Réponse de l'apprenant → correction IA avec explication détaillée</div></div>
+      <div class="demo-step"><div class="num">4</div><div class="text">Dashboard de maîtrise : score, notions fragiles, prochaine révision</div></div>
+    </div>
+    <div class="quote" style="margin-top:24px; font-style:italic;">
+      "Ce n'est pas ChatGPT. C'est un système pédagogique construit autour de votre document."
+    </div>
+    <div class="footer">ADDISCO OPS · marcelino.guilhem@gmail.com</div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide" id="s4">
+    <span class="slide-number">04 / 04</span>
+    <div class="slide-tag">Les chiffres</div>
+    <h1>Validé, en production,<br><span>prêt à scaler</span>.</h1>
+    <div class="grid">
+      <div class="card"><div class="label">Tests automatisés</div><div class="value">262 / 262</div><div class="sub">100% OK</div></div>
+      <div class="card"><div class="label">Score de robustesse</div><div class="value">93 / 100</div><div class="sub">500 sessions simulées</div></div>
+      <div class="card"><div class="label">Crash rate</div><div class="value">0%</div><div class="sub">Fallback involontaire : 0%</div></div>
+      <div class="card"><div class="label">Phases de développement</div><div class="value">20</div><div class="sub">6 seuils moteur calibrés</div></div>
+    </div>
+    <div class="highlight">Stack : Python · Streamlit · SQLite · OpenAI Embeddings · RAG · Railway (production)</div>
+    <div class="footer">ADDISCO OPS · marcelino.guilhem@gmail.com</div>
+  </div>
+
+
+</div>
+
+<!-- Navigation -->
+<nav class="nav">
+  <button id="prev" onclick="go(-1)" disabled>← Précédent</button>
+  <div class="dots">
+    <div class="dot active" onclick="goTo(0)"></div>
+    <div class="dot" onclick="goTo(1)"></div>
+    <div class="dot" onclick="goTo(2)"></div>
+    <div class="dot" onclick="goTo(3)"></div>
+  </div>
+  <button id="next" onclick="go(1)">Suivant →</button>
+</nav>
+
+<script>
+  let cur = 0;
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.dot');
+
+  function goTo(n) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = n;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+  }
+
+  function go(dir) { goTo(cur + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' && cur < slides.length - 1) go(1);
+    if (e.key === 'ArrowLeft' && cur > 0) go(-1);
+  });
+</script>
+</body>
+</html>
