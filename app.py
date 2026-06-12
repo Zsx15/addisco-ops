@@ -99,7 +99,7 @@ def _render_admin_bootstrap() -> None:
 def _render_demo_tab(btn_key: str = "demo_btn") -> None:
     _demo_path = Path(__file__).parent / "docs" / "demo_automatique.html"
     if _demo_path.exists():
-        components.html(_demo_path.read_text(encoding="utf-8"), height=620, scrolling=False)
+        components.html(_demo_path.read_text(encoding="utf-8"), height=700, scrolling=True)
     else:
         st.info("Fichier de démonstration introuvable.")
     st.divider()

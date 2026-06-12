@@ -308,6 +308,113 @@
     transition: all 0.2s;
   }
   #restart-btn:hover { border-color: #4f8ef7; color: #4f8ef7; }
+
+  /* ═══════════════════════════════════════════
+     RESPONSIVE — TABLET ≤ 768px
+  ═══════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .card { padding: 32px 28px; }
+    .card.wide { width: 100%; padding: 32px 28px; }
+    .insight-row { flex-direction: column; gap: 8px; }
+    .end-stats { flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 28px; }
+    .team-role { display: none; }
+    .session-decision { display: none; }
+    .s6-summary { flex-wrap: wrap; gap: 8px; }
+    .s6-summary > div { flex: none !important; min-width: 45%; }
+  }
+
+  /* ═══════════════════════════════════════════
+     RESPONSIVE — MOBILE ≤ 520px
+  ═══════════════════════════════════════════ */
+  @media (max-width: 520px) {
+    .screen {
+      padding: 50px 14px 68px;
+      justify-content: flex-start;
+      overflow-y: auto;
+    }
+
+    /* Dots & badge */
+    #dots { top: 12px; gap: 5px; }
+    .dot { width: 5px; height: 5px; }
+    #mode-badge { top: 10px; right: 10px; font-size: 9px; padding: 3px 8px; letter-spacing: 1px; }
+
+    /* Nav */
+    #nav-prev { left: 10px; bottom: 12px; padding: 9px 14px; font-size: 12px; }
+    #nav-next { right: 10px; bottom: 12px; padding: 10px 18px; font-size: 13px; }
+
+    /* Hero screens */
+    #s0 h1 { font-size: 26px !important; line-height: 1.25 !important; margin-bottom: 12px !important; }
+    #s7 h1 { font-size: 26px !important; }
+    #s9 h1 { font-size: 24px !important; line-height: 1.25 !important; }
+
+    /* Cards */
+    .card, .card.wide { padding: 18px 14px; }
+    .card h2 { font-size: 16px; margin-bottom: 12px; }
+
+    /* Import */
+    .file-box { padding: 14px 14px; gap: 10px; margin-bottom: 16px; }
+    .file-icon { width: 38px; height: 44px; font-size: 17px; }
+    .file-name { font-size: 13px; }
+    .file-meta { font-size: 11px; }
+    .stat-row { gap: 6px; margin-top: 12px; }
+    .stat { padding: 10px; }
+    .stat .val { font-size: 18px; }
+    .stat .lbl { font-size: 10px; }
+
+    /* Question + réponse */
+    .q-bubble { font-size: 14px; line-height: 1.6; padding: 14px 14px; min-height: auto; margin-bottom: 12px; }
+    .src-tag { font-size: 11px; padding: 5px 10px; }
+    .ans-bubble { font-size: 14px; padding: 14px 14px; min-height: auto; }
+    .avatar { margin-bottom: 12px; gap: 10px; }
+
+    /* Correction */
+    .score-block { flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .score-ring { width: 66px; height: 66px; }
+    .score-ring .num { font-size: 19px; }
+    .verdict { font-size: 13px; line-height: 1.6; }
+    .tags { gap: 6px; margin-top: 10px; }
+    .tag { font-size: 10px; padding: 4px 8px; }
+    .rev-note { padding: 10px 12px; font-size: 11px; margin-top: 12px; }
+
+    /* Mastery */
+    .mastery-list { gap: 7px; margin-bottom: 10px; }
+    .m-item { padding: 9px 12px; gap: 8px; }
+    .m-label { font-size: 12px; }
+    .m-bar-w { width: 48px; }
+    .m-rev { display: none; }
+    .m-badge { font-size: 10px; padding: 2px 8px; }
+    .m-dot { width: 7px; height: 7px; }
+
+    /* Adaptive engine s6 */
+    .session-score { width: 60px !important; padding: 10px 8px !important; }
+    .session-score > div:first-child { font-size: 9px !important; }
+    .session-score > div:last-child { font-size: 17px !important; }
+    .session-body { padding: 10px 12px !important; }
+    .session-body > div:first-child { font-size: 11px !important; }
+    .session-body > div:last-child { font-size: 12px !important; }
+    .session-decision { display: none !important; }
+    .s6-summary { flex-direction: column !important; gap: 8px !important; }
+    .s6-summary > div { min-width: 100% !important; }
+
+    /* Team grid s8 */
+    .team-header { display: none; }
+    .team-row { padding: 9px 12px !important; gap: 8px !important; }
+    .team-avatar { width: 28px !important; height: 28px !important; font-size: 11px !important; }
+    .team-name { width: 70px !important; font-size: 12px !important; }
+    .team-role { display: none !important; }
+    .team-score { min-width: 28px !important; font-size: 11px !important; }
+    .team-alert { font-size: 10px !important; padding: 2px 7px !important; }
+    .insight-row { flex-direction: column; gap: 7px; }
+    .insight { padding: 10px 12px; }
+    .insight .i-val { font-size: 18px; }
+    .insight .i-lbl { font-size: 11px; }
+
+    /* End screen */
+    .end-stats { flex-wrap: wrap; gap: 8px; margin-bottom: 24px; justify-content: center; }
+    .end-stat { padding: 12px 14px; min-width: calc(50% - 8px); flex: none; }
+    .end-stat .v { font-size: 22px; }
+    .end-stat .l { font-size: 11px; }
+  }
 </style>
 </head>
 <body>
@@ -467,16 +574,16 @@
     <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px">
 
       <!-- Session 1 -->
-      <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e">
-        <div style="background:#1a1a1a;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #222">
+      <div class="session-row" style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e">
+        <div class="session-score" style="background:#1a1a1a;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #222">
           <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Session 1</div>
           <div style="font-size:22px;font-weight:700;color:#e05050">52%</div>
         </div>
-        <div style="padding:16px 20px;flex:1">
+        <div class="session-body" style="padding:16px 20px;flex:1">
           <div style="font-size:13px;color:#e05050;font-weight:600;margin-bottom:6px">✗ Confusion de notion détectée</div>
           <div style="font-size:14px;color:#888">"Quelles sont les 3 étapes obligatoires lors de l'accueil ?" <span style="color:#444">— Question procédurale directe</span></div>
         </div>
-        <div style="background:#1a1a1a;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #222;display:flex;flex-direction:column;justify-content:center">
+        <div class="session-decision" style="background:#1a1a1a;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #222;display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:11px;color:#555;margin-bottom:6px">Décision moteur</div>
           <div style="font-size:13px;color:#f0a030">→ Reformulation narrative<br>→ Révision J+1</div>
         </div>
@@ -486,16 +593,16 @@
       <div style="text-align:center;color:#333;font-size:18px">↓</div>
 
       <!-- Session 2 -->
-      <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e">
-        <div style="background:#1a1a1a;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #222">
+      <div class="session-row" style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e">
+        <div class="session-score" style="background:#1a1a1a;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #222">
           <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Session 2</div>
           <div style="font-size:22px;font-weight:700;color:#f0a030">74%</div>
         </div>
-        <div style="padding:16px 20px;flex:1">
+        <div class="session-body" style="padding:16px 20px;flex:1">
           <div style="font-size:13px;color:#f0a030;font-weight:600;margin-bottom:6px">⚠ Étape manquante sur 3</div>
           <div style="font-size:14px;color:#888">"Un client arrive sans rendez-vous. Décrivez les 3 premières actions à faire." <span style="color:#444">— Cas pratique</span></div>
         </div>
-        <div style="background:#1a1a1a;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #222;display:flex;flex-direction:column;justify-content:center">
+        <div class="session-decision" style="background:#1a1a1a;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #222;display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:11px;color:#555;margin-bottom:6px">Décision moteur</div>
           <div style="font-size:13px;color:#4f8ef7">→ Question de comparaison<br>→ Révision J+3</div>
         </div>
@@ -505,16 +612,16 @@
       <div style="text-align:center;color:#333;font-size:18px">↓</div>
 
       <!-- Session 3 -->
-      <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1a3a1a">
-        <div style="background:#141e14;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #1a3a1a">
+      <div class="session-row" style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid #1a3a1a">
+        <div class="session-score" style="background:#141e14;padding:16px 20px;width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #1a3a1a">
           <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Session 3</div>
           <div style="font-size:22px;font-weight:700;color:#30c060">91%</div>
         </div>
-        <div style="padding:16px 20px;flex:1">
+        <div class="session-body" style="padding:16px 20px;flex:1">
           <div style="font-size:13px;color:#30c060;font-weight:600;margin-bottom:6px">✓ Notion maîtrisée</div>
           <div style="font-size:14px;color:#888">"En quoi l'accueil avec rendez-vous diffère-t-il de l'accueil spontané ?" <span style="color:#444">— Comparaison</span></div>
         </div>
-        <div style="background:#141e14;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #1a3a1a;display:flex;flex-direction:column;justify-content:center">
+        <div class="session-decision" style="background:#141e14;padding:16px 20px;width:200px;flex-shrink:0;border-left:1px solid #1a3a1a;display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:11px;color:#555;margin-bottom:6px">Décision moteur</div>
           <div style="font-size:13px;color:#30c060">→ Notion validée ✓<br>→ Révision J+7</div>
         </div>
@@ -522,7 +629,7 @@
 
     </div>
 
-    <div style="display:flex;gap:12px">
+    <div class="s6-summary" style="display:flex;gap:12px">
       <div style="flex:1;background:#191919;border-radius:10px;padding:14px 16px;text-align:center">
         <div style="font-size:11px;color:#444;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Type d'erreur détecté</div>
         <div style="font-size:15px;color:#ccc;font-weight:600">Confusion → Omission → Maîtrise</div>
@@ -560,7 +667,7 @@
 
     <div class="team-grid">
       <!-- Header -->
-      <div style="display:flex;gap:16px;padding:0 18px;font-size:11px;color:#333;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">
+      <div class="team-header" style="display:flex;gap:16px;padding:0 18px;font-size:11px;color:#333;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">
         <div style="width:34px"></div>
         <div style="width:130px">Prénom</div>
         <div style="width:130px">Poste</div>
