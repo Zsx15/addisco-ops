@@ -86,14 +86,18 @@ hr {
 
 RESPONSIVE_CSS = """
 <style>
-/* ── Tablette (≤ 900px) ── */
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — Tablette ≤ 900px
+══════════════════════════════════════════════════ */
 @media (max-width: 900px) {
     .main .block-container {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        max-width: 100% !important;
     }
     [data-testid="stHorizontalBlock"] {
         flex-wrap: wrap !important;
+        gap: 8px !important;
     }
     [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
         min-width: calc(50% - 8px) !important;
@@ -105,12 +109,127 @@ RESPONSIVE_CSS = """
     [data-testid="stMetricValue"] > div {
         font-size: 1.3rem !important;
     }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 12px !important;
+        padding: 5px 10px !important;
+    }
 }
-/* ── Mobile (≤ 600px) ── */
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — Mobile ≤ 600px
+══════════════════════════════════════════════════ */
 @media (max-width: 600px) {
+
+    /* ── Conteneur principal ── */
+    .main .block-container {
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+        padding-top: 0.5rem !important;
+        max-width: 100% !important;
+    }
+
+    /* ── Colonnes : tout empilé ── */
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
     [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
         min-width: 100% !important;
         flex: 0 0 100% !important;
+        width: 100% !important;
+    }
+
+    /* ── Onglets : scroll horizontal ── */
+    .stTabs [data-baseweb="tab-list"] {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        gap: 0 !important;
+    }
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+        display: none !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 11px !important;
+        padding: 6px 8px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        min-height: 36px !important;
+    }
+
+    /* ── Header app ── */
+    .main .block-container h1,
+    .main .block-container h2 {
+        font-size: 1.3rem !important;
+    }
+
+    /* ── Métriques ── */
+    [data-testid="stMetricValue"] > div {
+        font-size: 1.1rem !important;
+    }
+    [data-testid="stMetricLabel"] > div {
+        font-size: 0.6rem !important;
+    }
+
+    /* ── Inputs : taille 16px min pour éviter le zoom iOS ── */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+
+    /* ── Boutons : touch target suffisant ── */
+    .stButton > button {
+        min-height: 44px !important;
+        font-size: 14px !important;
+        width: 100% !important;
+    }
+    .stFormSubmitButton > button {
+        min-height: 44px !important;
+        font-size: 14px !important;
+        width: 100% !important;
+    }
+
+    /* ── Sidebar : réduite ── */
+    section[data-testid="stSidebar"] > div:first-child {
+        padding-top: 0.5rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    /* ── Alertes ── */
+    [data-testid="stAlert"] {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 13px !important;
+    }
+
+    /* ── Expander ── */
+    [data-testid="stExpander"] summary {
+        font-size: 13px !important;
+        padding: 8px 10px !important;
+    }
+
+    /* ── Selectbox ── */
+    [data-baseweb="select"] {
+        font-size: 16px !important;
+    }
+
+    /* ── Dividers ── */
+    hr {
+        margin-top: 0.4rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    /* ── Header ADDISCO OPS ── */
+    .addisco-header-title {
+        font-size: 16px !important;
+    }
+    .addisco-header-sub {
+        font-size: 10px !important;
     }
 }
 </style>
@@ -291,10 +410,10 @@ APP_HEADER = """
     <div style="width:4px;min-height:40px;background:#4f46e5;border-radius:3px;flex-shrink:0;margin-top:2px"></div>
     <div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px">
-        <span style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;line-height:1">ADDISCO OPS</span>
-        <span style="font-size:10px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.1em;background:#eef2ff;padding:2px 9px;border-radius:20px;border:1px solid #c7d2fe;white-space:nowrap">Adaptive Learning Intelligence</span>
+        <span class="addisco-header-title" style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;line-height:1">ADDISCO OPS</span>
+        <span class="addisco-header-badge" style="font-size:10px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.1em;background:#eef2ff;padding:2px 9px;border-radius:20px;border:1px solid #c7d2fe;white-space:nowrap">Adaptive Learning Intelligence</span>
       </div>
-      <div style="font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px">
+      <div class="addisco-header-sub" style="font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px">
         RAG documentaire &middot; R&eacute;p&eacute;tition espac&eacute;e &middot; Adaptation cognitive
       </div>
     </div>
